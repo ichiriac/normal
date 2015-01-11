@@ -4,7 +4,7 @@
   "description": "Node Object Relational Mapper (Abstraction Layer)",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node node_modules/istanbul/lib/cli.js cover node_modules/mocha/bin/_mocha  -- -R spec -t 1000"
   },
   "repository": {
     "type": "git",
@@ -21,7 +21,7 @@
   },
   "homepage": "https://github.com/ichiriac/normal",
   "dependencies": {
-    "escuelle": "0.0.2"
+    "escuelle": "~0.0.2"
   },
   "devDependencies": {
     "istanbul": "^0.3.5",

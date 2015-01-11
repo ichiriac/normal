@@ -2,9 +2,9 @@
  * Main api
  */
 
-module.Model = require('./lib/model');
-module.Entity = require('./lib/record');
-module.Session = require('./lib/session');
-module.create = function(db, config) {
+module.exports.Model = require('./lib/model');
+module.exports.Entity = require('./lib/record');
+module.exports.Session = require('./lib/session');
+module.exports.create = function(db, config) {
   return new this.Session(db, config, this.Model, this.Entity);
 };
