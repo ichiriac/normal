@@ -22,7 +22,14 @@ describe('simple tests', function() {
         }
       }
     });
-    
+    // override default class
+    session.declare(
+      'users', {
+        __construct: function() {
+          this.foo = 'bar';
+        }
+      }
+    );
     // Check configuration
     assert(session.db === null);
     assert(session instanceof lib.Session);
@@ -30,10 +37,11 @@ describe('simple tests', function() {
     // Check the default values are OK
     assert(session.baseModel === lib.Model);
     assert(session.baseEntity === lib.Entity);
-    
+
     // test the mapper
     var users = session.get('users');
     assert(users instanceof lib.Model);
+    assert(users.foo === 'bar');
     var john = users.create({
       name: 'john'
     });
