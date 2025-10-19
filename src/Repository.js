@@ -208,9 +208,13 @@ class Repository {
     const result = [];
     const seen = new Set();
     for (const a of collections) {
+      // If the join name corresponds to a registered model, it's likely a one-to-many via FK, not a m2m join table.
+      if (this.meta[a.join]) continue;
       if (seen.has(a.join)) continue;
       const b = collections.find((x) => x.join === a.join && x !== a);
       if (!b) continue;
+      // Also skip if the join name matches any registered table to avoid clobbering real tables.
+      if (Object.values(this.meta).some((m) => m.table === a.join)) continue;
       seen.add(a.join);
       result.push({
         name: a.join,
@@ -333,6 +337,7 @@ class Repository {
     targetTable
   ) {
     const kx = this.knex.instance || this.knex;
+    const repo = this;
     return {
       async add(entityOrId) {
         const targetId =
@@ -357,7 +362,7 @@ class Repository {
           .where(`${joinTable}.${leftCol}`, ownerId)
           .select(`${targetTable}.*`);
         // Wrap in their model class if registered
-        const targetModel = Object.values(this.meta).find(
+        const targetModel = Object.values(repo.meta).find(
           (m) => m.table === targetTable
         )?.cls;
         return rows.map((r) =>
