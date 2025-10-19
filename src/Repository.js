@@ -1,5 +1,7 @@
 "use strict";
 
+const Model = require("./Model.js").Model;
+
 /**
  * Repository: registers model definitions and exposes CRUD over Knex.
  *
@@ -35,7 +37,7 @@ class Repository {
 
   /** Register a model class or an extension class */
   register(modelModule) {
-    const ModelClass = modelModule?.default || modelModule;
+    let ModelClass = modelModule?.default || modelModule;
     if (typeof ModelClass !== "function") {
       const result = {};
       for (let k of Object.keys(modelModule || {})) {
@@ -47,22 +49,13 @@ class Repository {
     const name = ModelClass.name || ModelClass?.name;
     if (!name) throw new Error("Model class must have a name");
 
+    if (this.models[name]) {
+      // Extend existing model registration
+      this.models[name].extends(ModelClass, ModelClass.fields || {});
+      return this.models[name];
+    }
     const table = ModelClass.table || this._inferTable(name);
-    const fields = {
-      ...(this.meta[name]?.fields || {}),
-      ...(ModelClass.fields || {}),
-    };
-
-    // Merge/extend existing model registration
-    const meta = (this.meta[name] = {
-      name,
-      table,
-      fields,
-      cls: ModelClass,
-    });
-
-    // Build model handle API bound to knex
-    this.models[name] = this._buildModelHandle(meta);
+    this.models[name] = new Model(this, name, table, ModelClass.fields || {}, ModelClass);
     return this.models[name];
   }
 
@@ -126,8 +119,27 @@ class Repository {
         const { cls } = this.meta[name];
         txRepo.register(cls);
       }
-      return await work(txRepo);
+      try {
+        await work(txRepo);
+        await txRepo.flush();
+        await trx.commit();
+      } catch(e) {
+        await trx.rollback();
+        throw e;
+      }
     }, config);
+  }
+
+  /**
+   * Flush all changes into the database.
+   * @returns 
+   */
+  async flush() {
+    for (const name of Object.keys(this.models)) {
+      const model = this.models[name];
+      await model.flush();
+    }
+    return this;
   }
 
   // --------------------- internals ---------------------

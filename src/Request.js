@@ -1,0 +1,105 @@
+'use strict';
+
+const RESULT_METHODS = new Set(['select']);
+
+class Request {
+    constructor(model, queryBuilder) {
+        this.model = model;
+        this.queryBuilder = queryBuilder;
+
+        return new Proxy(this, {
+            get: (target, prop, receiver) => {
+                if (prop === 'model' || prop === 'queryBuilder') {
+                    return target[prop];
+                }
+
+                if (prop in target) {
+                    return Reflect.get(target, prop, receiver);
+                }
+
+                const value = target.queryBuilder[prop];
+
+                if (typeof value === 'function') {
+                    return (...args) => {
+                        const result = value.apply(target.queryBuilder, args);
+                        if (result === target.queryBuilder) {
+                            return receiver;
+                        }
+                        return result;
+                    };
+                }
+
+                return value;
+            },
+        });
+    }
+
+    async first(...args) {
+        const row = await this.queryBuilder.first(...args);
+        return row ? this.model.allocate(row) : null;
+    }
+
+    then(onFulfilled, onRejected) {
+        const wrap = this._shouldWrapResults();
+        return this.queryBuilder.then(
+            (value) => {
+                const wrapped = wrap ? this._wrapResult(value) : value;
+                return onFulfilled ? onFulfilled(wrapped) : wrapped;
+            },
+            onRejected
+        );
+    }
+
+    catch(onRejected) {
+        return this.then(null, onRejected);
+    }
+
+    finally(onFinally) {
+        return this.queryBuilder.finally(onFinally);
+    }
+
+    toString() {
+        return this.queryBuilder.toString();
+    }
+
+    toSQL(...args) {
+        return this.queryBuilder.toSQL(...args);
+    }
+
+    _shouldWrapResults() {
+        const method = this.queryBuilder && this.queryBuilder._method;
+        if (!method) return true;
+        if (RESULT_METHODS.has(method)) return true;
+        return false;
+    }
+
+    _wrapResult(value) {
+        const wrapRow = (row) => {
+            if (!this._isWrappableRow(row)) {
+                return row;
+            }
+            return this.model.allocate(row);
+        };
+
+        if (Array.isArray(value)) {
+            return value.map(wrapRow);
+        }
+        return wrapRow(value);
+    }
+
+    _isWrappableRow(row) {
+        if (!row || typeof row !== 'object' || Array.isArray(row)) {
+            return false;
+        }
+        if (this.model && this.model.cls && row instanceof this.model.cls) {
+            return false;
+        }
+        const fields = Object.keys(this.model?.fields || {});
+        if (fields.length === 0) {
+            return true;
+        }
+        return fields.some((field) => Object.prototype.hasOwnProperty.call(row, field));
+    }
+}
+
+module.exports = { Request };

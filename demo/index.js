@@ -7,8 +7,9 @@ const db = new Norm.Connection({
 });
 const repo = new Norm.Repository(db);
 const models = require("./models/index");
+const UserExtension = require("./extend/Users")
 repo.register(models);
-repo.register(require("./extend/Users"));
+repo.register(UserExtension);
 
 // Initialize the database and sync the models
 async function demo() {
