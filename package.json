@@ -1,31 +1,19 @@
 {
-  "name": "normaljs",
-  "version": "0.0.1",
-  "description": "Node Object Relational Mapper (Abstraction Layer)",
+  "name": "normal",
+  "version": "1.0.0",
+  "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node node_modules/istanbul/lib/cli.js cover node_modules/mocha/bin/_mocha  -- -R spec -t 1000"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ichiriac/normal.git"
-  },
-  "keywords": [
-    "orm",
-    "mysql"
-  ],
-  "author": "Ioan CHIRIAC",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/ichiriac/normal/issues"
-  },
-  "homepage": "https://github.com/ichiriac/normal",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "escuelle": "~0.0.2"
+    "knex": "^3.1.0",
+    "pg": "^8.13.0"
   },
   "devDependencies": {
-    "istanbul": "^0.3.5",
-    "mocha": "^2.1.0",
-    "coveralls": "^2.11.2"
+    "sqlite3": "^5.1.7"
   }
 }
