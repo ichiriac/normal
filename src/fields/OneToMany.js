@@ -11,8 +11,8 @@ class OneToMany extends Field {
             throw new Error(`OneToMany field "${name}" requires a "foreign" definition`);
         }
         const [refModelName, refFieldName] = this.definition.foreign.split('.');
-        this.definition.refModel = model.repo.get(refModelName);
-        this.definition.refField = refFieldName;
+        this.refModel = model.repo.get(refModelName);
+        this.refField = refFieldName;
     }
 
     serialize(record) {

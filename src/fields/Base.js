@@ -13,6 +13,9 @@ class Field {
         if (typeof definition === 'string') {
             definition = { type: definition };
         }
+        if (definition instanceof Field) {
+            definition = definition.definition; 
+        }
         const fieldType = definition.type ? definition.type.toLowerCase() : null;
         if (fieldType && Field.behaviors.hasOwnProperty(fieldType)) {
             const BehaviorClass = Field.behaviors[fieldType];
@@ -32,6 +35,7 @@ class Field {
         this.model = model;
         this.name = name;
         this.definition = definition;
+        Object.freeze(this.definition);
     }
 
     /**
@@ -46,7 +50,9 @@ class Field {
             },
             set: function(value) {
                 self.write(this, value);
-            }
+            },
+            configurable: true,
+            enumerable: true
         });
         cls.fields = cls.fields || {};
         cls.fields[this.name] = this;

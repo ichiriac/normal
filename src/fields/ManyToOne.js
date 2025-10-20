@@ -12,7 +12,7 @@ class ManyToOne extends Field {
         if (!definition.model) {
             throw new Error(`ManyToOne field '${name}' requires a 'model' definition`);
         }
-        this.definition.refModel = model.repo.get(definition.model);
+        this.refModel = model.repo.get(definition.model);
     }
 
     write(record, value) {
@@ -28,7 +28,7 @@ class ManyToOne extends Field {
         if (value === null || value === undefined) {
             return null;
         }
-        return this.definition.refModel.allocate({ id: value });
+        return this.refModel.allocate({ id: value });
     }
 
     serialize(record) {
@@ -45,7 +45,7 @@ class ManyToOne extends Field {
 
     onIndex(table) {
         const col = table.integer(this.name).unsigned().references('id').inTable(
-            this.definition.refModel.table
+            this.refModel.table
         );
         if (this.definition.required) {
             col.notNullable();

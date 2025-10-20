@@ -1,6 +1,7 @@
 "use strict";
 
 const { Model } = require('./Model');
+const { Field } = require('./Fields');
 
 
 /**
@@ -93,20 +94,17 @@ class Repository {
   async transaction(work, config) {
     if (!config) config = {};
     if (!config.isolationLevel) {
-      config.isolationLevel = 'read committed';
+      if (this.connection.config.client !== 'sqlite3') {
+          config.isolationLevel = 'read committed';
+      }
     }
     return await this.cnx.transaction(async (trx) => {
       const txRepo = new Repository({ instance: trx });
       // Re-register models with the same metadata
       for (const name of Object.keys(this.models)) {
         const model = this.models[name];
-        txRepo.models[name] = Object.create(Object.getPrototypeOf(model));
-        txRepo.models[name].repo = txRepo;
-        txRepo.models[name].name = model.name;
-        txRepo.models[name].table = model.table;
-        txRepo.models[name].fields = model.fields;
-        txRepo.models[name].cls = model.cls;
-        txRepo.models[name].cls_init = model.cls_init;
+        txRepo.models[name] = new Model(txRepo, name, model.table);
+        txRepo.models[name].extends(model.cls, model.fields);
       }
       try {
         await work(txRepo);

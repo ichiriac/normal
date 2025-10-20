@@ -49,6 +49,7 @@ async function demo() {
       "Post tags:",
       (await post.tags.load()).map((tag) => tag.name)
     );
+    process.exit(0);
   });
 }
 
