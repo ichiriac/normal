@@ -115,6 +115,7 @@ class Model {
         };
         this.cls_init = false;
         this.cls = Record;
+        this.inherited = [];
         this.indexes = [];
         this.entities = new Map();
         this._lookup = new LookupIds(this);
@@ -131,6 +132,7 @@ class Model {
         }
         Object.assign(this.fields, fields);
         if (typeof MixinClass === 'function') {
+            this.inherited.push(MixinClass);
             this.cls = chainWith(this.cls, MixinClass);
         }
     }

@@ -104,7 +104,9 @@ class Repository {
       for (const name of Object.keys(this.models)) {
         const model = this.models[name];
         txRepo.models[name] = new Model(txRepo, name, model.table);
-        txRepo.models[name].extends(model.cls, model.fields);
+        model.inherited.forEach((mix) => {
+          txRepo.models[name].extends(mix, mix.fields || {});
+        });
       }
       try {
         await work(txRepo);
