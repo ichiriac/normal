@@ -1,14 +1,7 @@
 "use strict";
 
-function mixin(targetClass, ...mixins) {
-  mixins.forEach(mixinClass => {
-    Object.getOwnPropertyNames(mixinClass.prototype).forEach(name => {
-      if (name !== 'constructor') {
-        targetClass.prototype[name] = mixinClass.prototype[name];
-      }
-    });
-  });
-}
+const { Model } = require('./Model');
+
 
 /**
  * Repository: registers model definitions and exposes CRUD over Knex.
@@ -39,8 +32,6 @@ class Repository {
     this.knex = connection.instance || connection;
     /** @type {Record<string, any>} */
     this.models = {};
-    /** @type {Record<string, any>} */
-    this.meta = {};
   }
 
   /** Register a model class or an extension class */
@@ -56,29 +47,10 @@ class Repository {
     }
     const name = ModelClass.name || ModelClass?.name;
     if (!name) throw new Error("Model class must have a name");
-
-    const table = ModelClass.table || this._inferTable(name);
-    const fields = {
-      ...(this.meta[name]?.fields || {}),
-      ...(ModelClass.fields || {}),
-    };
-
-    if (this.meta.hasOwnProperty(name)) {
-      // Extend existing model registration
-      mixin(this.meta[name].cls, ModelClass);
-      ModelClass = this.meta[name].cls;
+    if (!this.models[name]) {
+      this.models[name] = new Model(this, name, ModelClass.table);
     }
-
-    // Merge/extend existing model registration
-    const meta = (this.meta[name] = {
-      name,
-      table,
-      fields,
-      cls: ModelClass,
-    });
-
-    // Build model handle API bound to knex
-    this.models[name] = this._buildModelHandle(meta);
+    this.models[name].extends(ModelClass, ModelClass.fields || {}); 
     return this.models[name];
   }
 
@@ -138,11 +110,21 @@ class Repository {
     return await kx.transaction(async (trx) => {
       const txRepo = new Repository({ instance: trx });
       // Re-register models with the same metadata
-      for (const name of Object.keys(this.meta)) {
-        const { cls } = this.meta[name];
-        txRepo.register(cls);
+      for (const name of Object.keys(this.models)) {
+        const model = this.models[name];
+        let clone = Object.assign(Object.create(Object.getPrototypeOf(model)), model)
+        txRepo.models[name] = clone;
+        txRepo.models[name].repo = txRepo;
       }
-      return await work(txRepo);
+      try {
+        await work(txRepo);
+        await txRepo.flush();
+        await trx.commit();
+      } catch (error) {
+        // Handle error
+        await trx.rollback();
+        throw error;
+      }
     }, config);
   }
 
@@ -160,9 +142,7 @@ class Repository {
 
   // --------------------- internals ---------------------
 
-  _inferTable(name) {
-    return name.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase();
-  }
+
 
   _applyColumns(t, fields) {
     // Primary key detection

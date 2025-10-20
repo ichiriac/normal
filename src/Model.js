@@ -68,6 +68,11 @@ class LookupIds  {
     }
 }
 
+
+ function _inferTable(name) {
+    return name.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase();
+  }
+
 export class Model {
 
     /**
@@ -77,14 +82,13 @@ export class Model {
      * @param {*} table 
      * @param {*} fields 
      */
-    constructor(repo, name, table, fields = {}, cls = null) {
+    constructor(repo, name, table = null) {
         this.repo = repo;
         this.name = name;
-        this.table = table;
+        this.table = table ? table : _inferTable(name);
         this.fields = {};
         this.cls_init = false;
         this.cls = class extends Record {};
-        this.extends(cls, fields);
         this.entities = new Map();
         this._lookup = new LookupIds(this);
     }

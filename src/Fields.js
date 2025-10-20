@@ -46,6 +46,12 @@ class Field {
         cls.fields[this.name] = this;
     }
 
+    /**
+     * Method used to write the field value to a record.
+     * @param {Record} record 
+     * @param {*} value 
+     * @returns 
+     */
     write(record, value) {
         if (record._data[this.name]=== value) {
             delete record._changes[this.name];
@@ -57,6 +63,11 @@ class Field {
         return record;
     }
 
+    /**
+     * Method used to read the field value from a record.
+     * @param {Record} record 
+     * @returns 
+     */
     read(record) {
         if (record._changes.hasOwnProperty(this.name)) {
             return record._changes[this.name];
