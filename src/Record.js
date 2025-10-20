@@ -18,6 +18,18 @@ class Record {
         return this;
     }
 
+    toJSON() {
+        const json = { model: this._model.name };
+        for(let key in this._model.fields) {
+            const field = this._model.fields[key];
+            const value = field.serialize(this);
+            if (value !== undefined) {
+                json[key] = value;
+            }
+        }
+        return json;
+    }
+
     unlink() {
         this._model = null;
     }
