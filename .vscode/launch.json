@@ -17,8 +17,6 @@
             ],
             "type": "node"
         },
-        
-
         {
             "type": "node",
             "request": "launch",
@@ -30,6 +28,18 @@
                 "DEBUG": "knex"
             },
             "program": "${workspaceFolder}/demo/blog/index.js"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch CRM Demo",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "env": {
+                "DEBUG": "knex"
+            },
+            "program": "${workspaceFolder}/demo/crm/index.js"
         }
     ]
 }

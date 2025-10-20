@@ -17,3 +17,4 @@ class Message {
         updated_at: { type: 'timestamp', defaultToNow: true },
     };
 }
+module.exports = Message;

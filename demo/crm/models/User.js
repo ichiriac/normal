@@ -1,14 +1,15 @@
 class User {
     static name = 'User';
     static table = 'users';
-    static inherits = 'contact';
+    static inherits = 'Contact';
+    static mixins = ['MessageMixin'];
 
     static fields = {
         id: 'primary',
-        email: { type: 'string', length: 100, notNullable: true, unique: true },
-        password_hash: { type: 'string', length: 255, notNullable: true },
-        created_at: { type: 'timestamp', defaultToNow: true },
-        updated_at: { type: 'timestamp', defaultToNow: true },
+        email: { type: 'string', length: 100, required: true, unique: true },
+        password_hash: { type: 'string', length: 255, required: true },
+        created_at: { type: 'timestamp', default: () => new Date() },
+        updated_at: { type: 'timestamp', default: () => new Date() },
     };
 }
 

@@ -1,5 +1,5 @@
 class Contact {
-    static name = 'contact';
+    static name = 'Contact';
     static table = 'contacts';
     static mixin = ['MessageMixin', 'ActivityMixin'];
 

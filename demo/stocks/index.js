@@ -18,9 +18,9 @@ const db = new Normal.Connection({
     },
 });
 const repo = new Normal.Repository(db);
-fs.readdirSync(__dirname + "/stocks").forEach((file) => {
+fs.readdirSync(__dirname + "/models").forEach((file) => {
     if (file.endsWith(".js")) {
-        const modelModule = require("./stocks/" + file);
+        const modelModule = require("./models/" + file);
         repo.register(modelModule);
     }
 });
