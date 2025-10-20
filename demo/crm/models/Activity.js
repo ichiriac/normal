@@ -16,3 +16,5 @@ class Activity {
         updated_at: { type: 'timestamp', defaultToNow: true },
     };
 }
+
+module.exports = Activity;

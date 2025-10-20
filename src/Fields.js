@@ -11,8 +11,8 @@ const { Primary } = require('./fields/Primary');
 const { StringField } = require('./fields/String');
 const { TextField } = require('./fields/Text');
 const { IntegerField } = require('./fields/Integer');
-
+const { Reference } = require('./fields/Reference');
 
 module.exports = {
-    Field, ManyToMany, DateField, OneToMany, ManyToOne, FloatField, DateTimeField, BooleanField, EnumField, Primary, StringField, TextField, IntegerField
+    Field, ManyToMany, DateField, OneToMany, ManyToOne, FloatField, DateTimeField, BooleanField, EnumField, Primary, StringField, TextField, IntegerField, Reference
 };

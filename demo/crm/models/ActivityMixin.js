@@ -7,3 +7,5 @@ class ActivityMixin {
     }
 
 }
+
+module.exports = ActivityMixin;

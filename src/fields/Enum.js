@@ -28,7 +28,13 @@ class EnumField extends Field {
         return value;
     }
     column(table) {
-        return table.enum(this.name, this.values);
+        const column = table.enum(this.name, this.values);
+        if (this.definition.required) {
+            column.notNullable();
+        } else {
+            column.nullable();
+        }
+        return column;
     }
 }
 

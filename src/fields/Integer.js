@@ -31,6 +31,11 @@ class IntegerField extends Field {
         if (this.definition.unsigned) {
             column.unsigned();
         }
+        if (this.definition.required) {
+            column.notNullable();
+        } else {
+            column.nullable();
+        }
         return column;
     }
 }

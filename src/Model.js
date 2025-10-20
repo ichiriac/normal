@@ -260,6 +260,26 @@ class Model {
         this.checkAbstract();
         if (!this.cls_init) {
 
+
+            if (this.inherits) {
+                const parentModel = this.repo.get(this.inherits);
+                if (!parentModel.fields["_inherit"]) {
+                    parentModel.fields["_inherit"] = Field.define(parentModel, "_inherit", {
+                        type: 'reference', id_field: 'id', models: [this.name], required: true
+                    });
+                } else {
+                    const inhField = parentModel.fields["_inherit"];
+                    if (!inhField.models.includes(this.name)) {
+                        inhField.models.push(this.name);
+                    }
+                }
+                if (parentModel.mixins) {
+                    parentModel.mixins.forEach((mix) => {
+                        this.mixins.add(mix);
+                    });
+                }
+            }
+
             this.mixins.forEach((mix) => {
                 const mixin = this.repo.get(mix);
                 if (mixin.fields) {
@@ -273,8 +293,6 @@ class Model {
                 this.fields[fieldName] = field;
                 field.attach(this.cls);
             }
-
-
 
             this.cls.model = this;
             this.cls_init = true;
@@ -308,10 +326,18 @@ class Model {
      */
     async create(data) {
         this.checkAbstract();
+
+        if (!this.cls_init) this._init();
+        if (this.inherits) {
+            const parentModel = this.repo.get(this.inherits);
+            const parentRecord = await parentModel.create(Object.assign({}, data, {_inherit: this.name}));
+            data.id = parentRecord.id;
+        }
+
         if (!(data instanceof this.cls)) {
             data = this.allocate(data);
         }
-        if (!this.cls_init) this._init();
+
 
         // prepare data to insert
         const toInsert = {};
@@ -329,17 +355,21 @@ class Model {
         // insert record
         const kx = this.repo.cnx;
         const table = this.table;
-        const [id] = await kx(table)
-            .insert(toInsert)
-            .returning("id")
-            .catch(async () => {
-                // SQLite fallback (returning not supported)
-                await kx(table).insert(toInsert);
-                const row = await kx(table).orderBy("id", "desc").first("id");
-                return [row?.id];
-            });
-        data.id = id.id ? id.id : id;
-
+        if (!this.inherits) {
+            const [id] = await kx(table)
+                .insert(toInsert)
+                .returning("id")
+                .catch(async () => {
+                    // SQLite fallback (returning not supported)
+                    await kx(table).insert(toInsert);
+                    const row = await kx(table).orderBy("id", "desc").first("id");
+                    return [row?.id];
+                });
+            data.id = id.id ? id.id : id;
+        } else {
+            await kx(table).insert(toInsert);
+        }
+        
         // create relations
         const post_create = [];
         for (const fieldName of Object.keys(this.fields)) {

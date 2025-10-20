@@ -27,7 +27,10 @@ fs.readdirSync(__dirname + "/models").forEach((file) => {
         const Users = tx.get("User");
         const john = await Users.create({
             email: "john@example.com",
-            name: "John Doe"
+            name: "John Doe",
+            first_name: "John",
+            last_name: "Doe",
+            password_hash: "hashed_password",
         });
         console.log("Created user:", john.toJSON());
     });

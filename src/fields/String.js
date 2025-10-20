@@ -24,7 +24,13 @@ class StringField extends Field {
     }
     column(table) {
         const length = this.definition.length || 255;
-        return table.string(this.name, length);
+        const column = table.string(this.name, length);
+        if (this.definition.required) {
+            column.notNullable();
+        } else {
+            column.nullable();
+        }
+        return column;
     }
 }
 
