@@ -7,10 +7,6 @@ class Record {
         this._isDirty = false;
     }
 
-    static create(data) {
-        return new this(model, data);
-    }
-
     sync(data) {
         Object.assign(this._data, data);
         this._isReady = true;

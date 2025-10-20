@@ -82,6 +82,7 @@ export class Model {
         this.name = name;
         this.table = table;
         this.fields = {};
+        this.cls_init = false;
         this.cls = class extends Record {};
         this.extends(cls, fields);
         this.entities = new Map();
@@ -94,6 +95,9 @@ export class Model {
      * @param {*} fields 
      */
     extends(MixinClass, fields = {} ) {
+        if (this.cls_init) {
+            throw new Error("Model class already initialized");
+        }
         Object.assign(this.fields, fields);
         if (typeof MixinClass === 'function') {
             mixin(this.cls, MixinClass);
@@ -143,6 +147,21 @@ export class Model {
     }
 
     /**
+     * Initialize the model class by attaching fields.
+     */
+    _init() {
+        if (!this.cls_init) {
+            for(let fieldName of Object.keys(this.fields)) {
+                const field = Field.define(this, fieldName, this.fields[fieldName]);
+                this.fields[fieldName] = field;
+                field.attach(this.cls);
+            }
+            this.cls.model = this;
+            this.cls_init = true;
+        }
+    }
+
+    /**
      * Allocate a record instance for the given data.
      * @param {*} data 
      * @returns 
@@ -153,6 +172,7 @@ export class Model {
                 return this.entities.get(data.id).sync(data);
             }
         }
+        if (!this.cls_init) this._init();
         const instance = new this.cls(this, data);
         if (data.id) {
             this.entities.set(data.id, instance);
@@ -160,19 +180,26 @@ export class Model {
         return instance;
     }
 
+    /**
+     * Creates a new record in the database.
+     * @param {*} data 
+     * @returns 
+     */
     async create(data) {
-        const toInsert = { ...data };
-        // Remove collection fields from insert
-        for (const [k, spec] of Object.entries(this.fields || {})) {
-            if (spec?.type === "collection") delete toInsert[k];
-            if (
-                spec?.type === "datetime" &&
-                toInsert[k] == null &&
-                typeof spec.default === "function"
-            ) {
-                toInsert[k] = spec.default();
+
+        if (!(data instanceof this.cls)) {
+            data = this.allocate(data);
+        }
+
+        const toInsert = {};
+        if (!this.cls_init) this._init();
+        for (const fieldName of Object.keys(this.fields)) {
+            const value = this.fields[fieldName].serialize(data);
+            if (value !== undefined) {
+                toInsert[fieldName] = value;
             }
         }
+
         const kx = this.repo.knex;
         const table = this.table;
         const [id] = await kx(table)
@@ -184,29 +211,38 @@ export class Model {
                 const row = await kx(table).orderBy("id", "desc").first("id");
                 return [row?.id];
             });
-        const row = await kx(table)
-            .where({ id: typeof id === "object" ? id.id : id })
-            .first();
-        const instance = this.allocate(row);
-
-        // Handle initial many-to-many assignment via array of ids
-        for (const [k, spec] of Object.entries(this.fields || {})) {
-            if (spec?.type === "collection" && Array.isArray(data?.[k])) {
-                const coll = instance[k];
-                for (const v of data[k]) await coll.add(v);
-            }
-        }
-        return instance;
+        
+        data.id = id;
+        this.entities.set(id, data);
+        return data;
     }
+
+    /**
+     * Find a record by its ID.
+     * @param {*} id 
+     * @returns 
+     */
     async findById(id) {
         if (this.entities.has(id)) {
             return this.entities.get(id);
         }
         return await this.lookup(id).then(results => results[0]);
     }
+
+    /**
+     * Create a new query request.
+     * @param  {...any} args 
+     * @returns 
+     */
     where(...args) {
         return this.query().where(...args);
     }
+
+    /**
+     * Find first record matching where clause.
+     * @param {*} where 
+     * @returns 
+     */
     firstWhere(where) {
         return this.where(where).first();
     }

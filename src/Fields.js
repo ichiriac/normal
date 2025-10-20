@@ -28,7 +28,25 @@ class Field {
         this.definition = definition;
     }
 
-    async write(record, value) {
+    /**
+     * Attach the field to a record prototype.
+     * @param {*} proto 
+     */
+    attach(cls) {
+        const self = this;
+        Object.defineProperty(cls.prototype, this.name, {
+            get: function() {
+                return self.read(this);
+            },
+            set: function(value) {
+                self.write(this, value);
+            }
+        });
+        cls.fields = cls.fields || {};
+        cls.fields[this.name] = this;
+    }
+
+    write(record, value) {
         if (record._data[this.name]=== value) {
             delete record._changes[this.name];
             record._isDirty = Object.keys(record._changes).length > 0;
@@ -39,11 +57,20 @@ class Field {
         return record;
     }
 
-    async read(record) {
+    read(record) {
         if (record._changes.hasOwnProperty(this.name)) {
             return record._changes[this.name];
         }
         return record._data[this.name];
+    }
+
+    /**
+     * Method used to serialize the field value for storage.
+     * @param {*} record 
+     * @returns 
+     */
+    serialize(record) {
+        return this.read(record);
     }
 }
 
@@ -71,18 +98,30 @@ class ManyToMany extends Field {
     async read(record) {
         throw new Error("Not implemented");
     }
+
+    serialize(record) {
+        return undefined;
+    }
 }
 
 class OneToMany extends Field {
-
+    serialize(record) {
+        return undefined;
+    }
 }
 
 class ManyToOne extends Field {
-
+    serialize(record) {
+        const value = this.read(record);
+        if (value && value.id !== undefined) {
+            return value.id;
+        }
+        return null;
+    }
 }
 
 class DateField extends Field {
-    async write(record, value) {
+    write(record, value) {
         if (value instanceof Date) {
             return super.write(record, value);
         } else if (typeof value === "string" || typeof value === "number") {
@@ -98,23 +137,35 @@ class DateField extends Field {
         }
     }
 
-    async read(record) {
-        const value = await super.read(record);
+    read(record) {
+        const value = super.read(record);
         if (value === null || value === undefined) {
             return null;
         }
         return new Date(value);
     }
+
+    serialize(record) {
+        const value = this.read(record);
+        if (value instanceof Date) {
+            return value.toISOString();
+        }
+        return null;
+    }
 }
 
 class BooleanField extends Field {
-    async write(record, value) {
+    write(record, value) {
         return super.write(record, Boolean(value));
     }
 
-    async read(record) {
-        const value = await super.read(record);
+    read(record) {
+        const value = super.read(record);
         return Boolean(value);
+    }
+    serialize(record) {
+        const value = this.read(record);
+        return value ? 1 : 0;
     }
 }
 
@@ -127,15 +178,15 @@ class EnumField extends Field {
         this.values = definition.values;
     }
 
-    async write(record, value) {
+    write(record, value) {
         if (!this.values.includes(value)) {
             throw new Error(`Invalid value for enum field ${this.name}: ${value}`);
         }
         return super.write(record, value);
     }
 
-    async read(record) {
-        const value = await super.read(record);
+    read(record) {
+        const value = super.read(record);
         if (!this.values.includes(value)) {
             throw new Error(`Invalid value for enum field ${this.name}: ${value}`);
         }
