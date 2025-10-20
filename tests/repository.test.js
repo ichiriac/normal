@@ -1,5 +1,5 @@
 const { Connection, Repository } = require('..');
-const models = require('../demo/models');
+const models = require('../demo/blog/models');
 
 /**
  * Integration-like test using sqlite3 in-memory to avoid external DB.

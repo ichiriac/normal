@@ -1,4 +1,4 @@
-const Norm = require("../index");
+const Norm = require("../../index");
 const db = new Norm.Connection({
   client: "sqlite3",
   connection: {
