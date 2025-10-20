@@ -73,7 +73,7 @@ class LookupIds  {
     return name.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase();
   }
 
-export class Model {
+class Model {
 
     /**
      * A model representation.
@@ -89,6 +89,7 @@ export class Model {
         this.fields = {};
         this.cls_init = false;
         this.cls = class extends Record {};
+        this.indexes = [];
         this.entities = new Map();
         this._lookup = new LookupIds(this);
     }
@@ -124,7 +125,51 @@ export class Model {
      * @returns Request
      */
     query() {
-        return new Request(this, this.repo.knex(this.table));
+        return new Request(this, this.repo.cnx(this.table));
+    }
+
+    /**
+     * Create or update the database schema for this model.
+     * @returns 
+     */
+    _buildSchema() {
+        this._init();
+        const kx = this.repo.cnx;
+        return kx.schema.hasTable(this.table).then(async (exists) => {
+            if (!exists) {
+                await kx.schema.createTable(this.table, (table) => {
+                    for (const fieldName of Object.keys(this.fields)) {
+                        const field = this.fields[fieldName];
+                        field.column(table);
+                    }
+                });
+            } else {
+                await kx.schema.alterTable(this.table, (table) => {
+                    for (const fieldName of Object.keys(this.fields)) {
+                        const field = this.fields[fieldName];
+                        field.column(table);
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Attach indexes to the database schema for this model.
+     * @returns 
+     */
+    _buildIndex() {
+        const kx = this.repo.cnx;
+        return kx.schema.hasTable(this.table).then(async (exists) => {
+            if (exists) {
+                await kx.schema.alterTable(this.table, (table) => {
+                    for (const fieldName of Object.keys(this.fields)) {
+                        const field = this.fields[fieldName];
+                        field.onIndex(table);
+                    }
+                });
+            }
+        });
     }
 
     /**
@@ -204,7 +249,7 @@ export class Model {
             }
         }
 
-        const kx = this.repo.knex;
+        const kx = this.repo.cnx;
         const table = this.table;
         const [id] = await kx(table)
             .insert(toInsert)
@@ -251,3 +296,5 @@ export class Model {
         return this.where(where).first();
     }
 }
+
+module.exports = { Model };

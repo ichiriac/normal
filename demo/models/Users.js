@@ -4,14 +4,14 @@ class Users {
   static order = [["id", "desc"]];
 
   static fields = {
-    id: { type: "number", primary: true, generated: true },
+    id: { type: "primary" },
     firstname: { type: "string", unique: true, nullable: false },
     lastname: { type: "string", unique: true, nullable: false },
     email: { type: "string", unique: true, nullable: false },
     password_hash: { type: "string", nullable: false },
     active: { type: "boolean", default: true },
-    posts: { type: "collection", foreign: "Posts.author_id" },
-    comments: { type: "collection", foreign: "Comments.author_id" },
+    posts: { type: "one-to-many", foreign: "Posts.author_id" },
+    comments: { type: "one-to-many", foreign: "Comments.author_id" },
     status: {
       type: "string",
       default: "user",
