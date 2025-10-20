@@ -1,3 +1,6 @@
+/**
+ * Record class representing a data record in a model.
+ */
 class Record {
     constructor(model, data) {
         this._model = model;

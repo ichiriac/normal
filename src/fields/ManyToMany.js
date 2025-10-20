@@ -1,6 +1,8 @@
 
 const { Field } = require('./Base');
 
+const CollectionSymbol = Symbol('ManyToManyCollection');
+
 /**
  * Helper class to manage many-to-many relationship collections.
  */
@@ -9,7 +11,9 @@ class CollectionWrapper {
     constructor(record, field) {
         this.record = record;
         this.field = field;
+        this.cache = record._data[field.name] || [];
     }
+
     /**
      * Add a related record to the collection.
      * @param {*} entityOrId 
@@ -17,10 +21,16 @@ class CollectionWrapper {
     async add(entityOrId) {
         const targetId =
           typeof entityOrId === "object" ? entityOrId.id : entityOrId;
+
+        if (this.cache.includes(targetId)) {
+            return; // already present
+        }
+
         const row = {};
         row[this.field.left_col] = this.record.id;
         row[this.field.right_col] = targetId;
         await this.field.cnx(this.field.joinTable).insert(row);
+        this.cache.push(targetId);
     }
     /**
      * Remove a related record from the collection. 
@@ -33,10 +43,22 @@ class CollectionWrapper {
         where[this.field.left_col] = this.record.id;
         where[this.field.right_col] = targetId;
         await this.field.cnx(this.field.joinTable).where(where).del();
+        this.cache = this.cache.filter(id => id !== targetId);
     }
+
+    /**
+     * Map over the related records.
+     * @param {*} callback 
+     * @returns Array
+     */
+    async map(callback) {
+        const records = await this.load();
+        return Promise.all(records.map(callback));
+    }
+
     /**
      * Retrieve all related records.
-     * @returns 
+     * @returns Array<Record>
      */
     async load() {
         // Select target rows joined through the join table
@@ -44,15 +66,19 @@ class CollectionWrapper {
           .join(this.field.joinTable, `${this.field.definition.model.table}.id`, `${this.field.joinTable}.${this.field.right_col}`)
           .where(`${this.field.joinTable}.${this.field.left_col}`, this.record.id)
           .select(`${this.field.definition.model.table}.id`);
-        return await this.field.definition.model.lookup(rows.map((row) => row.id));
+        this.cache = rows.map(r => r.id);
+        return await this.field.definition.model.lookup(this.cache);
     }
     /**
      * Clear all relations in the collection.
+     * @returns this
      */
     async clear() {
         const where = {};
         where[this.field.left_col] = this.record.id;
         await this.field.cnx(this.field.joinTable).where(where).del();
+        this.cache = [];
+        return this;
     }
 }
 
@@ -97,7 +123,13 @@ class ManyToMany extends Field {
     }
 
     read(record) {
-        return new CollectionWrapper(record, this);
+        if (!record[CollectionSymbol]) {
+            record[CollectionSymbol] = new Map();
+        }
+        if (!record[CollectionSymbol].has(this.name)) {
+            record[CollectionSymbol].set(this.name, new CollectionWrapper(record, this));
+        }
+        return record[CollectionSymbol].get(this.name);
     }
 
     serialize(record) {

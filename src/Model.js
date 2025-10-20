@@ -2,14 +2,38 @@ const { Request } = require("./Request.js");
 const { Record } = require("./Record.js");
 const { Field } = require("./Fields.js");
 
-function mixin(targetClass, ...mixins) {
-    mixins.forEach(mixinClass => {
-        Object.getOwnPropertyNames(mixinClass.prototype).forEach(name => {
-            if (name !== 'constructor') {
-                targetClass.prototype[name] = mixinClass.prototype[name];
-            }
-        });
-    });
+function chainWith(BaseClass, MixinClass) {
+    if (typeof MixinClass !== 'function') return BaseClass;
+
+    // Ensure MixinClass participates in the chain so `super` inside mixin methods works.
+    if (Object.getPrototypeOf(MixinClass.prototype) !== BaseClass.prototype) {
+        Object.setPrototypeOf(MixinClass.prototype, BaseClass.prototype);
+    }
+    if (Object.getPrototypeOf(MixinClass) !== BaseClass) {
+        Object.setPrototypeOf(MixinClass, BaseClass);
+    }
+
+    // Concrete subclass that keeps BaseClass constructor semantics.
+    const Combined = class extends BaseClass {
+        constructor(...args) {
+            super(...args);
+        }
+    };
+    Object.defineProperty (Combined, 'name', {value: MixinClass.name || 'Combined'});
+
+    // Copy instance members (methods/accessors) preserving descriptors and super bindings.
+    const inst = Object.getOwnPropertyDescriptors(MixinClass.prototype);
+    delete inst.constructor;
+    Object.defineProperties(Combined.prototype, inst);
+
+    // Copy static members (except standard ones).
+    const stat = Object.getOwnPropertyDescriptors(MixinClass);
+    for (const key of Object.keys(stat)) {
+        if (key === 'length' || key === 'name' || key === 'prototype') continue;
+        Object.defineProperty(Combined, key, stat[key]);
+    }
+
+    return Combined;
 }
 
 /**
@@ -86,9 +110,11 @@ class Model {
         this.repo = repo;
         this.name = name;
         this.table = table ? table : _inferTable(name);
-        this.fields = {};
+        this.fields = {
+            id: 'primary'
+        };
         this.cls_init = false;
-        this.cls = class extends Record { };
+        this.cls = Record;
         this.indexes = [];
         this.entities = new Map();
         this._lookup = new LookupIds(this);
@@ -105,7 +131,7 @@ class Model {
         }
         Object.assign(this.fields, fields);
         if (typeof MixinClass === 'function') {
-            mixin(this.cls, MixinClass);
+            this.cls = chainWith(this.cls, MixinClass);
         }
     }
 
@@ -174,8 +200,8 @@ class Model {
 
     /**
      * Lookup a list of ids, batching missing ids into a single query.
-     * @param {*} ids 
-     * @returns 
+     * @param {int|Array<int>} ids 
+     * @returns Promise<Array<Record>>
      */
     lookup(ids) {
         if (!Array.isArray(ids)) ids = [ids];
@@ -188,10 +214,10 @@ class Model {
                 missing.push(id);
             }
         }
-        if (missing.length === 0) {
-            return Promise.resolve(result);
+        if (missing.length > 0) {
+            result.push(this._lookup.lookup(missing));
         }
-        result.push(this._lookup.lookup(missing));
+        
         return Promise.all(result);
     }
 
