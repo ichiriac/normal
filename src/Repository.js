@@ -33,9 +33,12 @@ class Repository {
     this.models = {};
   }
 
+  /** @returns Knex instance */
   get cnx() {
     return this.connection.instance;
   }
+
+
 
   /**
    * Register a model class or an extension class
@@ -97,9 +100,13 @@ class Repository {
       // Re-register models with the same metadata
       for (const name of Object.keys(this.models)) {
         const model = this.models[name];
-        let clone = Object.assign(Object.create(Object.getPrototypeOf(model)), model)
-        txRepo.models[name] = clone;
+        txRepo.models[name] = Object.create(Object.getPrototypeOf(model));
         txRepo.models[name].repo = txRepo;
+        txRepo.models[name].name = model.name;
+        txRepo.models[name].table = model.table;
+        txRepo.models[name].fields = model.fields;
+        txRepo.models[name].cls = model.cls;
+        txRepo.models[name].cls_init = model.cls_init;
       }
       try {
         await work(txRepo);
