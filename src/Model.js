@@ -2,7 +2,8 @@ const { Request } = require("./Request.js");
 const { Record } = require("./Record.js");
 const { Field } = require("./Fields.js");
 
-function chainWith(BaseClass, MixinClass) {
+function chainWith(model, MixinClass) {
+    const BaseClass = model.cls;
     if (typeof MixinClass !== 'function') return BaseClass;
 
     // Ensure MixinClass participates in the chain so `super` inside mixin methods works.
@@ -115,7 +116,10 @@ class Model {
         };
         this.cls_init = false;
         this.cls = Record;
+        this.abstract = false;
         this.inherited = [];
+        this.mixins = new Set();
+        this.inherits = null;
         this.indexes = [];
         this.entities = new Map();
         this._lookup = new LookupIds(this);
@@ -126,14 +130,36 @@ class Model {
      * @param {*} MixinClass 
      * @param {*} fields 
      */
-    extends(MixinClass, fields = {}) {
+    extends(MixinClass) {
         if (this.cls_init) {
             throw new Error("Model class already initialized");
         }
-        Object.assign(this.fields, fields);
+        this.inherited.push(MixinClass);
+        if (MixinClass.fields) {
+            Object.assign(this.fields, MixinClass.fields);
+        }
+        if (MixinClass.inherits) {
+            if (this.inherits && this.inherits !== MixinClass.inherits) {
+                throw new Error("Model already inherits from " + this.inherits + ", cannot inherit from " + MixinClass.inherits + " as well.");
+            }
+            this.inherits = MixinClass.inherits;
+        }
+        if (MixinClass.abstract) {
+            this.abstract = true;
+        }
+        if (MixinClass.mixins) {
+            MixinClass.mixins.forEach((mix) => {
+                this.mixins.add(mix);
+            });
+        }
         if (typeof MixinClass === 'function') {
-            this.inherited.push(MixinClass);
-            this.cls = chainWith(this.cls, MixinClass);
+            this.cls = chainWith(this, MixinClass);
+        }
+    }
+
+    checkAbstract() {
+        if (this.abstract) {
+            throw new Error(`Cannot instantiate abstract model ${this.name}`);
         }
     }
 
@@ -153,6 +179,7 @@ class Model {
      * @returns Request
      */
     query() {
+        this.checkAbstract();
         return new Request(this, this.repo.cnx(this.table));
     }
 
@@ -161,6 +188,7 @@ class Model {
      * @returns 
      */
     _buildSchema() {
+        this.checkAbstract();
         this._init();
         const kx = this.repo.cnx;
         return kx.schema.hasTable(this.table).then(async (exists) => {
@@ -187,6 +215,7 @@ class Model {
      * @returns 
      */
     _buildIndex() {
+        this.checkAbstract();
         const kx = this.repo.cnx;
         return kx.schema.hasTable(this.table).then(async (exists) => {
             if (exists) {
@@ -206,6 +235,7 @@ class Model {
      * @returns Promise<Array<Record>>
      */
     lookup(ids) {
+        this.checkAbstract();
         if (!Array.isArray(ids)) ids = [ids];
         const result = [];
         const missing = [];
@@ -227,12 +257,25 @@ class Model {
      * Initialize the model class by attaching fields.
      */
     _init() {
+        this.checkAbstract();
         if (!this.cls_init) {
+
+            this.mixins.forEach((mix) => {
+                const mixin = this.repo.get(mix);
+                if (mixin.fields) {
+                    Object.assign(this.fields, mixin.fields);
+                }
+                this.cls = chainWith(this, mixin.cls);
+            });
+
             for (let fieldName of Object.keys(this.fields)) {
                 const field = Field.define(this, fieldName, this.fields[fieldName]);
                 this.fields[fieldName] = field;
                 field.attach(this.cls);
             }
+
+
+
             this.cls.model = this;
             this.cls_init = true;
         }
@@ -244,6 +287,7 @@ class Model {
      * @returns 
      */
     allocate(data) {
+        this.checkAbstract();
         if (data.id) {
             if (this.entities.has(data.id)) {
                 return this.entities.get(data.id).sync(data);
@@ -263,7 +307,7 @@ class Model {
      * @returns 
      */
     async create(data) {
-
+        this.checkAbstract();
         if (!(data instanceof this.cls)) {
             data = this.allocate(data);
         }
@@ -313,6 +357,7 @@ class Model {
      * @returns 
      */
     async findById(id) {
+        this.checkAbstract();
         if (this.entities.has(id)) {
             return this.entities.get(id);
         }
@@ -324,7 +369,8 @@ class Model {
      * @param  {...any} args 
      * @returns 
      */
-    where(...args) {
+    where(...args) {        
+        this.checkAbstract();
         return this.query().where(...args);
     }
 
@@ -334,6 +380,7 @@ class Model {
      * @returns 
      */
     firstWhere(where) {
+        this.checkAbstract();
         return this.where(where).first();
     }
 }

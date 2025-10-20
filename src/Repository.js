@@ -59,7 +59,7 @@ class Repository {
     if (!this.models[name]) {
       this.models[name] = new Model(this, name, ModelClass.table);
     }
-    this.models[name].extends(ModelClass, ModelClass.fields || {}); 
+    this.models[name].extends(ModelClass); 
     return this.models[name];
   }
 
@@ -81,10 +81,12 @@ class Repository {
   async sync() {
     for (const name of Object.keys(this.models)) {
       const model = this.models[name];
+      if (model.abstract) continue;
       await model._buildSchema();
     }
     for (const name of Object.keys(this.models)) {
       const model = this.models[name];
+      if (model.abstract) continue;
       await model._buildIndex();
     }
     return this;
@@ -98,26 +100,27 @@ class Repository {
           config.isolationLevel = 'read committed';
       }
     }
-    return await this.cnx.transaction(async (trx) => {
-      const txRepo = new Repository({ instance: trx });
-      // Re-register models with the same metadata
-      for (const name of Object.keys(this.models)) {
-        const model = this.models[name];
-        txRepo.models[name] = new Model(txRepo, name, model.table);
-        model.inherited.forEach((mix) => {
-          txRepo.models[name].extends(mix, mix.fields || {});
-        });
-      }
-      try {
-        await work(txRepo);
-        await txRepo.flush();
-        await trx.commit();
-      } catch (error) {
-        // Handle error
-        await trx.rollback();
-        throw error;
-      }
-    }, config);
+    const trx = await this.cnx.transaction(config);
+    const txRepo = new Repository({ instance: trx });
+    let result
+    // Re-register models with the same metadata
+    for (const name of Object.keys(this.models)) {
+      const model = this.models[name];
+      txRepo.models[name] = new Model(txRepo, name, model.table);
+      model.inherited.forEach((mix) => {
+        txRepo.models[name].extends(mix);
+      });
+    }
+    try {
+      result = await work(txRepo);
+      await txRepo.flush();
+      await trx.commit();
+    } catch (error) {
+      // Handle error
+      await trx.rollback();
+      throw error;
+    }
+    return result;
   }
 
   /**
@@ -127,6 +130,7 @@ class Repository {
   async flush() {
     for (const name of Object.keys(this.models)) {
       const model = this.models[name];
+      if (model.abstract) continue;
       await model.flush();
     }
     return this;
