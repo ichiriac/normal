@@ -10,12 +10,16 @@ class Field {
      * @returns 
      */
     static define(model, name, definition) {
+        if (typeof definition === 'string') {
+            definition = { type: definition };
+        }
         const fieldType = definition.type ? definition.type.toLowerCase() : null;
         if (fieldType && Field.behaviors.hasOwnProperty(fieldType)) {
             const BehaviorClass = Field.behaviors[fieldType];
             return new BehaviorClass(model, name, definition);
+        } else {
+            throw new Error(`Unknown field type: ${definition.type} for field ${name} in model ${model.name}`);
         }
-        return new Field(model, name, definition);
     }
 
     /**

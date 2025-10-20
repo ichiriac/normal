@@ -3,19 +3,19 @@ const { Record } = require("./Record.js");
 const { Field } = require("./Fields.js");
 
 function mixin(targetClass, ...mixins) {
-  mixins.forEach(mixinClass => {
-    Object.getOwnPropertyNames(mixinClass.prototype).forEach(name => {
-      if (name !== 'constructor') {
-        targetClass.prototype[name] = mixinClass.prototype[name];
-      }
+    mixins.forEach(mixinClass => {
+        Object.getOwnPropertyNames(mixinClass.prototype).forEach(name => {
+            if (name !== 'constructor') {
+                targetClass.prototype[name] = mixinClass.prototype[name];
+            }
+        });
     });
-  });
 }
 
 /**
  * The lookup batching helper.
  */
-class LookupIds  {
+class LookupIds {
     constructor(model) {
         this.model = model;
         this.ids = {};
@@ -69,9 +69,9 @@ class LookupIds  {
 }
 
 
- function _inferTable(name) {
+function _inferTable(name) {
     return name.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase();
-  }
+}
 
 class Model {
 
@@ -88,7 +88,7 @@ class Model {
         this.table = table ? table : _inferTable(name);
         this.fields = {};
         this.cls_init = false;
-        this.cls = class extends Record {};
+        this.cls = class extends Record { };
         this.indexes = [];
         this.entities = new Map();
         this._lookup = new LookupIds(this);
@@ -99,7 +99,7 @@ class Model {
      * @param {*} MixinClass 
      * @param {*} fields 
      */
-    extends(MixinClass, fields = {} ) {
+    extends(MixinClass, fields = {}) {
         if (this.cls_init) {
             throw new Error("Model class already initialized");
         }
@@ -114,7 +114,7 @@ class Model {
      * @returns 
      */
     async flush() {
-        for(const entity of this.entities.values()) {
+        for (const entity of this.entities.values()) {
             if (entity._isDirty) await entity.flush();
         }
         return this;
@@ -200,7 +200,7 @@ class Model {
      */
     _init() {
         if (!this.cls_init) {
-            for(let fieldName of Object.keys(this.fields)) {
+            for (let fieldName of Object.keys(this.fields)) {
                 const field = Field.define(this, fieldName, this.fields[fieldName]);
                 this.fields[fieldName] = field;
                 field.attach(this.cls);
@@ -260,9 +260,7 @@ class Model {
                 const row = await kx(table).orderBy("id", "desc").first("id");
                 return [row?.id];
             });
-        
-        data.id = id;
-        this.entities.set(id, data);
+        data.id = id.id ? id.id : id;
         return data;
     }
 

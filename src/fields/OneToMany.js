@@ -5,6 +5,16 @@ const { Field } = require('./Base');
  */
 class OneToMany extends Field {
 
+    constructor(model, name, definition) {
+        super(model, name, definition);
+        if (!this.definition.foreign) {
+            throw new Error(`OneToMany field "${name}" requires a "foreign" definition`);
+        }
+        const [refModelName, refFieldName] = this.definition.foreign.split('.');
+        this.definition.refModel = model.repo.get(refModelName);
+        this.definition.refField = refFieldName;
+    }
+
     serialize(record) {
         return undefined;
     }

@@ -7,6 +7,14 @@ const { Field } = require('./Base');
  */
 class ManyToOne extends Field {
 
+    constructor(model, name, definition) {
+        super(model, name, definition);
+        if (!definition.model) {
+            throw new Error(`ManyToOne field '${name}' requires a 'model' definition`);
+        }
+        this.definition.refModel = model.repo.get(definition.model);
+    }
+
     write(record, value) {
         if (value && typeof value === "object" && value.id !== undefined) {
             return super.write(record, value.id);
@@ -20,9 +28,7 @@ class ManyToOne extends Field {
         if (value === null || value === undefined) {
             return null;
         }
-        if (this.definition.refModel) {
-            return this.definition.refModel.allocate({ id: value });
-        }   
+        return this.definition.refModel.allocate({ id: value });
     }
 
     serialize(record) {
