@@ -114,6 +114,30 @@ class Field {
         // Field not stored by default
     }
 
+    async post_create(record) {
+        // Hook after record creation
+    }
+
+    async pre_create(record) {
+        // Hook before record creation
+    }
+
+    async pre_update(record) {
+        // Hook before record update
+    }
+
+    async post_update(record) {
+        // Hook after record update
+    }
+
+    async pre_delete(record) {
+        // Hook before record deletion
+    }
+
+    async post_delete(record) {
+        // Hook after record deletion
+    }
+
     /**
      * Method that initializes indexes for this field.
      * @param {*} table 

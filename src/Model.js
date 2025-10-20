@@ -265,16 +265,22 @@ class Model {
         if (!(data instanceof this.cls)) {
             data = this.allocate(data);
         }
-
-        const toInsert = {};
         if (!this.cls_init) this._init();
+
+        // prepare data to insert
+        const toInsert = {};
+        const pre_create = [];
         for (const fieldName of Object.keys(this.fields)) {
-            const value = this.fields[fieldName].serialize(data);
+            const field = this.fields[fieldName];
+            pre_create.push(field.pre_create(data));
+            const value = field.serialize(data);
             if (value !== undefined) {
                 toInsert[fieldName] = value;
             }
         }
+        await Promise.all(pre_create);
 
+        // insert record
         const kx = this.repo.cnx;
         const table = this.table;
         const [id] = await kx(table)
@@ -288,7 +294,13 @@ class Model {
             });
         data.id = id.id ? id.id : id;
 
-        
+        // create relations
+        const post_create = [];
+        for (const fieldName of Object.keys(this.fields)) {
+            const field = this.fields[fieldName];
+            post_create.push(field.post_create(data));
+        }
+        await Promise.all(post_create);
 
         return data;
     }

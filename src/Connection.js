@@ -49,6 +49,7 @@ class Connection {
         ":memory:";
       return {
         client: "sqlite3",
+        debug: opts.debug || false,
         connection: { filename },
         useNullAsDefault: true,
         pool: opts.pool || { min: 1, max: 1 },

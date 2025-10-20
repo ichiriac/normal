@@ -130,6 +130,16 @@ class ManyToMany extends Field {
         return record[CollectionSymbol].get(this.name);
     }
 
+    async post_create(record) {
+        await super.post_create(record);
+        const ids = record._data[this.name];
+        record._data[this.name] = [];
+        if (ids && Array.isArray(ids) && ids.length > 0) {
+            const collection = this.read(record);
+            await Promise.all(ids.map(id => collection.add(id)));
+        }
+    }
+
     serialize(record) {
         return undefined;
     }

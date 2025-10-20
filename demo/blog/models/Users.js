@@ -25,12 +25,6 @@ class Users {
     return this.query().where("email", email).first();
   }
 
-  static create(data) {
-    data.created_at = new Date();
-    data.updated_at = new Date();
-    return super.create(data);
-  }
-
   get name() {
     return `${this.firstname} ${this.lastname}`;
   }

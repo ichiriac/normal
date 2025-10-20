@@ -5,6 +5,7 @@
 const Normal = require("../../index");
 const db = new Normal.Connection({
   client: "sqlite3",
+  debug: false,
   connection: {
     filename: ":memory:",
   },
@@ -39,8 +40,7 @@ async function demo() {
       author_id: user.id,
       tags: [carTag.id],
     });
-    post.tags.add(sportsTag);
-    post.tags.remove(carTag);
+    await post.tags.add(sportsTag);
 
     console.log("User's full name:", user.name);
     console.log("Profile Picture URL:", user.profilePictureUrl);
