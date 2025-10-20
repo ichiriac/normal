@@ -63,5 +63,6 @@ class ManyToOne extends Field {
 
 Field.behaviors.manytoone = ManyToOne;
 Field.behaviors['many-to-one'] = ManyToOne;
+Field.behaviors['many2one'] = ManyToOne;
 
 module.exports = { ManyToOne };

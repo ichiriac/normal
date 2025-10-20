@@ -158,5 +158,5 @@ class ManyToMany extends Field {
 
 Field.behaviors.manytomany = ManyToMany;
 Field.behaviors['many-to-many'] = ManyToMany;
-
+Field.behaviors['many2many'] = ManyToMany;
 module.exports = { ManyToMany };

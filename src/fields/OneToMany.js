@@ -30,5 +30,5 @@ class OneToMany extends Field {
 
 Field.behaviors.onetomany = OneToMany;
 Field.behaviors['one-to-many'] = OneToMany;
-
+Field.behaviors['one2many'] = OneToMany;
 module.exports = { OneToMany };
