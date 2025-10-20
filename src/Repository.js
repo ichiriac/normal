@@ -1,6 +1,14 @@
 "use strict";
 
-const Model = require("./Model.js").Model;
+function mixin(targetClass, ...mixins) {
+  mixins.forEach(mixinClass => {
+    Object.getOwnPropertyNames(mixinClass.prototype).forEach(name => {
+      if (name !== 'constructor') {
+        targetClass.prototype[name] = mixinClass.prototype[name];
+      }
+    });
+  });
+}
 
 /**
  * Repository: registers model definitions and exposes CRUD over Knex.
@@ -49,13 +57,28 @@ class Repository {
     const name = ModelClass.name || ModelClass?.name;
     if (!name) throw new Error("Model class must have a name");
 
-    if (this.models[name]) {
-      // Extend existing model registration
-      this.models[name].extends(ModelClass, ModelClass.fields || {});
-      return this.models[name];
-    }
     const table = ModelClass.table || this._inferTable(name);
-    this.models[name] = new Model(this, name, table, ModelClass.fields || {}, ModelClass);
+    const fields = {
+      ...(this.meta[name]?.fields || {}),
+      ...(ModelClass.fields || {}),
+    };
+
+    if (this.meta.hasOwnProperty(name)) {
+      // Extend existing model registration
+      mixin(this.meta[name].cls, ModelClass);
+      ModelClass = this.meta[name].cls;
+    }
+
+    // Merge/extend existing model registration
+    const meta = (this.meta[name] = {
+      name,
+      table,
+      fields,
+      cls: ModelClass,
+    });
+
+    // Build model handle API bound to knex
+    this.models[name] = this._buildModelHandle(meta);
     return this.models[name];
   }
 
@@ -119,14 +142,7 @@ class Repository {
         const { cls } = this.meta[name];
         txRepo.register(cls);
       }
-      try {
-        await work(txRepo);
-        await txRepo.flush();
-        await trx.commit();
-      } catch(e) {
-        await trx.rollback();
-        throw e;
-      }
+      return await work(txRepo);
     }, config);
   }
 

@@ -1,5 +1,6 @@
 const { Request } = require("./Request.js");
 const { Record } = require("./Record.js");
+const { Field } = require("./Fields.js");
 
 function mixin(targetClass, ...mixins) {
   mixins.forEach(mixinClass => {
@@ -11,6 +12,9 @@ function mixin(targetClass, ...mixins) {
   });
 }
 
+/**
+ * The lookup batching helper.
+ */
 class LookupIds  {
     constructor(model) {
         this.model = model;
@@ -96,9 +100,13 @@ export class Model {
         }
     }
 
+    /**
+     * Flush pending changes to the database.
+     * @returns 
+     */
     async flush() {
         for(const entity of this.entities.values()) {
-            await entity.flush();
+            if (entity._isDirty) await entity.flush();
         }
         return this;
     }
@@ -155,7 +163,7 @@ export class Model {
     async create(data) {
         const toInsert = { ...data };
         // Remove collection fields from insert
-        for (const [k, spec] of Object.entries(fields)) {
+        for (const [k, spec] of Object.entries(this.fields || {})) {
             if (spec?.type === "collection") delete toInsert[k];
             if (
                 spec?.type === "datetime" &&
@@ -165,22 +173,24 @@ export class Model {
                 toInsert[k] = spec.default();
             }
         }
-        const [id] = await this.query()
+        const kx = this.repo.knex;
+        const table = this.table;
+        const [id] = await kx(table)
             .insert(toInsert)
             .returning("id")
-            .catch(async (e) => {
+            .catch(async () => {
                 // SQLite fallback (returning not supported)
                 await kx(table).insert(toInsert);
                 const row = await kx(table).orderBy("id", "desc").first("id");
                 return [row?.id];
             });
-        const row = await this.query()
+        const row = await kx(table)
             .where({ id: typeof id === "object" ? id.id : id })
             .first();
-        const instance = repo._wrapInstance(cls, row, meta);
+        const instance = this.allocate(row);
 
         // Handle initial many-to-many assignment via array of ids
-        for (const [k, spec] of Object.entries(fields)) {
+        for (const [k, spec] of Object.entries(this.fields || {})) {
             if (spec?.type === "collection" && Array.isArray(data?.[k])) {
                 const coll = instance[k];
                 for (const v of data[k]) await coll.add(v);
@@ -194,9 +204,8 @@ export class Model {
         }
         return await this.lookup(id).then(results => results[0]);
     }
-    async where(...args) {
-        await this.repo.flush();
-        return await this.query().where(...args);
+    where(...args) {
+        return this.query().where(...args);
     }
     firstWhere(where) {
         return this.where(where).first();

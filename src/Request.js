@@ -35,12 +35,14 @@ class Request {
     }
 
     async first(...args) {
+        this._ensureDefaultIdSelect();
         const row = await this.queryBuilder.first(...args);
         return row ? this.model.allocate(row) : null;
     }
 
     then(onFulfilled, onRejected) {
         const wrap = this._shouldWrapResults();
+        this._ensureDefaultIdSelect();
         return this.queryBuilder.then(
             (value) => {
                 const wrapped = wrap ? this._wrapResult(value) : value;
@@ -71,6 +73,22 @@ class Request {
         if (!method) return true;
         if (RESULT_METHODS.has(method)) return true;
         return false;
+    }
+
+    _ensureDefaultIdSelect() {
+        const qb = this.queryBuilder;
+        if (!qb) return;
+        const method = qb._method;
+        // Only apply to read-like queries (avoid insert/update/delete)
+        const readLike = !method || method === 'select' || method === 'first';
+        if (!readLike) return;
+        // Skip if select already specified or select() not available
+        if (typeof qb.select !== 'function') return;
+        const stmts = Array.isArray(qb._statements) ? qb._statements : [];
+        const hasColumns = stmts.some((s) => s && s.group === 'columns' && Array.isArray(s.value) && s.value.length > 0);
+        if (hasColumns) return;
+        const col = this.model && this.model.table ? `${this.model.table}.id` : 'id';
+        qb.select(col);
     }
 
     _wrapResult(value) {

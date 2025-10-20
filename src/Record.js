@@ -2,6 +2,7 @@ class Record {
     constructor(model, data) {
         this._model = model;
         this._data = data;
+        this._changes = {};
         this._isReady = false;
         this._isDirty = false;
     }
@@ -14,6 +15,7 @@ class Record {
         Object.assign(this._data, data);
         this._isReady = true;
         this._isDirty = false;
+        this._changes = {};
         return this;
     }
 
