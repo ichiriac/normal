@@ -2,7 +2,7 @@
 
 Models declare fields via a static `fields` object on the class. Each entry describes the column type, constraints, defaults, and (optionally) relations.
 
-Quick example (see demo models in `demo/models/`):
+Quick example (from `demo/models/Users.js`):
 ```js
 class Users {
   static name = "Users";
@@ -14,6 +14,8 @@ class Users {
     email: { type: "string", unique: true, nullable: false },
     password_hash: { type: "string", nullable: false },
     active: { type: "boolean", default: true },
+    // enum-like: string with allowed values (app-level only)
+    status: { type: "string", default: "user", enum: ["user", "admin", "moderator"] },
     created_at: { type: "datetime", default: () => new Date() },
     updated_at: { type: "datetime", default: () => new Date() },
   };
@@ -21,25 +23,18 @@ class Users {
 ```
 
 Supported field types
+The schema builder currently supports the following primitive types:
+
 - number
   - Integer column. Use with `primary`/`generated` for autoincrement primary keys.
-- string
-  - Text column.
 - boolean
   - Boolean column.
-- date
-  - Date-only. Runtime helper available; stored as `DATE` (or closest type by client).
-- datetime / timestamp
-  - Date-time values; mapped to `timestamp` without timezone by default.
-- enum (runtime validation)
-  - Use `type: "enum"` and `values: ["a","b"]` to enforce allowed values at runtime.
-  - Note: schema is created as a string; there’s no DB-level enum in the current sync.
-- manyToOne (runtime relation helper)
-  - Use `type: "manyToOne"` and `refModel: <Model>` to make the property read/hydrate as a referenced record.
-  - Creates an integer FK column with constraints at the runtime schema builder.
-- collection (relation marker, Repository-driven)
-  - Use `type: "collection"` with `foreign` to define one-to-many or many-to-many collections (see “Relations” below).
-  - Not a database column; excluded from DDL.
+- datetime
+  - Date-time values; mapped to a timestamp-like column (no timezone) by default.
+- string
+  - Text/varchar column. Any unknown `type` fallback is treated as string in schema.
+
+Relations are defined via `collection` fields (see below). There isn’t a dedicated `enum` column type; instead, add an `enum: [...]` array on string fields to document/validate choices at the application level.
 
 Common field properties
 - primary: boolean
@@ -55,7 +50,7 @@ Common field properties
 - index: boolean
   - Adds an index on the column.
 - foreign: "ModelName.column"
-  - Schema-level foreign key hint for plain scalar fields (commonly `number`).
+  - Foreign key hint for scalar fields (commonly `number`). Adds an index in schema; full FK constraints are intentionally minimal for portability.
   - Example: `{ type: "number", foreign: "Users.id" }`
 
 Relations
@@ -64,12 +59,7 @@ Relations
   ```js
   author_id: { type: "number", nullable: false, foreign: "Users.id" }
   ```
-- With runtime hydration via field behavior:
-  ```js
-  author_id: { type: "manyToOne", refModel: Users, nullable: false }
-  ```
-  - Reads return an allocated `Users` record with `{ id }`.
-  - Serializes to the underlying foreign key id on insert/update.
+  Note: Access patterns are model-driven; repository creates the FK column based on `foreign`.
 
 2) One-to-many (parent has a collection of child rows)
 - Define a collection on the parent pointing to a registered child model and its FK:
@@ -94,6 +84,25 @@ Relations
     - `post.tags.remove(tagOrId)`
     - `await post.tags.load()`
 
+Examples from the demo
+- Users owns posts and comments (one-to-many):
+  ```js
+  // demo/models/Users.js
+  posts: { type: "collection", foreign: "Posts.author_id" },
+  comments: { type: "collection", foreign: "Comments.author_id" },
+  ```
+- Posts has tags (many-to-many via TagsPosts) and comments (one-to-many):
+  ```js
+  // demo/models/Posts.js
+  tags: { type: "collection", foreign: "TagsPosts.post_id" },
+  comments: { type: "collection", foreign: "Comments.post_id" },
+  ```
+- Tags back-reference posts through the same join table:
+  ```js
+  // demo/models/Tags.js
+  posts: { type: "collection", foreign: "TagsPosts.tag_id" },
+  ```
+
 Defaults
 - Static values (DB default where supported):
   ```js
@@ -104,16 +113,29 @@ Defaults
   created_at: { type: "datetime", default: () => new Date() }
   ```
 
+Extending models (demo/extend)
+- You can extend a registered model by registering an additional class with the same `static name`, adding fields and methods/getters.
+- Example adds an optional picture and a computed URL:
+  ```js
+  // demo/extend/Users.js
+  class Users {
+    static name = "Users";
+    static fields = { picture: { type: "string", nullable: true } };
+
+    get profilePictureUrl() {
+      return this.picture
+        ? `https://cdn.example.com/profiles/${this.picture}`
+        : "https://cdn.example.com/profiles/default.png";
+    }
+  }
+  module.exports = Users;
+  ```
+
 Notes and current behavior
 - Schema creation is handled by the Repository from your static field specs. See [src/Repository.js](src/Repository.js).
-- Runtime field behaviors (read/write/serialize) come from [src/Fields.js](src/Fields.js). Behavioral types include: `primary`, `boolean`, `date`, `datetime`/`timestamp`, `manyToOne`, `oneToMany`, `manyToMany`, and `enum`.
-- `collection` is a Repository-level relation marker. Its methods are provided via relation proxies, not by `src/Fields.js`.
-- `manyToMany` and `oneToMany` classes in `src/Fields.js` are placeholders for runtime behaviors; use `collection` with `foreign` as shown above for relations today.
-- Enum: to enforce allowed values at runtime use:
-  ```js
-  status: { type: "enum", values: ["user", "admin", "moderator"] }
-  ```
-  The column is created as a string.
+- `collection` is a Repository-level relation marker. Its methods are provided via relation proxies on instances (add/remove/load).
+- Enumerated choices are expressed by adding `enum: [...]` to a string field (no DB-native enum; validation is app-level).
+- Read queries default to selecting only `id` unless you specify columns explicitly; results are wrapped via `model.allocate`.
 
 See also
 - Fields implementation: [src/Fields.js](src/Fields.js)
