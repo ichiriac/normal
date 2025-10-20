@@ -70,7 +70,10 @@ class Repository {
     return m;
   }
 
-  /** Drop and create tables based on registered models */
+  /**
+   * Drop and create tables based on registered models
+   * @returns this
+   */
   async sync() {
     for (const name of Object.keys(this.models)) {
       const model = this.models[name];
@@ -85,7 +88,11 @@ class Repository {
 
   /** Run a function inside a transaction and expose a tx-bound repository */
   async transaction(work, config) {
-    return await this.cnx.transaction({ isolationLevel: 'read committed' }, async (trx) => {
+    if (!config) config = {};
+    if (!config.isolationLevel) {
+      config.isolationLevel = 'read committed';
+    }
+    return await this.cnx.transaction(async (trx) => {
       const txRepo = new Repository({ instance: trx });
       // Re-register models with the same metadata
       for (const name of Object.keys(this.models)) {
@@ -116,52 +123,6 @@ class Repository {
       await model.flush();
     }
     return this;
-  }
-
-  // --------------------- internals ---------------------
-
-  _makeCollectionProxy(
-    joinTable,
-    leftCol,
-    rightCol,
-    ownerTable,
-    ownerId,
-    targetTable
-  ) {
-    const kx = this.knex.instance || this.knex;
-    const repo = this;
-    return {
-      async add(entityOrId) {
-        const targetId =
-          typeof entityOrId === "object" ? entityOrId.id : entityOrId;
-        const row = {};
-        row[leftCol] = ownerId;
-        row[rightCol] = targetId;
-        await kx(joinTable).insert(row);
-      },
-      async remove(entityOrId) {
-        const targetId =
-          typeof entityOrId === "object" ? entityOrId.id : entityOrId;
-        const where = {};
-        where[leftCol] = ownerId;
-        where[rightCol] = targetId;
-        await kx(joinTable).where(where).del();
-      },
-      async load() {
-        // Select target rows joined through the join table
-        const rows = await kx(targetTable)
-          .join(joinTable, `${targetTable}.id`, `${joinTable}.${rightCol}`)
-          .where(`${joinTable}.${leftCol}`, ownerId)
-          .select(`${targetTable}.*`);
-        // Wrap in their model class if registered
-        const targetModel = Object.values(repo.meta).find(
-          (m) => m.table === targetTable
-        )?.cls;
-        return rows.map((r) =>
-          Object.assign(Object.create(targetModel?.prototype || {}), r)
-        );
-      },
-    };
   }
 }
 

@@ -3,9 +3,13 @@ class Warehouse {
     static table = 'stock_warehouse';
     static fields = {
         id: 'primary',
-        name: { type: 'string', required: true, unique: true },
+        name: { type: 'string', required: true },
+        code: { type: 'string', unique: true, index: true },
         type: { type: 'enum', values: ['internal', 'virtual'], default: 'internal' },
-        location: { type: 'string', required: true },
     };
+
+    static async findByCode(code) {
+        return await this.where({ code }).first();
+    }
 }
 module.exports = Warehouse;

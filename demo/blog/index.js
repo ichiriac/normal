@@ -1,14 +1,22 @@
-const Norm = require("../../index");
-const db = new Norm.Connection({
+/**
+ * Demo script for a blog application using Normal ORM
+ */
+
+const Normal = require("../../index");
+const db = new Normal.Connection({
   client: "sqlite3",
   connection: {
     filename: ":memory:",
   },
 });
-const repo = new Norm.Repository(db);
+const repo = new Normal.Repository(db);
+
+// registers demo models { name: ModelClass, ... } or [ModelClass, ...]
 const models = require("./models/index");
-const UserExtension = require("./extend/Users")
 repo.register(models);
+
+// extends an existing model with extra fields and methods
+const UserExtension = require("./extend/Users")
 repo.register(UserExtension);
 
 // Initialize the database and sync the models
