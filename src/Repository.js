@@ -1,8 +1,9 @@
 "use strict";
 
 const { Model } = require('./Model');
-const { Field } = require('./Fields');
+const { Cache } = require('./Cache');
 
+const cache = new Cache({ max: 1024, entrySize: 1024 });
 
 /**
  * Repository: registers model definitions and exposes CRUD over Knex.
@@ -39,6 +40,10 @@ class Repository {
     return this.connection.instance;
   }
 
+  /** @returns Cache instance */
+  get cache() {
+    return cache;
+  }
 
 
   /**
