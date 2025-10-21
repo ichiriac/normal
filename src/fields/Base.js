@@ -65,7 +65,7 @@ class Field {
      * @returns 
      */
     write(record, value) {
-        if (record._data[this.name]=== value) {
+        if (record._data[this.name] === value) {
             delete record._changes[this.name];
             record._isDirty = Object.keys(record._changes).length > 0;
         } else {
@@ -104,6 +104,15 @@ class Field {
      */
     serialize(record) {
         return this.read(record);
+    }
+
+    /**
+     * Deserialize value from storage.
+     * @param {*} value 
+     * @returns 
+     */
+    deserialize(record, value) {
+        return value;
     }
 
     /**

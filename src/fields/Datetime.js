@@ -28,6 +28,13 @@ class DateTimeField extends Field {
         }
         return new Date(value);
     }
+    unserialize(record, value) {
+        const result = new Date(value);
+        if (isNaN(result.getTime())) {
+            throw new Error(`Invalid date value for field ${this.name}: ${value}`);
+        }
+        return result;
+    }
     serialize(record) {
         const value = this.read(record);
         if (value instanceof Date) {
