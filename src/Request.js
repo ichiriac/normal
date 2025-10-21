@@ -45,8 +45,15 @@ class Request {
         this._ensureDefaultIdSelect();
         return this.queryBuilder.then(
             (value) => {
-                const wrapped = wrap ? this._wrapResult(value) : value;
-                return onFulfilled ? onFulfilled(wrapped) : wrapped;
+                if (!wrap) {
+                    return onFulfilled ? onFulfilled(value) : value;
+                }
+                return this._wrapResult(value).then((wrapped) => {
+                    if (onFulfilled) {
+                        return onFulfilled(wrapped);
+                    }
+                    return wrapped;
+                });
             },
             onRejected
         );
@@ -96,11 +103,11 @@ class Request {
             if (!this._isWrappableRow(row)) {
                 return row;
             }
-            return this.model.allocate(row);
+            return this.model.allocate(row).ready();
         };
 
         if (Array.isArray(value)) {
-            return value.map(wrapRow);
+            return Promise.all(value.map(wrapRow));
         }
         return wrapRow(value);
     }
