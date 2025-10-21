@@ -4,17 +4,21 @@
 class Record {
     constructor(model, data) {
         this._model = model;
-        this._data = data;
         this._changes = {};
-        this._isReady = false;
-        this._isDirty = false;
+        this._data = {};
+        this.sync(data);
+        this._isReady = Object.keys(data).length == Object.keys(model.fields).length;
     }
 
     sync(data) {
-        Object.assign(this._data, data);
+        for(let key in this._model.fields) {
+            if (key === 'id' && data[key]) continue;
+            const field = this._model.fields[key];
+            this._data[key] = field.deserialize(this, data[key]);
+            delete this._changes[key];
+        }
         this._isReady = true;
-        this._isDirty = false;
-        this._changes = {};
+        this._isDirty = Object.keys(this._changes).length > 0;
         return this;
     }
 
@@ -28,6 +32,12 @@ class Record {
             }
         }
         return json;
+    }
+
+    ready() {
+        if (this._isReady === true) return Promise.resolve(this); 
+        if (this._isReady === false) return this._model.lookup(this.id).then(() => this);
+        return this._isReady;
     }
 
     unlink() {

@@ -74,7 +74,9 @@ class LookupIds {
         let promises = this.ids;
         this.ids = {};
         let ids = Object.keys(promises);
-        const rows = await this.model.query().whereIn('id', ids);
+        const rows = await this.model.query().column(
+            Object.keys(this.model.fields)
+        ).whereIn('id', ids);
         const result = rows.map(row => {
             let instance = this.model.allocate(row);
             for (const [found, resolve, reject] of promises[row.id]) {
@@ -240,8 +242,9 @@ class Model {
         const result = [];
         const missing = [];
         for (const id of ids) {
-            if (this.entities.has(id)) {
-                result.push(Promise.resolve(this.entities.get(id)));
+            const entity = this.entities.get(id);
+            if (entity && entity._isReady) {
+                result.push(Promise.resolve(entity));
             } else {
                 missing.push(id);
             }
@@ -249,7 +252,6 @@ class Model {
         if (missing.length > 0) {
             result.push(this._lookup.lookup(missing));
         }
-        
         return Promise.all(result);
     }
 
@@ -314,6 +316,17 @@ class Model {
         if (!this.cls_init) this._init();
         const instance = new this.cls(this, data);
         if (data.id) {
+            if (instance._isReady === false) {
+                instance._isReady = this.lookup(data.id).then(function() {
+                    instance._isReady = true;
+                    return instance;
+                }).catch(() => {
+                    // record not found, mark as ready
+                    instance._isReady = true;
+                    delete instance.id;
+                    return instance;
+                });
+            }
             this.entities.set(data.id, instance);
         }
         return instance;
@@ -365,7 +378,9 @@ class Model {
                     const row = await kx(table).orderBy("id", "desc").first("id");
                     return [row?.id];
                 });
-            data.id = id.id ? id.id : id;
+            if (data.id) {
+                data.id = id.id ? id.id : id;
+            }
         } else {
             await kx(table).insert(toInsert);
         }

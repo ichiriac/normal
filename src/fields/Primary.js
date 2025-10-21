@@ -13,7 +13,7 @@ class Primary extends Field {
      * @returns 
      */
     write(record, value) {
-        if (record._data.hasOwnProperty(this.name)) {
+        if (record._data[this.name]) {
             throw new Error(`Cannot modify primary key field ${this.name}`);
         }
         record._data[this.name] = value;
