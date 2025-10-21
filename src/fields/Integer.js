@@ -40,5 +40,6 @@ class IntegerField extends Field {
     }
 }
 Field.behaviors.integer = IntegerField;
+Field.behaviors.number = IntegerField;
 
 module.exports = { IntegerField };  
