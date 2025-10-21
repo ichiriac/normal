@@ -22,11 +22,18 @@ class TextField extends Field {
         }
         return String(value);
     }
-    column(table) {
-        return table.text(this.name);
+    getMetadata() {
+        const meta = super.getMetadata();
+        delete meta.index;
+        delete meta.unique;
+        return meta;
+    }
+    buildColumn(table, metadata) {
+        return super.buildColumn(table, metadata, () => {
+            return table.text(this.column);
+        });
     }
 }
 
 Field.behaviors.text = TextField;
-
 module.exports = { TextField };

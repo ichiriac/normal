@@ -26,17 +26,21 @@ class IntegerField extends Field {
         }
         return parseInt(value, 10);
     }
-    column(table) {
-        const column = table.integer(this.name);
-        if (this.definition.unsigned) {
-            column.unsigned();
-        }
-        if (this.definition.required) {
-            column.notNullable();
-        } else {
-            column.nullable();
-        }
-        return column;
+
+    getMetadata() {
+        const meta = super.getMetadata();
+        meta.unsigned = !!this.definition.unsigned;
+        return meta;
+    }
+
+    buildColumn(table, metadata) {
+        return super.buildColumn(table, metadata, () => {
+            const column = table.integer(this.name);
+            if (this.definition.unsigned) {
+                column.unsigned();
+            }
+            return column;
+        });
     }
 }
 Field.behaviors.integer = IntegerField;

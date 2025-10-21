@@ -37,15 +37,12 @@ class DateField extends Field {
         return null;
     }
 
-    column(table) {
-        const col = table.date(this.name);
-        if (this.definition.required) {
-            col.notNullable();
-        } else {
-            col.nullable();
-        }
-        return col;
+    buildColumn(table, metadata) {
+        return super.buildColumn(table, metadata, () => {
+            return table.date(this.name);
+        });
     }
+
 }
 
 Field.behaviors.date = DateField;

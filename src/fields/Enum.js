@@ -27,14 +27,15 @@ class EnumField extends Field {
         }
         return value;
     }
-    column(table) {
-        const column = table.enum(this.name, this.values);
-        if (this.definition.required) {
-            column.notNullable();
-        } else {
-            column.nullable();
-        }
-        return column;
+    getMetadata() {
+        const meta = super.getMetadata();
+        meta.values = this.values;
+        return meta;
+    }
+    buildColumn(table, metadata) {
+        return super.buildColumn(table, metadata, () => {
+            return table.enum(this.name, this.values);
+        });
     }
 }
 

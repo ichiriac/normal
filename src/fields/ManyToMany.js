@@ -144,11 +144,28 @@ class ManyToMany extends Field {
         return undefined;
     }
 
-    column(table) {
-        // do nothing here; handled in onIndex
+    /**
+     * Check if the column changed his type, and drop it if so.
+     * @param {*} table 
+     * @param {*} metadata 
+     * @param {*} columnCallback 
+     */
+    async buildColumn(table, metadata, columnCallback) {
+        if (metadata && metadata.type !== this.type) {
+            const exists = await this.cnx.schema.hasColumn(this.model.table, metadata.column);
+            if (exists) {
+                await table.dropColumn(metadata.column);
+            }
+        }
     }
 
-    async onIndex(table) {
+    getMetadata() {
+        const meta = super.getMetadata();
+        meta.model = this.definition.model;
+        return meta;
+    }
+    
+    async buildIndex(table, metadata) {
         const exists = await this.cnx.schema.hasTable(this.joinTable);
         if (!exists) {
             await this.cnx.schema.createTable(this.joinTable, (table) => {
@@ -160,7 +177,9 @@ class ManyToMany extends Field {
                 ).notNullable().onDelete('CASCADE');
                 table.primary([this.left_col, this.right_col]);
             });
+            return true
         }
+        return false;
     }
 }
 

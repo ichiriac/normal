@@ -15,17 +15,19 @@ class OneToMany extends Field {
         this.refField = refFieldName;
     }
 
+    getMetadata() {
+        const meta = super.getMetadata();
+        meta.foreign = this.definition.foreign;
+        delete meta.index;
+        delete meta.unique;
+        delete meta.required;
+        return meta;
+    }
+
     serialize(record) {
         return undefined;
     }
 
-    onIndex(table) {
-        // do nothing here; handled in onIndex of ManyToOne
-    }
-
-    column(table) {
-        // do nothing here; handled in onIndex of ManyToOne
-    }
 }
 
 Field.behaviors.onetomany = OneToMany;

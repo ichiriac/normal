@@ -1,6 +1,12 @@
 
 const { Field } = require('./Base');
 
+const ALIAS = [
+    'manytoone',
+    'many-to-one',
+    'many2one'
+];
+
 /**
  * Many-to-one relationship field, exemple : author in a Post model.
  * @extends Field
@@ -39,30 +45,84 @@ class ManyToOne extends Field {
         return null;
     }
 
-    column(table) {
-        // do nothing here; handled in onIndex
+    /**
+     * Check if the column changed his type, and drop it if so.
+     * @param {*} table 
+     * @param {*} metadata 
+     * @param {*} columnCallback 
+     */
+    async buildColumn(table, metadata, columnCallback) {
+        if (metadata && ALIAS.indexOf(metadata.type) !== -1) {
+            const exists = await this.cnx.schema.hasColumn(this.model.table,metadata.column);
+            if (exists) {
+                await table.dropColumn(metadata.column);
+            }
+        }
     }
 
-    onIndex(table) {
-        const col = table.integer(this.name).unsigned().references('id').inTable(
-            this.refModel.table
-        );
-        if (this.definition.required) {
-            col.notNullable();
-        } else {
-            col.nullable();
+    getMetadata() {
+        const meta = super.getMetadata();
+        meta.model = this.definition.model;
+        meta.cascade = this.definition.cascade;
+        delete meta.index;
+        return meta;
+    }
+
+    /**
+     * Create the foreign key column for this many-to-one relation.
+     * @param {*} table 
+     * @param {*} metadata 
+     * @returns 
+     */
+    async buildIndex(table, metadata) {
+        const wrapper = () => {
+            const col = table.integer(this.name).unsigned().references('id').inTable(
+                this.refModel.table
+            );
+            if (this.definition.unique) {
+                col.unique();
+            }
+            if (this.definition.required) {
+                col.notNullable();
+            } else {
+                col.nullable();
+            }
+            if (this.definition.cascade === true) {
+                col.onDelete('CASCADE');
+            } else if (this.definition.cascade === false) {
+                col.onDelete('SET NULL');
+            }
+            return col;
+        };
+        if (!metadata) {
+            wrapper();
+            return true;
         }
-        if (this.definition.cascade) {
-            col.onDelete('CASCADE');
-        } else {
-            col.onDelete('SET NULL');
+
+        let meta_changed = false;
+        if (this.column !== metadata.column) {
+            table.renameColumn(metadata.column, this.column);
+            meta_changed = true;
         }
-        return col;
+        
+        let changed = false;
+        for(let k in this.definition) {
+            if (k === 'column') continue;
+            if (k === 'type') continue;
+            if (this.definition[k] !== metadata[k]) {
+                changed = true;
+                break;
+            }
+        }
+        if (changed) {
+            await this.replaceColumn(table, this.column, wrapper);
+            meta_changed = true;
+        }
+        return meta_changed;
     }
 }
 
-Field.behaviors.manytoone = ManyToOne;
-Field.behaviors['many-to-one'] = ManyToOne;
-Field.behaviors['many2one'] = ManyToOne;
-
+ALIAS.forEach(alias => {
+    Field.behaviors[alias] = ManyToOne;
+});
 module.exports = { ManyToOne };

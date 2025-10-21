@@ -22,15 +22,17 @@ class StringField extends Field {
         }
         return String(value);
     }
-    column(table) {
-        const length = this.definition.length || 255;
-        const column = table.string(this.name, length);
-        if (this.definition.required) {
-            column.notNullable();
-        } else {
-            column.nullable();
-        }
-        return column;
+
+    getMetadata() {
+        const meta = super.getMetadata();
+        meta.length = this.definition.length;
+        return meta;
+    }
+
+    buildColumn(table, metadata) {
+        return super.buildColumn(table, metadata, () => {
+            return table.string(this.name, this.definition.length || 255);
+        });
     }
 }
 

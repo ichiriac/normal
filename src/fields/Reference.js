@@ -20,16 +20,24 @@ class Reference extends Field {
         return super.read(record);
     }
 
-    async onIndex(table) {
-        if (this.models.length > 0) {
-            table.enum(this.name, this.models);
-        } else {
-            table.string(this.name);
-        }
-        super.onIndex(table);
+    getMetadata() {
+        const meta = super.getMetadata();
+        meta.id_field = this.definition.id_field;
+        meta.models = this.definition.models;
+        return meta;
+    }
+
+    async buildIndex(table, metadata) {
+        let changed =await super.buildColumn(table, metadata, () => {
+            if (this.models.length > 0) {
+                return table.enum(this.name, this.models);
+            } else {
+                return table.string(this.name);
+            }
+        });
+        return await super.buildIndex(table, metadata) || changed;
     }
 }
 
 Field.behaviors.reference = Reference;
-Field.behaviors.ref = Reference;
 module.exports = { Reference };

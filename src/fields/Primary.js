@@ -25,11 +25,20 @@ class Primary extends Field {
         return record._data[this.name];
     }
 
-    column(table) {
-        return table.increments(this.name).primary();
+    getMetadata() {
+        return {
+            type: 'primary',
+            column: this.column
+        };
     }
+
+    buildColumn(table, metadata) {
+        return super.buildColumn(table, metadata, () => {
+            return table.increments(this.name).primary();
+        });
+    }
+
 }
 
 Field.behaviors.primary = Primary;
-
 module.exports = { Primary };

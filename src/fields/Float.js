@@ -26,15 +26,26 @@ class FloatField extends Field {
         }
         return parseFloat(value);
     }
-    column(table) {
-        const column = table.float(this.name);
-        if (this.definition.unsigned) {
-            column.unsigned();
-        }
-        if (this.definition.precision && this.definition.scale) {
-            column.precision(this.definition.precision, this.definition.scale);
-        }
-        return column;
+
+    getMetadata() {
+        const meta = super.getMetadata();
+        meta.unsigned = !!this.definition.unsigned;
+        meta.precision = this.definition.precision;
+        meta.scale = this.definition.scale;
+        return meta;
+    }
+
+    buildColumn(table, metadata) {
+        return super.buildColumn(table, metadata, () => {
+             const column = table.float(this.name);
+            if (this.definition.unsigned) {
+                column.unsigned();
+            }
+            if (this.definition.precision && this.definition.scale) {
+                column.precision(this.definition.precision, this.definition.scale);
+            }
+            return column;
+        });
     }
 }
 Field.behaviors.float = FloatField;
