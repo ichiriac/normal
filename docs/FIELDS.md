@@ -67,7 +67,7 @@ Relations are defined via `collection` fields (see below). There isn’t a dedic
 1) Many-to-one (scalar FK on this table)
 - Simple FK (schema-level only):
   ```js
-  author_id: { type: "many-to-one", nullable: false, model: "Users" }
+  author_id: { type: "many-to-one", required: true, model: "Users" }
   ```
   Note: Access patterns are model-driven; repository creates the FK column based on `foreign`.
 

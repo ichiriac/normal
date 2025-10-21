@@ -32,10 +32,10 @@ class Users {
 	static name = 'Users';
 	static table = 'users';
 	static fields = {
-		id: { type: 'number', primary: true, generated: true },
-		firstname: { type: 'string', nullable: false },
-		lastname: { type: 'string', nullable: false },
-		email: { type: 'string', unique: true, nullable: false },
+		id: 'primary',
+		firstname: { type: 'string', required: true },
+		lastname: { type: 'string', required: true },
+		email: { type: 'string', unique: true, required: true },
 		created_at: { type: 'datetime', default: () => new Date() },
 		updated_at: { type: 'datetime', default: () => new Date() },
 	};
@@ -47,10 +47,10 @@ class Posts {
 	static name = 'Posts';
 	static table = 'posts';
 	static fields = {
-		id: { type: 'number', primary: true, generated: true },
-		title: { type: 'string', nullable: false },
-		content: { type: 'string', nullable: false },
-		author_id: { type: 'number', nullable: false, foreign: 'Users.id' },
+		id: 'primary',
+		title: { type: 'string', required: true },
+		content: { type: 'string', required: true },
+		author_id: { type: 'many-to-one', required: true, model: 'Users' },
 	};
 }
 
@@ -67,10 +67,10 @@ console.log(u.name); // "Ada Lovelace"
 
 ## Features at a glance
 - Models: simple class with `static name`, `static table`, `static fields`.
-- Fields: number, string, boolean, datetime, plus `default`, `nullable`, `unique`, `foreign`.
+- Fields: number, string, boolean, datetime, plus `default`, `required`, `unique`, `index`.
 - Relations:
-	- 1:n via `collection` fields (e.g., `comments: { type: 'collection', foreign: 'Comments.post_id' }`).
-	- n:m via paired `collection` fields referencing a join table name (created automatically).
+	- 1:n via `one-to-many` fields (e.g., `comments: { type: 'one-to-many', foreign: 'Comments.post_id' }`).
+	- n:m via paired `many-to-many` fields referencing a join table name (created automatically).
 	- Relation proxies on instances: `add`, `remove`, `load`.
 - Transactions: `repo.transaction(async (tx) => { /* ... */ })` with a tx‑bound repository.
 - Active records: reads wrap rows into instances (methods/getters work); default queries select only `id` for speed.

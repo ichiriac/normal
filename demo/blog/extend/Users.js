@@ -2,7 +2,7 @@ class Users {
   static name = "Users";
 
   static fields = {
-    picture: { type: "string", nullable: true },
+    picture: { type: "string", required: false },
   };
 
   get profilePictureUrl() {

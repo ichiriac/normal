@@ -3,7 +3,7 @@ class Queue {
     static table = 'queues';
     static fields = {
         name: { type: 'string', unique: true, required: true },
-        last_error: { type: 'datetime', nullable: true },
+        last_error: { type: 'datetime', required: false },
         job_count: { type: 'number', default: 0 },
         pending_jobs: { type: 'number', default: 0 },
         completed_jobs: { type: 'number', default: 0 },

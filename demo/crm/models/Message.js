@@ -5,7 +5,7 @@ class Message {
 
     static fields = {
         id: 'primary',
-        subject: { type: 'string', length: 200, notNullable: true },
+        subject: { type: 'string', length: 200, required: true },
         body: { type: 'text' },
         sender_id: { type: 'many2one', model: 'Contact' },
         recipient_id: { type: 'many2one', model: 'Contact' },

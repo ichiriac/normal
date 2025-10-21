@@ -5,16 +5,16 @@ class Job {
         id: 'primary',
         queue_id: { type: 'many-to-one', model: 'Queue', required: true },
         payload: { type: 'json', required: true }, // JSON string for compatibility
-        result: { type: 'json', nullable: true }, // JSON string for results
+        result: { type: 'json', required: false }, // JSON string for results
         status: { 
             type: 'string', 
             default: 'pending',
             enum: ['pending', 'in_progress', 'completed', 'failed']
         },
         attempts: { type: 'number', default: 0 },
-        last_error: { type: 'datetime', nullable: true },
+        last_error: { type: 'datetime', required: false },
         scheduled_at: { type: 'datetime', default: () => new Date() },
-        completed_at: { type: 'datetime', nullable: true },
+        completed_at: { type: 'datetime', required: false },
         created_at: { type: 'datetime', default: () => new Date() },
         updated_at: { type: 'datetime', default: () => new Date() },
         queue: { type: 'many-to-one', model: 'Queue' }

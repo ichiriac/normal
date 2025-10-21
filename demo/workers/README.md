@@ -39,13 +39,13 @@ static fields = {
 ```javascript
 static fields = {
   id: 'primary',
-  queue_id: { type: 'number', foreign: 'Queue.id', required: true },
-  payload: { type: 'string', required: true }, // JSON serialized
-  result: { type: 'string', nullable: true },
+  queue_id: { type: 'many-to-one', model: 'Queue', required: true },
+  payload: { type: 'json', required: true }, // JSON serialized
+  result: { type: 'json', required: false },
   status: { type: 'string', default: 'pending', enum: ['pending', 'in_progress', 'completed', 'failed'] },
   attempts: { type: 'number', default: 0 },
   scheduled_at: { type: 'datetime', default: () => new Date() },
-  completed_at: { type: 'datetime', nullable: true },
+  completed_at: { type: 'datetime', required: false },
   queue: { type: 'many-to-one', model: 'Queue' }
 }
 ```

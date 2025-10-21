@@ -6,12 +6,12 @@ class Lead {
 
     static fields = {
         id: 'primary',
-        title: { type: 'string', length: 200, notNullable: true },
-        description: { type: 'text' },
-        contact_id: { type: 'many2one', model: 'Contact' },
-        status: { type: 'string', length: 50, defaultTo: 'new' },
-        created_at: { type: 'timestamp', defaultToNow: true },
-        updated_at: { type: 'timestamp', defaultToNow: true },
+        title: { type: 'string', length: 200, required: true },
+        description: { type: 'text', required: false },
+        contact_id: { type: 'many2one', model: 'Contact', required: true },
+        status: { type: 'string', length: 50, defaultTo: 'new', required: false },
+        created_at: { type: 'timestamp', defaultToNow: true, required: false },
+        updated_at: { type: 'timestamp', defaultToNow: true, required: false },
     };
 
     static onCreate(entity) {
