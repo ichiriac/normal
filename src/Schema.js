@@ -84,11 +84,11 @@ async function Synchronize(repository, options) {
 
         // intercept generated SQL statements
         transaction.cnx.on('query', function (e) {
+            if (e.queryContext && e.queryContext.ignore) return;
             sql_statements.push(
-                inlineBindings(e.sql, e.bindings)
+                inlineBindings(e.sql, e.bindings) + ';'
             );
         });
-
 
         for (const name of Object.keys(transaction.models)) {
             if (name == 'Models') continue;
@@ -99,7 +99,8 @@ async function Synchronize(repository, options) {
             // synchronize model table
             let changed = false;
             const schema = models[name]?.schema || null;
-            const hasTable = await transaction.cnx.schema.hasTable(model.table);
+            sql_statements.push(`/* synchronizing model: ${name} */`);
+            const hasTable = await transaction.cnx.schema.queryContext({ ignore: true }).hasTable(model.table);
             if (force) {
                 await transaction.cnx.schema.dropTableIfExists(model.table);
             }
@@ -112,7 +113,7 @@ async function Synchronize(repository, options) {
                     changed = true;
                 }
             }
-            const method = hasTable ? 'table' : 'createTable';
+            const method = hasTable && !force ? 'table' : 'createTable';
             const fields = {};
             // synchronize fields
             await transaction.cnx.schema[method](model.table, (table) => {
@@ -163,10 +164,10 @@ async function Synchronize(repository, options) {
 
         // handle dry run rollback
         if (options?.dryRun) {
-            transaction.rollback();
+            await transaction.cnx.rollback();
         }
     });
-
+    sql_statements.pop(); // remove the ROLLBACK or COMMIT statement
     return sql_statements;
 }
 
