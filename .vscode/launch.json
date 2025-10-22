@@ -48,10 +48,16 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "env": {
-                "DEBUG": "knex"
-            },
             "program": "${workspaceFolder}/demo/workers/index.js"
-        }        
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Schema Demo",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/demo/schema/index.js"
+        }
     ]
 }
