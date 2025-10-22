@@ -75,7 +75,7 @@ class LookupIds {
         this.ids = {};
         let ids = Object.keys(promises);
         const rows = await this.model.query().column(
-            Object.keys(this.model.fields)
+            this.model.columns
         ).whereIn('id', ids);
         const result = rows.map(row => {
             let instance = this.model.allocate(row);
@@ -129,6 +129,7 @@ class Model {
         this.indexes = [];
         this.entities = new Map();
         this._lookup = new LookupIds(this);
+        this.columns = [];
     }
 
     /**
@@ -249,10 +250,14 @@ class Model {
                 this.cls = chainWith(this, mixin.cls);
             });
 
+            this.columns = [];
             for (let fieldName of Object.keys(this.fields)) {
                 const field = Field.define(this, fieldName, this.fields[fieldName]);
                 this.fields[fieldName] = field;
                 field.attach(this.cls);
+                if (field.stored) {
+                    this.columns.push(field.column);
+                }
             }
 
             this.cls.model = this;

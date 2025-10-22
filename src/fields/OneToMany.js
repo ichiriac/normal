@@ -16,6 +16,7 @@ class OneToMany extends Field {
             throw new Error(`OneToMany field "${name}" requires a "foreign" definition`);
         }
         [this.refModelName, this.refFieldName] = this.definition.foreign.split('.');
+        this.stored = false;
     }
 
     get refModel() {

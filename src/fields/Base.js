@@ -36,6 +36,7 @@ class Field {
         this.name = name;
         this.definition = definition;
         this.column = definition.column || name;
+        this.stored = definition.stored !== false;
         const allowed_keys = Object.keys(this.getMetadata());
         for (let key of Object.keys(definition)) {
             if (!allowed_keys.includes(key)) {
@@ -153,6 +154,7 @@ class Field {
         const meta = {
             column: this.column,
             type: this.definition.type,
+            stored: this.stored,
             required: !!this.definition.required,
             unique: !!this.definition.unique,
             index: !!this.definition.index,

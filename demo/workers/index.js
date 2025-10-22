@@ -44,7 +44,7 @@ const JOB_TYPES = {
 // Create database connection
 const db = new Normal.Connection({
   client: "sqlite3",
-  debug: true,
+  debug: false,
   connection: {
     filename: path.join(__dirname, "jobs.db"), // Persistent DB for multi-process
   },

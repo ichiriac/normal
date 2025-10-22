@@ -95,6 +95,7 @@ class ManyToMany extends Field {
             throw new Error(`ManyToMany field "${name}" requires a model in its definition`);
         }
         this.relModel = this.model.repo.get(this.definition.model);
+        this.stored = false;
     }
 
     get joinTable() {
