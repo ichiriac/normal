@@ -218,11 +218,12 @@ class Field {
      */
     isDefChanged(metadata) {
         if (!metadata) return true;
-        for(let k in this.definition) {
+        const definition = this.getMetadata();
+        for(let k in definition) {
             if (k === 'column') continue;
-            if (k === 'default' && typeof this.definition[k] === 'function') continue;
+            if (k === 'default' && typeof definition[k] === 'function') continue;
             if (k === 'index') continue;
-            if (this.definition[k] !== metadata[k]) {
+            if (definition[k] !== metadata[k]) {
                 return true;
             }
         }
