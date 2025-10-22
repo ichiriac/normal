@@ -44,18 +44,45 @@ class Record {
         this._model = null;
     }
 
-    flush() {
+    /**
+     * Flush pending changes to the database.
+     * @returns 
+     */
+    async flush() {
         if (this._isDirty) {
             this._isDirty = false;
-            // In a real implementation, this would persist changes to the database
+            const update = {};
+            for (let key in this._changes) {
+                update[key] = this._model.fields[key].serialize(this);
+            }
+            await this._model.query().where({ id: this.id }).update(update);
+            this._isDirty = false;
+            for(let key in this._changes) {
+                this._data[key] = this._changes[key];
+            }
+            this._changes = {};
         }
         return this;
     }
 
-    write(data) {
-        Object.assign(this._data, data);
-        this._isDirty = true;
-        return this.flush();
+    /**
+     * Requests to write data to the record.
+     * @param {*} data 
+     * @returns 
+     */
+    async write(data) {
+        if (data) {
+            for(let key in data) {
+                if (!this._model.fields.hasOwnProperty(key)) {
+                    throw new Error(`Field ${key} does not exist on model ${this._model.name}`);
+                }
+                this[key] = data[key];
+            }
+        }
+        if (this._isDirty) {
+            return await this.flush();
+        }
+        return this;
     }
 }
 module.exports = { Record };
