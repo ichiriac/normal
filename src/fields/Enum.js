@@ -32,10 +32,8 @@ class EnumField extends Field {
         meta.values = this.values;
         return meta;
     }
-    buildColumn(table, metadata) {
-        return super.buildColumn(table, metadata, () => {
-            return table.enum(this.name, this.values);
-        });
+    getColumnDefinition(table) {
+        return table.enum(this.name, this.values);
     }
 }
 

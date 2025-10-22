@@ -27,15 +27,31 @@ class Reference extends Field {
         return meta;
     }
 
-    async buildIndex(table, metadata) {
-        let changed =await super.buildColumn(table, metadata, () => {
+    getColumnDefinition() {
+        return null;
+    }
+
+    async buildPostIndex(metadata) {
+         // inject creation behavior
+        this.getColumnDefinition = (table) => {
             if (this.models.length > 0) {
                 return table.enum(this.name, this.models);
             } else {
                 return table.string(this.name);
             }
-        });
-        return await super.buildIndex(table, metadata) || changed;
+        };
+        let changed = false;
+        await this.cnx.schema.table(this.table, (table) => {
+            changed = this.buildColumn(table, metadata);
+            let indexChange = this.buildIndex(table, metadata);
+            if (indexChange) {
+                changed = true;
+            }
+        })
+        this.getColumnDefinition = () => {
+            return null;
+        };
+        return changed;
     }
 }
 

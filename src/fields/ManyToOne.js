@@ -45,6 +45,8 @@ class ManyToOne extends Field {
         return null;
     }
 
+
+
     /**
      * Check if the column changed his type, and drop it if so.
      * @param {*} table 
@@ -68,25 +70,26 @@ class ManyToOne extends Field {
         return meta;
     }
 
+    isSameType(type) {
+        return ALIAS.indexOf(type) !== -1;
+    }
+
+    getColumnDefinition() {
+        return null;
+    }
+
     /**
      * Create the foreign key column for this many-to-one relation.
      * @param {*} table 
      * @param {*} metadata 
      * @returns 
      */
-    async buildIndex(table, metadata) {
-        const wrapper = () => {
+    async buildPostIndex(metadata) {
+        // inject creation behavior
+        this.getColumnDefinition = (table) => {
             const col = table.integer(this.name).unsigned().references('id').inTable(
                 this.refModel.table
             );
-            if (this.definition.unique) {
-                col.unique();
-            }
-            if (this.definition.required) {
-                col.notNullable();
-            } else {
-                col.nullable();
-            }
             if (this.definition.cascade === true) {
                 col.onDelete('CASCADE');
             } else if (this.definition.cascade === false) {
@@ -94,31 +97,14 @@ class ManyToOne extends Field {
             }
             return col;
         };
-        if (!metadata) {
-            wrapper();
-            return true;
-        }
-
-        let meta_changed = false;
-        if (this.column !== metadata.column) {
-            table.renameColumn(metadata.column, this.column);
-            meta_changed = true;
-        }
-        
         let changed = false;
-        for(let k in this.definition) {
-            if (k === 'column') continue;
-            if (k === 'type') continue;
-            if (this.definition[k] !== metadata[k]) {
-                changed = true;
-                break;
-            }
-        }
-        if (changed) {
-            await this.replaceColumn(table, this.column, wrapper);
-            meta_changed = true;
-        }
-        return meta_changed;
+        await this.cnx.schema.table(this.table, (table) => {
+            changed = this.buildColumn(table, metadata);
+        })
+        this.getColumnDefinition = () => {
+            return null;
+        };
+        return changed;
     }
 }
 

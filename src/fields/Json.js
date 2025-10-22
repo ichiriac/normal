@@ -8,10 +8,8 @@ class JsonField extends Field {
     unserialize(record, value) {
         return JSON.parse(value);
     }
-    buildColumn(table, metadata) {
-        return super.buildColumn(table, metadata, () => {
-            return table.json(this.name);
-        });
+    getColumnDefinition(table) {
+        return table.json(this.name);
     }
 }
 

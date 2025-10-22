@@ -28,10 +28,8 @@ class TextField extends Field {
         delete meta.unique;
         return meta;
     }
-    buildColumn(table, metadata) {
-        return super.buildColumn(table, metadata, () => {
-            return table.text(this.column);
-        });
+    getColumnDefinition(table) {
+        return table.text(this.column);
     }
 }
 

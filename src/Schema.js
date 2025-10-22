@@ -42,13 +42,16 @@ async function Synchronize(repository, options) {
     // initialize the Models table if it doesn't exist
     if (!exists) {
         repository.get('Models')._init();
-        await cnx.schema.createTable(repository.get('Models').table,  (table) => {
-            const modelFields = repository.get('Models').fields;
+        const modelFields = repository.get('Models').fields;
+        await cnx.schema.createTable(repository.get('Models').table, (table) => {
             for (const field of Object.values(modelFields)) {
-                 field.buildColumn(table);
-                 field.buildIndex(table);
+                field.buildColumn(table);
+                field.buildIndex(table);
             }
         });
+        for (const field of Object.values(modelFields)) {
+            await field.buildPostIndex(null);
+        }
     }
 
     // intercept generated SQL statements
@@ -66,7 +69,7 @@ async function Synchronize(repository, options) {
 
         const schema = await transaction.get('Models').query().whereNull('dropped_at');
 
-        for(const s of schema) {
+        for (const s of schema) {
             models[s.name] = {
                 schema: s,
                 found: false,
@@ -77,6 +80,7 @@ async function Synchronize(repository, options) {
             if (name == 'Models') continue;
             const model = transaction.models[name];
             if (model.abstract) continue;
+            model._init();
 
             // synchronize model table
             let changed = false;
@@ -94,50 +98,54 @@ async function Synchronize(repository, options) {
                     changed = true;
                 }
             }
-
             const method = hasTable ? 'table' : 'createTable';
-            // synchronize fields
-            await transaction.cnx.schema[method](model.table, async (table) => {
-                for (const field of Object.values(model.fields)) {
-                    changed ||= await field.buildColumn(table, schema && !force ? schema.fields[field.name] : null);
-                }
-            });
-            models[name].changed = changed;
-            models[name].entity = model;
-            models[name].found = true;
-        }
-        // create indexes and relationships
-        for (const name of Object.keys(models)) {
-            const model = models[name];
             const fields = {};
-            await transaction.cnx.schema.alterTable(model.entity.table, async (table) => {
-                for (const field of Object.values(model.entity.fields)) {
+            // synchronize fields
+            await transaction.cnx.schema[method](model.table, (table) => {
+                for (const field of Object.values(model.fields)) {
+                    let colChange = field.buildColumn(table, schema && !force ? schema.fields[field.name] : null);
+                    let indexChange = field.buildIndex(table, schema && !force ? schema.fields[field.name] : null);
+                    if (colChange || indexChange) {
+                        changed = true;
+                    }
                     fields[field.name] = field.getMetadata();
-                    model.changed ||= await field.buildIndex(table, schema && !force ? model.schema.fields[field.name] : null);
                 }
             });
+            for (const field of Object.values(model.fields)) {
+                let postIndexChange = await field.buildPostIndex(schema && !force ? schema.fields[field.name] : null);
+                if (postIndexChange) {
+                    changed = true;
+                }
+            }
             // if anything changed, update the schema record
-            if (model.changed) {
+            if (changed) {
                 const data = {
                     name: name,
-                    table: model.entity.table,
+                    table: model.table,
                     fields: fields,
-                    inherits: model.entity.inherits || null,
+                    inherits: model.inherits || null,
                     options: {
-                        mixins: model.entity.mixins || [],
-                        indexes: model.entity.indexes || [],
+                        mixins: model.mixins || [],
+                        indexes: model.indexes || [],
                     }
                 };
-                if (model.entity) {
-                    await model.schema.write(data);
+                if (schema) {
+                    await schema.write(data);
                 } else {
                     await transaction.get('Models').create(data);
                 }
             }
+            if (models[name]) {
+                models[name].found = true;
+            }
         }
 
         // drop undefined tables
-
+        for (const info of Object.values(models)) {
+            if (info.found) continue;
+            await transaction.cnx.schema.dropTableIfExists(info.schema.table);
+            await info.schema.write({ dropped_at: new Date() });
+        }
 
         // handle dry run rollback
         if (options?.dryRun) {

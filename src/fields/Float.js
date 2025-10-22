@@ -35,17 +35,15 @@ class FloatField extends Field {
         return meta;
     }
 
-    buildColumn(table, metadata) {
-        return super.buildColumn(table, metadata, () => {
-             const column = table.float(this.name);
-            if (this.definition.unsigned) {
-                column.unsigned();
-            }
-            if (this.definition.precision && this.definition.scale) {
-                column.precision(this.definition.precision, this.definition.scale);
-            }
-            return column;
-        });
+    getColumnDefinition(table) {
+        const column = table.float(this.name);
+        if (this.definition.unsigned) {
+            column.unsigned();
+        }
+        if (this.definition.precision && this.definition.scale) {
+            column.precision(this.definition.precision, this.definition.scale);
+        }
+        return column;
     }
 }
 Field.behaviors.float = FloatField;

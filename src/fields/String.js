@@ -29,10 +29,8 @@ class StringField extends Field {
         return meta;
     }
 
-    buildColumn(table, metadata) {
-        return super.buildColumn(table, metadata, () => {
-            return table.string(this.name, this.definition.length || 255);
-        });
+    getColumnDefinition(table) {
+        return table.string(this.name, this.definition.length || 255);
     }
 }
 

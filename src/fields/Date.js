@@ -37,10 +37,8 @@ class DateField extends Field {
         return null;
     }
 
-    buildColumn(table, metadata) {
-        return super.buildColumn(table, metadata, () => {
-            return table.date(this.name);
-        });
+    getColumnDefinition(table) {
+        return table.date(this.name);
     }
 
 }

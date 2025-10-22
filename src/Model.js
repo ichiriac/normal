@@ -186,52 +186,6 @@ class Model {
     }
 
     /**
-     * Create or update the database schema for this model.
-     * @returns 
-     */
-    _buildSchema() {
-        this.checkAbstract();
-        this._init();
-        const kx = this.repo.cnx;
-        return kx.schema.hasTable(this.table).then(async (exists) => {
-            if (!exists) {
-                await kx.schema.createTable(this.table, (table) => {
-                    for (const fieldName of Object.keys(this.fields)) {
-                        const field = this.fields[fieldName];
-                        field.column(table);
-                    }
-                });
-            } else {
-                await kx.schema.alterTable(this.table, (table) => {
-                    for (const fieldName of Object.keys(this.fields)) {
-                        const field = this.fields[fieldName];
-                        field.column(table);
-                    }
-                });
-            }
-        });
-    }
-
-    /**
-     * Attach indexes to the database schema for this model.
-     * @returns 
-     */
-    _buildIndex() {
-        this.checkAbstract();
-        const kx = this.repo.cnx;
-        return kx.schema.hasTable(this.table).then(async (exists) => {
-            if (exists) {
-                await kx.schema.alterTable(this.table, (table) => {
-                    for (const fieldName of Object.keys(this.fields)) {
-                        const field = this.fields[fieldName];
-                        field.onIndex(table);
-                    }
-                });
-            }
-        });
-    }
-
-    /**
      * Lookup a list of ids, batching missing ids into a single query.
      * @param {int|Array<int>} ids 
      * @returns Promise<Array<Record>>

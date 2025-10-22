@@ -1,4 +1,9 @@
 const { Field } = require('./Base');
+const ALIAS = [
+    'onetomany',
+    'one-to-many',
+    'one2many'
+];
 
 /**
  * One-to-many relationship field, exemple : comments in a Post model.
@@ -24,13 +29,26 @@ class OneToMany extends Field {
         return meta;
     }
 
+    isSameType(type) {
+        return ALIAS.indexOf(type) !== -1;
+    }
+
     serialize(record) {
         return undefined;
     }
 
+    getColumnDefinition() {
+        return null;
+    }
+
+    async buildPostIndex(metadata) {
+        // no post index for one-to-many
+        return false;
+    }
+
 }
 
-Field.behaviors.onetomany = OneToMany;
-Field.behaviors['one-to-many'] = OneToMany;
-Field.behaviors['one2many'] = OneToMany;
+ALIAS.forEach(alias => {
+    Field.behaviors[alias] = OneToMany;
+});
 module.exports = { OneToMany };

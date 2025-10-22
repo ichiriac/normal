@@ -42,10 +42,8 @@ class DateTimeField extends Field {
         }
         return null;
     }
-    buildColumn(table, metadata) {
-        return super.buildColumn(table, metadata, () => {
-            return table.timestamp(this.name, { useTz: false });
-        });
+    getColumnDefinition(table) {
+        return table.timestamp(this.name, { useTz: false });
     }
 }
 

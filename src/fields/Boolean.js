@@ -16,10 +16,8 @@ class BooleanField extends Field {
         const value = this.read(record);
         return value ? 1 : 0;
     }
-    buildColumn(table, metadata) {
-        return super.buildColumn(table, metadata, () => {
-            return table.boolean(this.name);
-        });
+    getColumnDefinition(table) {
+        return table.boolean(this.name);
     }
 }
 

@@ -107,6 +107,15 @@ class Field {
     }
 
     /**
+     * Checks if the specified type is the same
+     * @param {*} value 
+     * @returns 
+     */
+    isSameType(type) {
+        return this.type === type;
+    }
+
+    /**
      * Method used to serialize the field value for storage.
      * @param {*} record 
      * @returns 
@@ -141,57 +150,67 @@ class Field {
     }
 
     /**
+     * Get the column definition for this field.
+     * @param {*} table 
+     * @returns 
+     */
+    getColumnDefinition(table) {
+        throw new Error('getColumnDefinition method not implemented for field type ' + this.definition.type);
+    }
+
+    /**
+     * Get the column definition and apply common constraints.
+     * @param {*} table 
+     * @returns 
+     */
+    getBuilderColumn(table) {
+        const column = this.getColumnDefinition(table);
+        if (!column) return null;
+        if (this.definition.required) {
+            column.notNullable();
+        } else {
+            column.nullable();
+        }
+        if (this.definition.unique) {
+            column.unique();
+        }
+        if (this.definition.default !== undefined && typeof this.definition.default !== 'function') {
+            column.defaultTo(this.definition.default);
+        }
+        return column;
+    }
+
+    /**
      * Method that initializes the database column for this field.
      * @param {*} table 
      */
-    async buildColumn(table, metadata, columnCallback) {
-
-        if (!columnCallback) return false;
-
-        const wrapper = () => {
-            const column = columnCallback();
-            if (this.definition.required) {
-                column.notNullable();
-            } else {
-                column.nullable();
-            }
-            if (this.definition.unique) {
-                column.unique();
-            }
-            if (this.definition.default !== undefined && typeof this.definition.default !== 'function') {
-                column.defaultTo(this.definition.default);
-            }
-            return column;
-        }
-
+    buildColumn(table, metadata) {
         if (!metadata) {
-            wrapper();
-            return true;
+            return !!this.getBuilderColumn(table);
         }
-
-        let changed = false;
-
         if (this.column !== metadata.column) {
             table.renameColumn(metadata.column, this.column);
-            changed = true;
+            return true;
         }
+        return false;
+    }
 
-        let def_changed = false;
+    /**
+     * Checks if the field definition has changed.
+     * @param {*} metadata 
+     * @returns 
+     */
+    isDefChanged(metadata) {
+        if (!metadata) return true;
         for(let k in this.definition) {
             if (k === 'column') continue;
             if (k === 'default' && typeof this.definition[k] === 'function') continue;
             if (k === 'index') continue;
             if (this.definition[k] !== metadata[k]) {
-                def_changed = true;
-                break;
+                return true;
             }
         }
-
-        if (def_changed) {
-            await this.replaceColumn(table, this.column, wrapper);
-            changed = true;
-        }
-        return changed;
+        return false;
     }
 
     /**
@@ -201,29 +220,35 @@ class Field {
      * @param {*} columnCallback 
      * @returns 
      */
-    async replaceColumn(table, name, columnCallback) {
+    async replaceColumn() {
         const mig_suffix = '_mig_tmp';
+        const name = this.column;
         const exists = await this.cnx.schema.hasColumn(this.model.table, name + mig_suffix);
-        if (!exists) {
-            table.renameColumn(name, name + mig_suffix);
-        } else {
-            table.dropColumn(name);
-        }
-        columnCallback();
+        await this.cnx.schema.table(this.model.table, async (table) => {
+            if (!exists) {
+                table.renameColumn(name, name + mig_suffix);
+            } else {
+                table.dropColumn(name);
+            }
+            this.getBuilderColumn(table);
+        });
         try {
             await table.raw(`UPDATE ${this.model.table} SET ${name} = ${name + mig_suffix}`);
-            table.dropColumn(name + mig_suffix);
+            await this.cnx.schema.table(this.model.table, async (table) => {
+                table.dropColumn(name + mig_suffix);
+            });
             return true;
         } catch (err) {
             console.warn(`Warning: unable to migrate contents from ${name}`);
             return false;
         }
     }
+
     /**
      * Method that initializes indexes for this field.
      * @param {*} table 
      */
-    async buildIndex(table, metadata) {
+    buildIndex(table, metadata) {
         const prevNotIndexed = !metadata || !metadata.index;
         if (this.definition.index) {
             if (prevNotIndexed) {
@@ -237,7 +262,19 @@ class Field {
         return false;
     }
 
-    
+    /**
+     * Run table post-processing after initial build, usefull for
+     * manipulating columns or defining foreign keys.
+     * @param {*} metadata 
+     * @returns 
+     */
+    async buildPostIndex(metadata) {
+        if (metadata && this.isDefChanged(metadata)) {
+            await this.replaceColumn();
+            return true;
+        }
+        return false;
+    }
 
     async post_create(record) {
         // Hook after record creation

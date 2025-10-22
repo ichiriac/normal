@@ -2,6 +2,11 @@
 const { Field } = require('./Base');
 
 const CollectionSymbol = Symbol('ManyToManyCollection');
+const ALIAS = [
+    'manytomany',
+    'many-to-many',
+    'many2many'
+];
 
 /**
  * Helper class to manage many-to-many relationship collections.
@@ -144,28 +149,21 @@ class ManyToMany extends Field {
         return undefined;
     }
 
-    /**
-     * Check if the column changed his type, and drop it if so.
-     * @param {*} table 
-     * @param {*} metadata 
-     * @param {*} columnCallback 
-     */
-    async buildColumn(table, metadata, columnCallback) {
-        if (metadata && metadata.type !== this.type) {
-            const exists = await this.cnx.schema.hasColumn(this.model.table, metadata.column);
-            if (exists) {
-                await table.dropColumn(metadata.column);
-            }
-        }
-    }
-
     getMetadata() {
         const meta = super.getMetadata();
         meta.model = this.definition.model;
         return meta;
     }
-    
-    async buildIndex(table, metadata) {
+
+    getColumnDefinition() {
+        return null;
+    }
+
+    isSameType(type) {
+        return ALIAS.indexOf(type) !== -1;
+    }
+
+    async buildPostIndex(metadata) {
         const exists = await this.cnx.schema.hasTable(this.joinTable);
         if (!exists) {
             await this.cnx.schema.createTable(this.joinTable, (table) => {
@@ -179,11 +177,15 @@ class ManyToMany extends Field {
             });
             return true
         }
+        // @fixme: if any table was renamed, we should insert previous table rows and drop previous one !
+        // @bug actually this code will cause a reset of the join table contents on any table name changes
+        // to avoid this issue you should use the joinTable definition property to fix the join table name
         return false;
     }
 }
 
-Field.behaviors.manytomany = ManyToMany;
-Field.behaviors['many-to-many'] = ManyToMany;
-Field.behaviors['many2many'] = ManyToMany;
+
+ALIAS.forEach(alias => {
+    Field.behaviors[alias] = ManyToMany;
+});
 module.exports = { ManyToMany };

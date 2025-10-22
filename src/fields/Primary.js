@@ -32,10 +32,8 @@ class Primary extends Field {
         };
     }
 
-    buildColumn(table, metadata) {
-        return super.buildColumn(table, metadata, () => {
-            return table.increments(this.name).primary();
-        });
+    getColumnDefinition(table) {
+        return table.increments(this.name).primary();
     }
 
 }

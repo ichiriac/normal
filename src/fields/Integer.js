@@ -33,17 +33,15 @@ class IntegerField extends Field {
         return meta;
     }
 
-    buildColumn(table, metadata) {
-        return super.buildColumn(table, metadata, () => {
-            const column = table.integer(this.name);
-            if (this.definition.unsigned) {
-                column.unsigned();
-            }
-            return column;
-        });
+    getColumnDefinition(table) {
+        const column = table.integer(this.name);
+        if (this.definition.unsigned) {
+            column.unsigned();
+        }
+        return column;
     }
 }
 Field.behaviors.integer = IntegerField;
 Field.behaviors.number = IntegerField;
 
-module.exports = { IntegerField };  
+module.exports = { IntegerField };
