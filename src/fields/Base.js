@@ -68,6 +68,22 @@ class Field {
     }
 
     /**
+     * Get the database connection.
+     * @returns Knex instance
+     */
+    get cnx() {
+        return this.model.repo.cnx;
+    }
+
+    /**
+     * Get the repository.
+     * @returns Repository instance
+     */
+    get repo() {
+        return this.model.repo;
+    }
+
+    /**
      * Method used to write the field value to a record.
      * @param {Record} record 
      * @param {*} value 
