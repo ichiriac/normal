@@ -138,7 +138,8 @@ class Model {
      */
     extends(MixinClass) {
         if (this.cls_init) {
-            throw new Error("Model class already initialized");
+            this.cls_init = false; // re-initialize
+            this.entities.clear(); // clear existing entities
         }
         this.inherited.push(MixinClass);
         if (MixinClass.fields) {
