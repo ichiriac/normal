@@ -2,7 +2,9 @@
 
 const { Model } = require('./Model');
 const { Cache } = require('./Cache');
+const { Synchronize } = require("./Schema.js");
 
+// simple in-memory cache for query results
 const cache = new Cache({ max: 1024, entrySize: 1024 });
 
 /**
@@ -80,21 +82,20 @@ class Repository {
   }
 
   /**
-   * Drop and create tables based on registered models
-   * @returns this
+   * Check if a model is registered
+   * @param {*} name 
+   * @returns 
    */
-  async sync() {
-    for (const name of Object.keys(this.models)) {
-      const model = this.models[name];
-      if (model.abstract) continue;
-      await model._buildSchema();
-    }
-    for (const name of Object.keys(this.models)) {
-      const model = this.models[name];
-      if (model.abstract) continue;
-      await model._buildIndex();
-    }
-    return this;
+  has(name) {
+    return !!this.models[name];
+  }
+
+  /**
+   * Drop and create tables based on registered models
+   * @returns String[] executed SQL statements
+   */
+  async sync(options = { dryRun: false, force: false }) {
+    return await Synchronize(this, options);
   }
 
   /** Run a function inside a transaction and expose a tx-bound repository */

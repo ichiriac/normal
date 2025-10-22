@@ -130,7 +130,8 @@ class Field {
             type: this.definition.type,
             required: !!this.definition.required,
             unique: !!this.definition.unique,
-            index: !!this.definition.index
+            index: !!this.definition.index,
+            default: undefined
         };
 
         if (this.definition.default !== undefined && typeof this.definition.default !== 'function') {
