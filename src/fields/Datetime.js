@@ -28,7 +28,8 @@ class DateTimeField extends Field {
         }
         return new Date(value);
     }
-    unserialize(record, value) {
+    deserialize(record, value) {
+        if (!value && value !== 0) return null;
         const result = new Date(value);
         if (isNaN(result.getTime())) {
             throw new Error(`Invalid date value for field ${this.name}: ${value}`);
