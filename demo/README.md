@@ -16,6 +16,26 @@ This folder contains small, focused demos that showcase Normal’s core features
   node demo/index.js
   ```
 
+## Workers
+- Path: `demo/workers`
+- Models: `Queue`, `Job`
+- Highlights:
+  - Multi-process job queue with 4 forked workers (cluster)
+  - Atomic job claiming and status transitions (pending → in_progress → completed/failed)
+  - Persistent SQLite DB for coordination across processes
+  - Multiple job types (email, image resize, data sync, report generation, webhook)
+  - Live queue status + memory/time stats in the console
+
+## Schema
+- Path: `demo/schema`
+- Models: `Users`, `Groups`
+- Highlights:
+  - Force init (drop-and-recreate) and dry-run previews of SQL
+  - Add column preview (e.g., `Users.age`) and applied changes
+  - Safe type modifications (rename old column → add new typed column → attempt data copy;
+    if copy fails, the old column remains for restoring data)
+  - Prints the SQL statements returned by `repo.sync()` for full transparency
+
 ## CRM
 - Path: `demo/crm`
 - Models: `Customer`, `Contact`, `Lead`, `Activity`, `Message`, `Quotation`, `QuotationLine`, `User`
