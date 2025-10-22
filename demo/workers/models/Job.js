@@ -7,9 +7,9 @@ class Job {
         payload: { type: 'json', required: true }, // JSON string for compatibility
         result: { type: 'json', required: false }, // JSON string for results
         status: { 
-            type: 'string', 
+            type: 'enum', 
             default: 'pending',
-            enum: ['pending', 'in_progress', 'completed', 'failed']
+            values: ['pending', 'in_progress', 'completed', 'failed']
         },
         attempts: { type: 'number', default: 0 },
         last_error: { type: 'datetime', required: false },
@@ -17,7 +17,6 @@ class Job {
         completed_at: { type: 'datetime', required: false },
         created_at: { type: 'datetime', default: () => new Date() },
         updated_at: { type: 'datetime', default: () => new Date() },
-        queue: { type: 'many-to-one', model: 'Queue' }
     };
 
     // Override write to handle JSON serialization
