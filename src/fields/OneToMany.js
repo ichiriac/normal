@@ -15,9 +15,11 @@ class OneToMany extends Field {
         if (!this.definition.foreign) {
             throw new Error(`OneToMany field "${name}" requires a "foreign" definition`);
         }
-        const [refModelName, refFieldName] = this.definition.foreign.split('.');
-        this.refModel = model.repo.get(refModelName);
-        this.refField = refFieldName;
+        [this.refModelName, this.refFieldName] = this.definition.foreign.split('.');
+    }
+
+    get refModel() {
+        return this.model.repo.get(this.refModelName);
     }
 
     getMetadata() {
