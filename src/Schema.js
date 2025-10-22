@@ -26,6 +26,20 @@ class Models {
     }
 }
 
+// Helper: inline bindings for human-readable SQL
+function inlineBindings(sql, bindings) {
+    if (!bindings || !bindings.length) return sql;
+    let i = 0;
+    return sql.replace(/\?/g, () => {
+        const v = bindings[i++];
+        if (v === null || v === undefined) return 'NULL';
+        if (typeof v === 'number') return String(v);
+        if (v instanceof Date) return `'${v.toISOString()}'`;
+        const s = String(v).replace(/'/g, "''");
+        return `'${s}'`;
+    });
+}
+
 /**
  * Synchronize the database schema with the registered models
  * @param {*} repository 
@@ -54,19 +68,11 @@ async function Synchronize(repository, options) {
         }
     }
 
-    // intercept generated SQL statements
-    const originalToSQL = cnx.schema.toSQL;
     const sql_statements = [];
-    cnx.schema.toSQL = function () {
-        const sql = originalToSQL.apply(this, arguments);
-        sql_statements.push(sql);
-        return sql;
-    };
-
     // sync the Models table schema
     await repository.transaction(async (transaction) => {
-        const models = {};
 
+        const models = {};
         const schema = await transaction.get('Models').query().whereNull('dropped_at');
 
         for (const s of schema) {
@@ -75,6 +81,14 @@ async function Synchronize(repository, options) {
                 found: false,
             };
         }
+
+        // intercept generated SQL statements
+        transaction.cnx.on('query', function (e) {
+            sql_statements.push(
+                inlineBindings(e.sql, e.bindings)
+            );
+        });
+
 
         for (const name of Object.keys(transaction.models)) {
             if (name == 'Models') continue;
