@@ -337,7 +337,7 @@ class Model {
                     const row = await kx(table).orderBy("id", "desc").first("id");
                     return [row?.id];
                 });
-            if (data.id) {
+            if (!data.id) {
                 data.id = id.id ? id.id : id;
             }
         } else {
