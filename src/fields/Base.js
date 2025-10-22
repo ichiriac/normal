@@ -223,7 +223,7 @@ class Field {
             if (k === 'column') continue;
             if (k === 'default' && typeof definition[k] === 'function') continue;
             if (k === 'index') continue;
-            if (definition[k] !== metadata[k]) {
+            if (definition[k] != metadata[k]) {
                 return true;
             }
         }
@@ -240,20 +240,19 @@ class Field {
     async replaceColumn() {
         const mig_suffix = '_mig_tmp';
         const name = this.column;
-        const exists = await this.cnx.schema.hasColumn(this.model.table, name + mig_suffix);
+        const exists = await this.cnx.schema.queryContext({ ignore: true }).hasColumn(this.model.table, name + mig_suffix);
         await this.cnx.schema.table(this.model.table, async (table) => {
-            if (!exists) {
-                table.renameColumn(name, name + mig_suffix);
-            } else {
-                table.dropColumn(name);
+            if (exists) {
+                table.dropColumn(name + mig_suffix);
             }
+            table.renameColumn(name, name + mig_suffix);
+        });
+        await this.cnx.schema.table(this.model.table, async (table) => {
             this.getBuilderColumn(table);
         });
+
         try {
-            await table.raw(`UPDATE ${this.model.table} SET ${name} = ${name + mig_suffix}`);
-            await this.cnx.schema.table(this.model.table, async (table) => {
-                table.dropColumn(name + mig_suffix);
-            });
+            await this.cnx.raw(`UPDATE ${this.model.table} SET ${name} = ${name + mig_suffix}`);
             return true;
         } catch (err) {
             console.warn(`Warning: unable to migrate contents from ${name}`);

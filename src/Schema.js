@@ -84,7 +84,10 @@ async function Synchronize(repository, options) {
 
         // intercept generated SQL statements
         transaction.cnx.on('query', function (e) {
-            if (e.queryContext && e.queryContext.ignore) return;
+            if (e.queryContext) {
+                if (e.queryContext.ignore) return;
+                if (e.queryContext.model) return;
+            }
             sql_statements.push(
                 inlineBindings(e.sql, e.bindings) + ';'
             );

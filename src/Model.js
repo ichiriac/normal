@@ -187,7 +187,7 @@ class Model {
      */
     query() {
         this.checkAbstract();
-        return new Request(this, this.repo.cnx(this.table));
+        return new Request(this, this.repo.cnx(this.table).queryContext({ model: this }));
     }
 
     /**
