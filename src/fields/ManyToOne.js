@@ -46,22 +46,6 @@ class ManyToOne extends Field {
     }
 
 
-
-    /**
-     * Check if the column changed his type, and drop it if so.
-     * @param {*} table 
-     * @param {*} metadata 
-     * @param {*} columnCallback 
-     */
-    async buildColumn(table, metadata, columnCallback) {
-        if (metadata && ALIAS.indexOf(metadata.type) !== -1) {
-            const exists = await this.cnx.schema.hasColumn(this.model.table,metadata.column);
-            if (exists) {
-                await table.dropColumn(metadata.column);
-            }
-        }
-    }
-
     getMetadata() {
         const meta = super.getMetadata();
         meta.model = this.definition.model;
@@ -98,7 +82,7 @@ class ManyToOne extends Field {
             return col;
         };
         let changed = false;
-        await this.cnx.schema.table(this.table, (table) => {
+        await this.cnx.schema.table(this.model.table, (table) => {
             changed = this.buildColumn(table, metadata);
         })
         this.getColumnDefinition = () => {
