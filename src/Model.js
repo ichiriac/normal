@@ -79,6 +79,10 @@ class LookupIds {
         ).whereIn('id', ids);
         const result = rows.map(row => {
             let instance = this.model.allocate(row);
+            if (!promises[row.id]) {
+                console.error('Unexpected missing promise for id ', row);
+                return instance;
+            }
             for (const [found, resolve, reject] of promises[row.id]) {
                 resolve(instance);
             }

@@ -12,7 +12,7 @@ class Record {
 
     sync(data) {
         for(let key in this._model.fields) {
-            if (key === 'id' && data[key]) continue;
+            if (key === 'id' && this._data[key]) continue;
             const field = this._model.fields[key];
             this._data[key] = field.deserialize(this, data[key]);
             delete this._changes[key];
