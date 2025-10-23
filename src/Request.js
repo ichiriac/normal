@@ -42,11 +42,24 @@ class Request {
 
     then(onFulfilled, onRejected) {
         const wrap = this._shouldWrapResults();
+        if (wrap && this.model.cache && this.queryBuilder._cacheTTL != null) {
+            const item = this.model.cache.get(this._getRequestKey());
+            if (item) {
+                return this._wrapResult(item).then(onFulfilled, onRejected);
+            }
+        }
         this._ensureDefaultIdSelect();
         return this.queryBuilder.then(
             (value) => {
                 if (!wrap) {
                     return onFulfilled ? onFulfilled(value) : value;
+                }
+                if (this.model.cache && this.queryBuilder._cacheTTL != null) {
+                    this.model.cache.set(
+                        this._getRequestKey(),
+                        value,
+                        this.queryBuilder._cacheTTL
+                    );
                 }
                 return this._wrapResult(value).then((wrapped) => {
                     if (onFulfilled) {
@@ -75,13 +88,26 @@ class Request {
         return this.queryBuilder.toSQL(...args);
     }
 
+    cache(ttl) {
+        this.queryBuilder._cacheTTL = ttl;
+        return this;
+    }
+
     _shouldWrapResults() {
         const method = this.queryBuilder && this.queryBuilder._method;
         if (!method) return true;
         if (RESULT_METHODS.has(method)) return true;
         return false;
     }
-
+    
+    _getRequestKey() {
+        const qb = this.queryBuilder;
+        if (!qb) return;
+        const stmts = Array.isArray(qb._statements) ? qb._statements : [];
+        const key = JSON.stringify(stmts);
+        return this.model.name + ':' + key;
+    }
+    
     _ensureDefaultIdSelect() {
         const qb = this.queryBuilder;
         if (!qb) return;
@@ -128,11 +154,12 @@ class Request {
         if (this.model && this.model.cls && row instanceof this.model.cls) {
             return false;
         }
-        const fields = Object.keys(this.model?.fields || {});
-        if (fields.length === 0) {
-            return true;
+        if (!row.id) return false;
+        const columns = this.model?.columns || [];
+        if (columns.length === 0) {
+            return false;
         }
-        return fields.some((field) => Object.prototype.hasOwnProperty.call(row, field));
+        return columns.some((field) => Object.prototype.hasOwnProperty.call(row, field));
     }
 }
 

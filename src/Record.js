@@ -7,7 +7,7 @@ class Record {
         this._changes = {};
         this._data = {};
         this.sync(data);
-        this._isReady = Object.keys(data).length == Object.keys(model.fields).length;
+        this._isReady = Object.keys(data).length > 1;
         this._flushed = false;
     }
 

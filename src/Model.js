@@ -69,11 +69,11 @@ class LookupIds {
             this.ids[id].push([found, resolve, reject]);
             results.push(found);
         }
-        if (this.ids.length > 0) {
+        if (Object.keys(this.ids).length > 0) {
             if (this._timeout) clearTimeout(this._timeout);
             this._timeout = setTimeout(() => {
                 this.fetch();
-            }, 5);
+            }, 1);
         }
         return Promise.all(results);
     }
@@ -89,6 +89,11 @@ class LookupIds {
         ).whereIn('id', ids);
         const result = rows.map(row => {
             let instance = this.model.allocate(row);
+            if (this.model.cache && !this.model.repo.connection.transactional) {
+                this.model.cache.set(this.model.name + ':' + instance.id, instance.toJSON(), this.model.cacheTTL);
+            } else {
+                instance._flushed = true;
+            }
             if (!promises[row.id]) {
                 console.error('Unexpected missing promise for id ', row);
                 return instance;
@@ -218,7 +223,7 @@ class Model {
      * @returns Request
      */
     query() {
-        this.checkAbstract();
+        this._init();
         return new Request(this, this.repo.cnx(this.table).queryContext({ model: this }));
     }
 
@@ -227,7 +232,7 @@ class Model {
      * @param {int|Array<int>} ids 
      * @returns Promise<Array<Record>>
      */
-    lookup(ids) {
+    async lookup(ids) {
         this.checkAbstract();
         if (!Array.isArray(ids)) ids = [ids];
         const result = [];
@@ -241,9 +246,11 @@ class Model {
             }
         }
         if (missing.length > 0) {
-            result.push(this._lookup.lookup(missing));
+            return result.concat(
+                await this._lookup.lookup(missing)
+            );
         }
-        return Promise.all(result);
+        return result;
     }
 
     /**
@@ -311,6 +318,7 @@ class Model {
         if (!this.cls_init) this._init();
         const instance = new this.cls(this, data);
         if (data.id) {
+            this.entities.set(data.id, instance);
             if (instance._isReady === false) {
                 instance._isReady = this.lookup(data.id).then(function() {
                     instance._isReady = true;
@@ -322,7 +330,6 @@ class Model {
                     return instance;
                 });
             }
-            this.entities.set(data.id, instance);
         }
         return instance;
     }
@@ -383,6 +390,8 @@ class Model {
         // flush data to cache
         if (this.cache && !this.repo.connection.transactional) {
             this.cache.set(this.name + ':' + data.id, data, this.cacheTTL);
+        } else {
+            data._flushed = true;
         }
         
         // create relations
@@ -402,7 +411,7 @@ class Model {
      * @returns 
      */
     async findById(id) {
-        this.checkAbstract();
+        this._init();
         if (this.entities.has(id)) {
             return this.entities.get(id);
         }
@@ -415,7 +424,6 @@ class Model {
      * @returns 
      */
     where(...args) {        
-        this.checkAbstract();
         return this.query().where(...args);
     }
 
