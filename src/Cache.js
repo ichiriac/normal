@@ -1,247 +1,201 @@
 /**
  * Shared Memory Cache Implementation
- * 
- * This cache uses SharedArrayBuffer and Atomics to allow multiple Node.js
- * processes to share a common in-memory cache. It supports basic operations
- * like set, get, and clear, with TTL.
- * 
- * Note: This implementation assumes that the environment supports SharedArrayBuffer.
+ *
+ * Uses either:
+ * - FixedSlots: direct-mapped fixed-size entries stored in SharedArrayBuffer
+ * - ArenaStore: variable-length storage with BlockArena
+ *
+ * Cluster invalidation and metrics are delegated to dedicated modules.
+ *
+ * @example
+ * const { Cache } = require('./src/Cache');
+ * const cache = new Cache({ variableArena: true, dictCapacity: 4096 });
+ * cache.set('foo', { bar: 1 }, 60);
+ * const val = cache.get('foo'); // => { bar: 1 }
  */
-const dgram = require('dgram');
-
-// Keep track of all cache instances in this process to apply inbound invalidations
-const __instances = new Set();
-let __udpServer = null;
-let __udpServerPort = null;
-
-function __startUdpServer(port = 1983) {
-  if (__udpServer) return; // already running
-  __udpServerPort = port;
-  const server = dgram.createSocket('udp4');
-  server.on('error', (err) => {
-    // Avoid crashing the process on bind errors; just log once
-    if (process.env.NORMAL_CACHE_DEBUG) {
-      // eslint-disable-next-line no-console
-      console.warn('[SharedMemoryCache] UDP server error:', err.message);
-    }
-  });
-  server.on('message', (msg /*, rinfo*/ ) => {
-    try {
-      const str = msg.toString('utf8');
-      // Accept newline or comma separated lists
-      const parts = str.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
-      if (parts.length === 0) return;
-      for (const key of parts) {
-        for (const inst of __instances) {
-          inst.expire(key, /*broadcast*/ false);
-        }
-      }
-    } catch (e) {
-      if (process.env.NORMAL_CACHE_DEBUG) {
-        // eslint-disable-next-line no-console
-        console.warn('[SharedMemoryCache] UDP message parse error:', e.message);
-      }
-    }
-  });
-  try {
-    server.bind(port, '0.0.0.0', () => {
-      if (process.env.NORMAL_CACHE_DEBUG) {
-        // eslint-disable-next-line no-console
-        console.log(`[SharedMemoryCache] UDP server listening on 0.0.0.0:${port}`);
-      }
-    });
-  } catch (e) {
-    if (process.env.NORMAL_CACHE_DEBUG) {
-      // eslint-disable-next-line no-console
-      console.warn('[SharedMemoryCache] Unable to bind UDP server:', e.message);
-    }
-  }
-  __udpServer = server;
-  // Do not keep the event loop alive because of the UDP server
-  __udpServer.unref?.();
-}
-
-function __parsePeers(clusterOpt, defaultPort = 1983) {
-  if (!clusterOpt) return [];
-  const str = Array.isArray(clusterOpt) ? clusterOpt.join(',') : String(clusterOpt);
-  return str
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean)
-    .map(addr => {
-      const [host, portStr] = addr.split(':');
-      const port = portStr ? parseInt(portStr, 10) : defaultPort;
-      return { host, port: Number.isFinite(port) ? port : defaultPort };
-    });
-}
+/**
+ * @typedef {Object} CacheOptions
+ * @property {number} [maxEntries=4096] Max hash slots for the FixedSlots engine (ignored in arena mode)
+ * @property {number} [entrySize=512] Bytes per fixed-slot entry (including header+payload). Ignored in arena mode
+ * @property {boolean} [variableArena=false] Use variable-length ArenaStore when true; otherwise FixedSlots
+ * @property {number} [memoryBytes=67108864] Arena: total bytes to allocate for the arena
+ * @property {number} [blockSize=1024] Arena: block size in bytes used to chain variable-length values
+ * @property {number} [dictCapacity=8192] Arena: initial dictionary capacity (number of keys)
+ * @property {string|string[]|Array<[string,number]>} [cluster] Cluster peers as "host:port", an array of strings, or [host,port] tuples
+ * @property {number} [port=1983] UDP port to listen on for invalidations (alias: listenPort)
+ * @property {number} [listenPort=1983] UDP port alias for inbound invalidations
+ * @property {number} [sweepIntervalMs=250] Arena: sweep interval in milliseconds for TTL cleanup
+ * @property {number} [sweepChecks=512] Arena: number of entries to check per sweep tick
+ * @property {boolean} [metrics=true] Enable metrics collection and timing
+ * @property {number} [metricsLogIntervalMs] If set, periodically logs metrics every N milliseconds
+ */
+const { ArenaStore } = require('./cache/ArenaStore');
+const { FixedSlots } = require('./cache/FixedSlots');
+const { ClusterTransport, parsePeers } = require('./cache/Cluster');
+const { CacheMetrics } = require('./cache/Metrics');
 
 class SharedMemoryCache {
+  /**
+   * Create a shared memory cache instance.
+   * When {@link CacheOptions.variableArena} is true, uses a variable-length arena store.
+   * Otherwise falls back to a fixed-slot, direct-mapped store.
+   *
+   * Cluster invalidations are received on {@link CacheOptions.port} / {@link CacheOptions.listenPort}
+   * and sent to peers defined by {@link CacheOptions.cluster}.
+   *
+   * @param {CacheOptions} [options]
+   */
   constructor(options = {}) {
-    this.maxEntries = options.max != null ? options.max : (options.maxEntries || 1024); // alias support
-    this.entrySize = options.entrySize || 1024; // bytes per entry
-    this.headerSize = 64; // metadata
+    // Basic sizing
+    this.maxEntries = options.maxEntries || 4096;
+    this.entrySize = options.entrySize || 512;
+    this.headerSize = 64;
 
-    // UDP cluster options
-    this.clusterPeers = __parsePeers(options.cluster, options.port || options.listenPort || 1983);
+    // Cluster config
+    this.clusterPeers = parsePeers(options.cluster, options.port || options.listenPort || 1983);
     this.listenPort = options.port || options.listenPort || 1983;
-    this._pendingKeys = new Set();
     this._batchIntervalMs = 500;
-    this._udpClient = null;
-    this._flushTimer = null;
 
-    // Create shared memory region
-    this.totalSize = this.headerSize + (this.maxEntries * this.entrySize);
-    this.sharedBuffer = new SharedArrayBuffer(this.totalSize);
+    // Metrics
+    this._metrics = new CacheMetrics(options.metrics !== false);
 
-    // Memory layout: [header][entry0][entry1]...[entryN]
-    this.header = new Int32Array(this.sharedBuffer, 0, 16);
-    this.data = new Uint8Array(this.sharedBuffer, this.headerSize);
-
-    // Initialize if first process
-    if (Atomics.load(this.header, 0) === 0) {
-      this.initializeHeader();
+    // Storage engine selection
+    this.arena = options.variableArena
+      ? new ArenaStore({
+          memoryBytes: options.memoryBytes || 64 * 1024 * 1024,
+          blockSize: options.blockSize || 1024,
+          dictCapacity: options.dictCapacity || 8192,
+        })
+      : null;
+    if (!this.arena) {
+      this.fixed = new FixedSlots({ maxEntries: this.maxEntries, entrySize: this.entrySize, headerSize: this.headerSize });
     }
 
-    // Track instance for inbound invalidations
-    __instances.add(this);
+    // Cluster transport (inbound + outbound batching)
+    this._cluster = new ClusterTransport({
+      listenPort: this.listenPort,
+      peers: this.clusterPeers,
+      onKeys: (keys) => { for (const k of keys) this.expire(k, false); },
+      batchIntervalMs: this._batchIntervalMs,
+      onFlush: (count) => this._metrics.onUdpFlush(count),
+    });
 
-    // Start UDP server once per process (default port 1983)
-    __startUdpServer(this.listenPort);
+    // Background sweeper (arena only)
+    this._sweepTimer = null;
+    if (this.arena) {
+      const sweepEveryMs = options.sweepIntervalMs || 250;
+      const sweepChecks = options.sweepChecks || 512;
+      this._sweepTimer = setInterval(() => {
+        try { const res = this.arena.sweep(sweepChecks); this._metrics.onSweep(res); } catch (_) {}
+      }, sweepEveryMs);
+      this._sweepTimer.unref?.();
+    }
 
-    // If peers provided, prepare UDP client and batching
-    if (this.clusterPeers.length > 0) {
-      this._udpClient = dgram.createSocket('udp4');
-      this._flushTimer = setInterval(() => this._flushOutbound(), this._batchIntervalMs);
-      this._flushTimer.unref?.();
+    // Optional periodic metrics logging
+    if (this._metrics.enabled && options.metricsLogIntervalMs) {
+      const every = options.metricsLogIntervalMs;
+      this._metricsTimer = setInterval(() => {
+        // eslint-disable-next-line no-console
+        console.log('[Cache metrics]', this.metrics());
+      }, every);
+      this._metricsTimer.unref?.();
     }
   }
 
-  initializeHeader() {
-    Atomics.store(this.header, 0, 1); // initialized flag
-    Atomics.store(this.header, 1, 0); // entry count
-    Atomics.store(this.header, 2, 0); // next write index
-  }
-
-  hash(key) {
-    let hash = 0;
-    for (let i = 0; i < key.length; i++) {
-      hash = ((hash << 5) - hash + key.charCodeAt(i)) | 0;
-    }
-    return Math.abs(hash) % this.maxEntries;
-  }
-
+  /**
+   * Store a value with a time-to-live.
+   * In arena mode, values can be arbitrary JSON-serializable objects.
+   * In fixed-slot mode, values are serialized to JSON under the hood.
+   *
+   * On success, schedules an invalidation broadcast to cluster peers.
+   *
+   * @param {string|number} key Cache key
+   * @param {any} value Value to store (JSON-serializable recommended)
+   * @param {number} [ttl=300] Time to live in seconds (minimum 1s)
+   * @returns {boolean} true if stored, false otherwise
+   */
   set(key, value, ttl = 300) {
+    const m = this._metrics;
+    const t0 = m.setStart();
+    if (this.arena) {
+      const ok = this.arena.put(String(key), value, Math.max(1, Math.floor(ttl)));
+      if (ok) this._cluster.queue(String(key));
+      m.setEnd(t0);
+      return ok;
+    }
     const expires = Date.now() + (ttl * 1000);
     const entry = { key, value, expires };
     const serialized = JSON.stringify(entry);
-    
-    if (serialized.length > this.entrySize - 8) return false;
-    
-    const index = this.hash(key);
-    const offset = index * this.entrySize;
-    
-    // Write length atomically, then data
-    const view = new DataView(this.sharedBuffer, this.headerSize + offset);
-    const encoder = new TextEncoder();
-    const bytes = encoder.encode(serialized);
-    
-    // Copy data first, then update length atomically (ensures consistency)
-    new Uint8Array(this.sharedBuffer, this.headerSize + offset + 4, bytes.length).set(bytes);
-    Atomics.store(new Int32Array(this.sharedBuffer, this.headerSize + offset, 1), 0, bytes.length);
-    
-    // Update global counter
-    Atomics.add(this.header, 1, 1);
-
-    // Record key for outbound invalidation to peers
-    if (this._udpClient && this.clusterPeers.length > 0) {
-      this._pendingKeys.add(String(key));
-    }
-    return true;
+    const ok = this.fixed.putSerialized(String(key), serialized);
+    if (ok) this._cluster.queue(String(key));
+    m.setEnd(t0);
+    return ok;
   }
 
+  /**
+   * Retrieve a value by key if present and not expired.
+   * @param {string|number} key Cache key
+   * @returns {any|null} Previously stored value or null when missing/expired
+   */
   get(key) {
-    const index = this.hash(key);
-    const offset = index * this.entrySize;
-    
-    // Read length atomically
-    const length = Atomics.load(new Int32Array(this.sharedBuffer, this.headerSize + offset, 1), 0);
-    if (length === 0) return null;
-    
-    const decoder = new TextDecoder();
-    const bytes = new Uint8Array(this.sharedBuffer, this.headerSize + offset + 4, length);
-    const serialized = decoder.decode(bytes);
-    
+    const m = this._metrics;
+    const t0 = m.getStart();
+    if (this.arena) {
+      const out = this.arena.get(String(key));
+      if (out == null) { m.getMiss(t0); return null; }
+      m.getHit(t0); return out;
+    }
+    const serialized = this.fixed.readSerialized(String(key));
+    if (serialized == null) { m.getMiss(t0); return null; }
     try {
       const entry = JSON.parse(serialized);
-      
-      if (entry.key === key && entry.expires > Date.now()) {        
-        return entry.value;
-      }
-    } catch (e) {
-      return null;
-    }
-    
+      if (entry.key === key && entry.expires > Date.now()) { m.getHit(t0); return entry.value; }
+    } catch (_) { /* ignore */ }
+    m.getMiss(t0);
     return null;
   }
 
+  /**
+   * Clear all entries in the local cache.
+   * Does not broadcast to peers.
+   * @returns {void}
+   */
   clear() {
-    // Reset all entries atomically
-    for (let i = 0; i < this.maxEntries; i++) {
-      const offset = i * this.entrySize;
-      Atomics.store(new Int32Array(this.sharedBuffer, this.headerSize + offset, 1), 0, 0);
+    if (this.arena) {
+      this.arena.clear();
+    } else {
+      this.fixed.clear();
     }
-    Atomics.store(this.header, 1, 0);
   }
 
+  /**
+   * Expire a single key locally and optionally broadcast to peers.
+   * @param {string|number} key Cache key to expire
+   * @param {boolean} [broadcast=false] When true, enqueue an invalidation message to peers
+   * @returns {void}
+   */
   expire(key, broadcast = false) {
-    // Find slot and clear if key matches
-    const index = this.hash(key);
-    const offset = index * this.entrySize;
-    const lenView = new Int32Array(this.sharedBuffer, this.headerSize + offset, 1);
-    const length = Atomics.load(lenView, 0);
-    if (length > 0) {
-      try {
-        const decoder = new TextDecoder();
-        const bytes = new Uint8Array(this.sharedBuffer, this.headerSize + offset + 4, length);
-        const serialized = decoder.decode(bytes);
-        const entry = JSON.parse(serialized);
-        if (entry && entry.key === key) {
-          // Mark as empty (length = 0)
-          Atomics.store(lenView, 0, 0);
-        }
-      } catch (_) {
-        // On parse errors, best-effort: clear slot
-        Atomics.store(lenView, 0, 0);
-      }
+    this._metrics.incExpire();
+    if (this.arena) {
+      this.arena.delete(String(key));
+      if (broadcast) this._cluster.queue(String(key));
+      return;
     }
-    // Optionally broadcast (off by default to avoid loops)
-    if (broadcast && this._udpClient && this.clusterPeers.length > 0) {
-      this._pendingKeys.add(String(key));
-    }
+    this.fixed.expireKey(String(key));
+    if (broadcast) this._cluster.queue(String(key));
   }
 
-  _flushOutbound() {
-    if (!this._udpClient || this.clusterPeers.length === 0) return;
-    if (this._pendingKeys.size === 0) return;
-    const payload = Array.from(this._pendingKeys).join('\n');
-    this._pendingKeys.clear();
-    const buf = Buffer.from(payload, 'utf8');
-    for (const peer of this.clusterPeers) {
-      try {
-        this._udpClient.send(buf, peer.port, peer.host, (err) => {
-          if (err && process.env.NORMAL_CACHE_DEBUG) {
-            // eslint-disable-next-line no-console
-            console.warn('[SharedMemoryCache] UDP send error to', `${peer.host}:${peer.port}`, err.message);
-          }
-        });
-      } catch (e) {
-        if (process.env.NORMAL_CACHE_DEBUG) {
-          // eslint-disable-next-line no-console
-          console.warn('[SharedMemoryCache] UDP send failed:', e.message);
-        }
-      }
-    }
-  }
+  /**
+   * Capture a snapshot of current metrics counters and timings.
+   * @returns {object} Plain object with counters and durations
+   */
+  metrics() { return this._metrics.snapshot(); }
+
+  /**
+   * Reset all metrics counters and timers to zero.
+   * @returns {void}
+   */
+  resetMetrics() { this._metrics.reset(); }
 }
 
 module.exports = { Cache: SharedMemoryCache };
