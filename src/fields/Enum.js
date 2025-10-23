@@ -16,7 +16,7 @@ class EnumField extends Field {
         if (!value && this.definition.required) {
             throw new Error(`Field ${this.name} is required and cannot be null or undefined`);
         }
-        if (value && !this.values.includes(value)) {
+        if (value && !this.definition.values.includes(value)) {
             throw new Error(`Invalid value for enum field ${this.name}: ${value}`);
         }
         return super.write(record, value);

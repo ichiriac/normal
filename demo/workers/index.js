@@ -323,7 +323,6 @@ async function masterProcess() {
   let totalJobsFailed = 0;
   
   const statusInterval = setInterval(async () => {
-    return;
     try {
       const pendingJobs = await repo.get('Job').query().where('status', 'pending');
       const inProgressJobs = await repo.get('Job').query().where('status', 'in_progress');
@@ -423,20 +422,8 @@ async function workerProcess() {
       jobsProcessed++;
       
       // Process the job - need to get the parsed payload
-      let parsedPayload;
-      try {
-        parsedPayload = JSON.parse(updatedJob.payload || '{}');
-      } catch (e) {
-        console.error(`Worker ${workerId}: Invalid payload JSON for job ${updatedJob.id}`);
-        parsedPayload = {};
-      }
-      
-      const jobData = {
-        id: updatedJob.id,
-        payload: parsedPayload
-      };
-      
-      const result = await processJob(jobData, workerId);
+
+      const result = await processJob(updatedJob, workerId);
       
       if (result.success) {
         // Mark job as completed
