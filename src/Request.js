@@ -94,8 +94,13 @@ class Request {
         const stmts = Array.isArray(qb._statements) ? qb._statements : [];
         const hasColumns = stmts.some((s) => s && s.grouping === 'columns' && Array.isArray(s.value) && s.value.length > 0);
         if (hasColumns) return;
-        const col = this.model && this.model.table ? `${this.model.table}.id` : 'id';
-        qb.select(col);
+        if (this.model.cache) {
+            qb.select(
+                this.model && this.model.table ? `${this.model.table}.id` : 'id'
+            );
+        } else {
+            qb.select(this.model.columns);
+        }
     }
 
     _wrapResult(value) {

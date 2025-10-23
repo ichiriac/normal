@@ -49,7 +49,15 @@ class LookupIds {
 
     lookup(ids) {
         const results = [];
+        const cache = this.model.cache;
         for (const id of ids) {
+            const entry = cache && cache.get(this.model.name + ':' + id);
+            if (entry) {
+                results.push(Promise.resolve(
+                    this.model.allocate(entry)
+                ));
+                continue;
+            }
             if (!this.ids.hasOwnProperty(id)) {
                 this.ids[id] = [];
             }
@@ -61,10 +69,12 @@ class LookupIds {
             this.ids[id].push([found, resolve, reject]);
             results.push(found);
         }
-        if (this._timeout) clearTimeout(this._timeout);
-        this._timeout = setTimeout(() => {
-            this.fetch();
-        }, 5);
+        if (this.ids.length > 0) {
+            if (this._timeout) clearTimeout(this._timeout);
+            this._timeout = setTimeout(() => {
+                this.fetch();
+            }, 5);
+        }
         return Promise.all(results);
     }
 
@@ -126,6 +136,7 @@ class Model {
         this.inherited = [];
         this.mixins = new Set();
         this.inherits = null;
+        this.cacheTTL = null;
         this.indexes = [];
         this.entities = new Map();
         this._lookup = new LookupIds(this);
@@ -146,6 +157,13 @@ class Model {
         if (MixinClass.fields) {
             Object.assign(this.fields, MixinClass.fields);
         }
+        if (MixinClass.hasOwnProperty('cache')) {
+            if (MixinClass.cache === true) {
+                this.cacheTTL = 300; // 5 minutes default
+            } else {
+                this.cacheTTL = Number.parseInt(MixinClass.cache, 10);
+            }
+        }
         if (MixinClass.inherits) {
             if (this.inherits && this.inherits !== MixinClass.inherits) {
                 throw new Error("Model already inherits from " + this.inherits + ", cannot inherit from " + MixinClass.inherits + " as well.");
@@ -165,6 +183,19 @@ class Model {
         }
     }
 
+    /**
+     * Gets the cache instance if caching is enabled.
+     */
+    get cache() {
+        if (this.cacheTTL !== null && this.cacheTTL > 0) {
+            return this.repo.cache;
+        }
+        return null;
+    }
+
+    /**
+     * Check if the model is abstract and throw an error if so.
+     */
     checkAbstract() {
         if (this.abstract) {
             throw new Error(`Cannot instantiate abstract model ${this.name}`);
@@ -347,6 +378,11 @@ class Model {
             }
         } else {
             await kx(table).insert(toInsert);
+        }
+
+        // flush data to cache
+        if (this.cache && !this.repo.connection.transactional) {
+            this.cache.set(this.name + ':' + data.id, data, this.cacheTTL);
         }
         
         // create relations

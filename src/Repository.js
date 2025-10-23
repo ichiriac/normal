@@ -71,6 +71,14 @@ class Repository {
   }
 
   /**
+   * Get the shared cache instance
+   * @returns {Cache}
+   */
+  get cache() {
+    return cache;
+  }
+
+  /**
    * Get a registered model by name
    * @param {*} name 
    * @returns 
@@ -107,7 +115,7 @@ class Repository {
       }
     }
     const trx = await this.cnx.transaction(config);
-    const txRepo = new Repository({ instance: trx });
+    const txRepo = new Repository({ instance: trx, transactional: true, config: this.connection.config });
     let result
     // Re-register models with the same metadata
     for (const name of Object.keys(this.models)) {
@@ -121,6 +129,17 @@ class Repository {
       result = await work(txRepo);
       await txRepo.flush();
       await trx.commit();
+      // flushing to cache after commit
+      for (const name of Object.keys(txRepo.models)) {
+        const model = txRepo.models[name];
+        if (model.cache) {
+          for (const record of model.entities.values()) {
+            if (record._flushed) {
+              model.cache.set(model.name + ':' + record.id, record.toJSON(), model.cacheTTL);
+            }
+          }
+        }
+      }
     } catch (error) {
       // Handle error
       await trx.rollback();

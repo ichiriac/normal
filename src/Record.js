@@ -8,10 +8,12 @@ class Record {
         this._data = {};
         this.sync(data);
         this._isReady = Object.keys(data).length == Object.keys(model.fields).length;
+        this._flushed = false;
     }
 
     sync(data) {
         for(let key in this._model.fields) {
+            if (!data.hasOwnProperty(key)) continue;
             if (key === 'id' && this._data[key]) continue;
             const field = this._model.fields[key];
             this._data[key] = field.deserialize(this, data[key]);
@@ -61,6 +63,11 @@ class Record {
                 this._data[key] = this._changes[key];
             }
             this._changes = {};
+            this._flushed = true;
+            // update cache
+            if (this._model.cache && !this._model.repo.connection.transactional) {
+                this._model.cache.set(this._model.name + ':' + this.id, this.toJSON(), this._model.cacheTTL);
+            }
         }
         return this;
     }

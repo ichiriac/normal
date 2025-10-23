@@ -3,13 +3,13 @@
  * 
  * This cache uses SharedArrayBuffer and Atomics to allow multiple Node.js
  * processes to share a common in-memory cache. It supports basic operations
- * like set, get, and clear, with TTL and LRU eviction.
+ * like set, get, and clear, with TTL.
  * 
  * Note: This implementation assumes that the environment supports SharedArrayBuffer.
  */
 class SharedMemoryCache {
   constructor(options = {}) {
-    this.maxEntries = options.max || 1024;
+    this.maxEntries = options.maxEntries || 1024; // number of items to allocate
     this.entrySize = options.entrySize || 1024; // bytes per entry
     this.headerSize = 64; // metadata
     
@@ -43,7 +43,7 @@ class SharedMemoryCache {
 
   set(key, value, ttl = 300) {
     const expires = Date.now() + (ttl * 1000);
-    const entry = { key, value, expires, accessed: Date.now() };
+    const entry = { key, value, expires };
     const serialized = JSON.stringify(entry);
     
     if (serialized.length > this.entrySize - 8) return false;
@@ -80,16 +80,7 @@ class SharedMemoryCache {
     try {
       const entry = JSON.parse(serialized);
       
-      if (entry.key === key && entry.expires > Date.now()) {
-        // Update access time for LRU (optional - adds overhead)
-        entry.accessed = Date.now();
-        const updated = JSON.stringify(entry);
-        if (updated.length <= this.entrySize - 8) {
-          const updatedBytes = new TextEncoder().encode(updated);
-          new Uint8Array(this.sharedBuffer, this.headerSize + offset + 4, updatedBytes.length).set(updatedBytes);
-          Atomics.store(new Int32Array(this.sharedBuffer, this.headerSize + offset, 1), 0, updatedBytes.length);
-        }
-        
+      if (entry.key === key && entry.expires > Date.now()) {        
         return entry.value;
       }
     } catch (e) {
