@@ -10,11 +10,13 @@ class EnumField extends Field {
         if (!definition.values || !Array.isArray(definition.values)) {
             throw new Error(`Enum field ${name} must have a 'values' array in its definition`);
         }
-        this.values = definition.values;
     }
 
     write(record, value) {
-        if (!this.values.includes(value)) {
+        if (!value && this.definition.required) {
+            throw new Error(`Field ${this.name} is required and cannot be null or undefined`);
+        }
+        if (value && !this.values.includes(value)) {
             throw new Error(`Invalid value for enum field ${this.name}: ${value}`);
         }
         return super.write(record, value);
@@ -22,18 +24,18 @@ class EnumField extends Field {
 
     read(record) {
         const value = super.read(record);
-        if (!this.values.includes(value)) {
+        if (value && !this.definition.values.includes(value)) {
             throw new Error(`Invalid value for enum field ${this.name}: ${value}`);
         }
         return value;
     }
     getMetadata() {
         const meta = super.getMetadata();
-        meta.values = this.values;
+        meta.values = this.definition.values;
         return meta;
     }
     getColumnDefinition(table) {
-        return table.enum(this.name, this.values);
+        return table.enum(this.name, this.definition.values);
     }
 }
 
