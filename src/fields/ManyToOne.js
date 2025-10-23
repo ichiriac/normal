@@ -38,11 +38,7 @@ class ManyToOne extends Field {
     }
 
     serialize(record) {
-        const value = this.read(record);
-        if (value && value.id !== undefined) {
-            return value.id;
-        }
-        return null;
+        return super.read(record);
     }
 
 

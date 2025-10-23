@@ -1,6 +1,7 @@
 class Comments {
   static name = "Comments";
   static table = "comments";
+  static cache = 120;
   static fields = {
     id: "primary",
     content: "text",

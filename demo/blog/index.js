@@ -133,6 +133,10 @@ async function demo() {
       "Post tags:",
       (await post.tags.load()).map((tag) => tag.name)
     );
+    console.log("Posts in tag car :", 
+      (await carTag.posts.load()).map((p) => p.title)
+    );
+
     
     console.log("\n⚡ Operation Timings:");
     console.log(`   👤 User creation: ${userCreateTime.toFixed(2)}ms`);
