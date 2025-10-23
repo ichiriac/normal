@@ -4,8 +4,13 @@ const { Model } = require('./Model');
 const { Cache } = require('./Cache');
 const { Synchronize } = require("./Schema.js");
 
-// simple in-memory cache for query results
-const cache = new Cache({ max: 1024, entrySize: 1024 });
+// Initialize shared cache if enabled via environment variable
+// CACHE_ENTRY_SIZE=2048 CACHE_MAX_ENTRIES=4096
+// Note: Setting CACHE_DISABLED=1 will disable caching entirely
+const cache = process.env['CACHE_DISABLED'] ? null : new Cache({
+  entrySize: process.env['CACHE_ENTRY_SIZE'] || 1024,
+  maxEntries: process.env['CACHE_MAX_ENTRIES'] || 2048
+});
 
 /**
  * Repository: registers model definitions and exposes CRUD over Knex.
@@ -66,7 +71,7 @@ class Repository {
     if (!this.models[name]) {
       this.models[name] = new Model(this, name, ModelClass.table);
     }
-    this.models[name].extends(ModelClass); 
+    this.models[name].extends(ModelClass);
     return this.models[name];
   }
 
@@ -111,7 +116,7 @@ class Repository {
     if (!config) config = {};
     if (!config.isolationLevel) {
       if (this.connection.config.client !== 'sqlite3') {
-          config.isolationLevel = 'read committed';
+        config.isolationLevel = 'read committed';
       }
     }
     const trx = await this.cnx.transaction(config);

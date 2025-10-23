@@ -108,7 +108,11 @@ class Request {
             if (!this._isWrappableRow(row)) {
                 return row;
             }
-            return this.model.allocate(row).ready();
+            const allocated = this.model.allocate(row);
+            if (allocated && typeof allocated.ready === 'function') {
+                return allocated.ready();
+            }
+            return allocated;
         };
 
         if (Array.isArray(value)) {
