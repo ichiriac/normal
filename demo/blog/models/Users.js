@@ -1,6 +1,7 @@
 class Users {
   static name = "Users";
   static table = "users";
+  static cache = true;
   static order = [["id", "desc"]];
 
   static fields = {
@@ -13,9 +14,9 @@ class Users {
     posts: { type: "one-to-many", foreign: "Posts.author_id" },
     comments: { type: "one-to-many", foreign: "Comments.author_id" },
     status: {
-      type: "string",
+      type: "enum",
       default: "user",
-      enum: ["user", "admin", "moderator"],
+      values: ["user", "admin", "moderator"],
     },
     created_at: { type: "datetime", default: () => new Date() },
     updated_at: { type: "datetime", default: () => new Date() },

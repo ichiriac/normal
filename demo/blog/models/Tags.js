@@ -1,6 +1,7 @@
 class Tags {
   static name = "Tags";
   static table = "tags";
+  static cache = false;
   static fields = {
     id: "primary",
     name: { type: "string", unique: true, required: true },

@@ -1,6 +1,7 @@
 class Posts {
   static name = "Posts";
   static table = "posts";
+  static cache = true;
   static fields = {
     id: 'primary',
     title: { type: "string", unique: true, required: false },
