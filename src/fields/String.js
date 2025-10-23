@@ -25,12 +25,12 @@ class StringField extends Field {
 
     getMetadata() {
         const meta = super.getMetadata();
-        meta.length = this.definition.length;
+        meta.size = this.definition.size;
         return meta;
     }
 
     getColumnDefinition(table) {
-        return table.string(this.name, this.definition.length || 255);
+        return table.string(this.name, this.definition.size || 255);
     }
 }
 
