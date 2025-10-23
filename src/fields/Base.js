@@ -111,7 +111,7 @@ class Field {
             return record._changes[this.column];
         }
 
-        if (record._data.hasOwnProperty(this.column)) {
+        if (record._data.hasOwnProperty(this.column) && record._data[this.column] !== null) {
             return record._data[this.column];
         }
         if (this.definition.default !== undefined) {
