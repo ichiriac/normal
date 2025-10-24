@@ -93,11 +93,20 @@ async function Synchronize(repository, options) {
             );
         });
 
+
+        // initialize all models
         for (const name of Object.keys(transaction.models)) {
             if (name == 'Models') continue;
             const model = transaction.models[name];
             if (model.abstract) continue;
             model._init();
+        }
+
+        // synchronize each model
+        for (const name of Object.keys(transaction.models)) {
+            if (name == 'Models') continue;
+            const model = transaction.models[name];
+            if (model.abstract) continue;
 
             // synchronize model table
             let changed = false;
