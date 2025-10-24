@@ -11,12 +11,12 @@ class Field {
      */
     static define(model, name, definition) {
         if (typeof definition === 'string') {
-            definition = { type: definition };
+            definition = { type: definition.toLowerCase() };
         }
         if (definition instanceof Field) {
             definition = definition.definition; 
         }
-        const fieldType = definition.type ? definition.type.toLowerCase() : null;
+        const fieldType = definition.type ? definition.type : null;
         if (fieldType && Field.behaviors.hasOwnProperty(fieldType)) {
             const BehaviorClass = Field.behaviors[fieldType];
             return new BehaviorClass(model, name, definition);
@@ -35,6 +35,7 @@ class Field {
         this.model = model;
         this.name = name;
         this.definition = definition;
+        this.type = definition.type;
         this.column = definition.column || name;
         this.stored = definition.stored !== false;
         const allowed_keys = Object.keys(this.getMetadata());
