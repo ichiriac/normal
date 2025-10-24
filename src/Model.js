@@ -240,7 +240,7 @@ class Model {
         for (const id of ids) {
             const entity = this.entities.get(id);
             if (entity && entity._isReady) {
-                result.push(Promise.resolve(entity));
+                result.push(entity);
             } else {
                 missing.push(id);
             }
