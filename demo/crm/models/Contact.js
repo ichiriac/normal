@@ -5,12 +5,13 @@ class Contact {
 
     static fields = {
         id: 'primary',
-        first_name: { type: 'string', length: 100, required: true },
-        last_name: { type: 'string', length: 100, required: true },
-        email: { type: 'string', length: 200, required: true, unique: true },
-        phone: { type: 'string', length: 20 },
-        created_at: { type: 'timestamp', defaultToNow: true },
-        updated_at: { type: 'timestamp', defaultToNow: true },
+        class: { type: 'reference' },
+        first_name: { type: 'string', size: 100, required: true },
+        last_name: { type: 'string', size: 100, required: true },
+        email: { type: 'string', size: 200, required: true, unique: true, index: true },
+        phone: { type: 'string', size: 20 },
+        created_at: { type: 'timestamp', default: () => new Date() },
+        updated_at: { type: 'timestamp', default: () => new Date() },
     };
 }
 

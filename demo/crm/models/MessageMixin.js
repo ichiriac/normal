@@ -3,7 +3,16 @@ class MessageMixin {
     static abstract = true;
         
     static fields = {
-        messages: { type: "many2one", model: "Message", backref: "res_model,res_id" },
+        messages: { 
+            type: "one2many", 
+            foreign: "Message", 
+            domain: function(record) {
+                return {
+                    res_model: record.model.name,
+                    res_id: record.id,
+                };
+            }
+        },
     }
 
     publish(sender_id, recipient_id, subject, body) {
