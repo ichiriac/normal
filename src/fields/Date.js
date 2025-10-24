@@ -1,4 +1,5 @@
 const { Field } = require('./Base');
+const knex = require('knex');
 
 /**
  * Date field type.
@@ -21,6 +22,12 @@ class DateField extends Field {
         }
     }
 
+    getMetadata() {
+        const meta = super.getMetadata();
+        meta.defaultToNow = this.definition.defaultToNow;
+        return meta;
+    }
+
     read(record) {
         const value = super.read(record);
         if (value === null || value === undefined) {
@@ -38,7 +45,11 @@ class DateField extends Field {
     }
 
     getColumnDefinition(table) {
-        return table.date(this.name);
+        const column = table.date(this.name);
+        if (this.definition.defaultToNow) {
+            column.defaultTo(this.model.repo.cnx.fn.now());
+        }
+        return column;
     }
 
 }

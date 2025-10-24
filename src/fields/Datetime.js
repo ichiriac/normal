@@ -1,4 +1,5 @@
 const { Field } = require('./Base');
+const knex = require('knex');
 
 /**
  * Datetime field type.
@@ -21,6 +22,12 @@ class DateTimeField extends Field {
             throw new Error(`Invalid type for datetime field ${this.name}: ${typeof value}`);
         }
     }
+    getMetadata() {
+        const meta = super.getMetadata();
+        meta.defaultToNow = this.definition.defaultToNow;
+        return meta;
+    }
+
     read(record) {
         const value = super.read(record);
         if (value === null || value === undefined) {
@@ -44,7 +51,11 @@ class DateTimeField extends Field {
         return null;
     }
     getColumnDefinition(table) {
-        return table.timestamp(this.name, { useTz: false });
+        const column = table.timestamp(this.name, { useTz: false });
+        if (this.definition.defaultToNow) {
+            column.defaultTo(this.model.repo.cnx.fn.now());
+        }
+        return column;
     }
 }
 
