@@ -26,6 +26,7 @@ class OneToMany extends Field {
     getMetadata() {
         const meta = super.getMetadata();
         meta.foreign = this.definition.foreign;
+        meta.domain = this.definition.domain;
         delete meta.index;
         delete meta.unique;
         delete meta.required;
@@ -34,6 +35,21 @@ class OneToMany extends Field {
 
     isSameType(type) {
         return ALIAS.indexOf(type) !== -1;
+    }
+
+    read(record) {
+        let where = {};
+        if (this.refFieldName) {
+            where[this.refFieldName] = record.id;
+        }
+        if (this.definition.domain) {
+            if (typeof this.definition.domain === 'function') {
+                where = this.definition.domain(record, this);
+            } else {
+                where = { ...where, ...this.definition.domain };
+            }
+        }
+        return this.refModel.where(where);
     }
 
     serialize(record) {
