@@ -8,7 +8,7 @@ class Reference extends Field {
 
     constructor(model, name, definition) {
         super(model, name, definition);
-        this.id_field = definition.id_field || 'id';
+        this.id_column = definition.id_column || 'id';
         this.models = definition.models || [];
     }
 
@@ -22,8 +22,8 @@ class Reference extends Field {
 
     getMetadata() {
         const meta = super.getMetadata();
-        meta.id_field = this.definition.id_field;
-        meta.models = this.definition.models;
+        meta.id_column = this.id_column;
+        meta.models = this.models;
         return meta;
     }
 
@@ -41,7 +41,7 @@ class Reference extends Field {
             }
         };
         let changed = false;
-        await this.cnx.schema.table(this.table, (table) => {
+        await this.cnx.schema.table(this.model.table, (table) => {
             changed = this.buildColumn(table, metadata);
             let indexChange = this.buildIndex(table, metadata);
             if (indexChange) {

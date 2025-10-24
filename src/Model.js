@@ -6,9 +6,11 @@ function chainWith(model, MixinClass) {
     const BaseClass = model.cls;
     if (typeof MixinClass !== 'function') return BaseClass;
 
+    let proto = Object.assign({}, MixinClass.prototype);
+
     // Ensure MixinClass participates in the chain so `super` inside mixin methods works.
-    if (Object.getPrototypeOf(MixinClass.prototype) !== BaseClass.prototype) {
-        Object.setPrototypeOf(MixinClass.prototype, BaseClass.prototype);
+    if (Object.getPrototypeOf(proto) !== BaseClass.prototype) {
+        Object.setPrototypeOf(proto, BaseClass.prototype);
     }
     if (Object.getPrototypeOf(MixinClass) !== BaseClass) {
         Object.setPrototypeOf(MixinClass, BaseClass);
@@ -23,17 +25,24 @@ function chainWith(model, MixinClass) {
     Object.defineProperty (Combined, 'name', {value: MixinClass.name || 'Combined'});
 
     // Copy instance members (methods/accessors) preserving descriptors and super bindings.
-    const inst = Object.getOwnPropertyDescriptors(MixinClass.prototype);
+    const inst = Object.getOwnPropertyDescriptors(proto);
     delete inst.constructor;
     Object.defineProperties(Combined.prototype, inst);
 
     // Copy static members (except standard ones).
     const stat = Object.getOwnPropertyDescriptors(MixinClass);
+    class ModelProto extends Object.getPrototypeOf(model).constructor {}
+    const found = false;
     for (const key of Object.keys(stat)) {
         if (key === 'length' || key === 'name' || key === 'prototype') continue;
-        Object.defineProperty(Combined, key, stat[key]);
+        if (typeof stat[key] === 'function') {
+            ModelProto.prototype[key] = stat[key];
+            found = true
+        }
     }
-
+    if (found) {
+        Object.setPrototypeOf(model, ModelProto);
+    }
     return Combined;
 }
 
@@ -145,6 +154,7 @@ class Model {
         this.indexes = [];
         this.entities = new Map();
         this._lookup = new LookupIds(this);
+        this.inheritField = null;
         this.columns = [];
     }
 
@@ -174,6 +184,9 @@ class Model {
                 throw new Error("Model already inherits from " + this.inherits + ", cannot inherit from " + MixinClass.inherits + " as well.");
             }
             this.inherits = MixinClass.inherits;
+            if (MixinClass.inheritField) {
+                this.inheritField = MixinClass.inheritField;
+            }
         }
         if (MixinClass.abstract) {
             this.abstract = true;
@@ -263,15 +276,28 @@ class Model {
 
             if (this.inherits) {
                 const parentModel = this.repo.get(this.inherits);
-                if (!parentModel.fields["_inherit"]) {
-                    parentModel.fields["_inherit"] = Field.define(parentModel, "_inherit", {
-                        type: 'reference', id_field: 'id', models: [this.name], required: true
-                    });
-                } else {
-                    const inhField = parentModel.fields["_inherit"];
-                    if (!inhField.models.includes(this.name)) {
-                        inhField.models.push(this.name);
+                if (!parentModel.cls_init) {
+                    parentModel._init();
+                }
+                if (!this.inheritField) {
+                    for(let field of Object.values(parentModel.fields)) {
+                        if (field.type === 'reference') {
+                            this.inheritField = field.name;
+                            break;
+                        }
                     }
+                }
+                if (!this.inheritField) {
+                    this.inheritField = '_inherit';
+                }
+                if (!parentModel.fields[this.inheritField]) {
+                    parentModel.fields[this.inheritField] = Field.define(parentModel, this.inheritField, {
+                        type: 'reference', models: [this.name], required: true
+                    });
+                } 
+                this.inheritField = parentModel.fields[this.inheritField];
+                if (!this.inheritField.models.includes(this.name)) {
+                    this.inheritField.models.push(this.name);
                 }
                 if (parentModel.mixins) {
                     parentModel.mixins.forEach((mix) => {
@@ -345,7 +371,7 @@ class Model {
         if (!this.cls_init) this._init();
         if (this.inherits) {
             const parentModel = this.repo.get(this.inherits);
-            const parentRecord = await parentModel.create(Object.assign({}, data, {_inherit: this.name}));
+            const parentRecord = await parentModel.create(Object.assign({}, data, {[this.inheritField.name]: this.name}));
             data.id = parentRecord.id;
         }
 
@@ -362,7 +388,7 @@ class Model {
             pre_create.push(field.pre_create(data));
             const value = field.serialize(data);
             if (value !== undefined) {
-                toInsert[fieldName] = value;
+                toInsert[field.column] = value;
             }
         }
         await Promise.all(pre_create);
