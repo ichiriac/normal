@@ -21,6 +21,26 @@ Build data-rich apps with clean models, powerful relations, and first-class DX. 
 npm install normal pg sqlite3
 ```
 
+## Database engines
+
+Normal supports these SQL databases via Knex:
+
+<div align="center">
+
+<a href="https://www.postgresql.org/"><img alt="PostgreSQL" src="https://img.shields.io/badge/-PostgreSQL-4169E1?logo=postgresql&logoColor=white" /></a>
+<a href="https://www.cockroachlabs.com/product/cockroachdb/"><img alt="CockroachDB" src="https://img.shields.io/badge/-CockroachDB-6933FF?logo=cockroachlabs&logoColor=white" /></a>
+<a href="https://www.microsoft.com/sql-server/"><img alt="Microsoft SQL Server" src="https://img.shields.io/badge/-Microsoft%20SQL%20Server-CC2927?logo=microsoftsqlserver&logoColor=white" /></a>
+<a href="https://www.mysql.com/"><img alt="MySQL" src="https://img.shields.io/badge/-MySQL-4479A1?logo=mysql&logoColor=white" /></a>
+<a href="https://mariadb.org/"><img alt="MariaDB" src="https://img.shields.io/badge/-MariaDB-003545?logo=mariadb&logoColor=white" /></a>
+<a href="https://www.sqlite.org/index.html"><img alt="SQLite" src="https://img.shields.io/badge/-SQLite-003B57?logo=sqlite&logoColor=white" /></a>
+<a href="https://github.com/WiseLibs/better-sqlite3"><img alt="Better SQLite3" src="https://img.shields.io/badge/-Better%20SQLite3-003B57?logo=sqlite&logoColor=white" /></a>
+<a href="https://www.oracle.com/database/"><img alt="Oracle" src="https://img.shields.io/badge/-Oracle-F80000?logo=oracle&logoColor=white" /></a>
+<a href="https://aws.amazon.com/redshift/"><img alt="Amazon Redshift" src="https://img.shields.io/badge/-Amazon%20Redshift-8C4FFF?logo=amazonredshift&logoColor=white" /></a>
+
+</div>
+
+Note: You only need the driver for the database(s) you use (e.g., `pg` for PostgreSQL, `sqlite3` or `better-sqlite3` for SQLite).
+
 ## 60‑second Quickstart
 ```js
 // index.js
