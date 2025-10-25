@@ -1,8 +1,9 @@
 
 
 <div align="center">
+<img src="docs/assets/normal-logo.svg" alt="Normal ORM" height="120" />
 
-# <img src="docs/assets/normal-logo.svg" alt="Normal ORM" height="36" /> Normal
+#  Normal
 
 The simple, straightforward, and most advanced Node.js ORM — without the bloat.
 
