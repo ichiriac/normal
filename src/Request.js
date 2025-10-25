@@ -117,6 +117,14 @@ class Request {
         // Only apply to read-like queries (avoid insert/update/delete)
         const readLike = !method || method === 'select' || method === 'first';
         if (!readLike) return;
+        // For inherited models, ensure join with parent table once
+        if (this.model && this.model.inherits && !qb._inheritJoined) {
+            const parent = this.model.repo.get(this.model.inherits);
+            if (typeof qb.leftJoin === 'function') {
+                qb.leftJoin(parent.table, `${parent.table}.id`, `${this.model.table}.id`);
+                qb._inheritJoined = true;
+            }
+        }
         // Skip if select already specified or select() not available
         if (typeof qb.select !== 'function') return;
         const stmts = Array.isArray(qb._statements) ? qb._statements : [];

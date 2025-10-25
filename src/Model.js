@@ -98,15 +98,16 @@ class Model {
         this.repo = repo;
         this.name = name;
         this.table = table ? table : _inferTable(name);
-        this.fields = {
-            id: 'primary'
-        };
+        this.fields = {};
         this.cls_init = false;
         this.cls = class ActiveRecord extends Record {};
         this.abstract = false;
         this.inherited = [];
         this.mixins = new Set();
         this.inherits = null;
+        this.super = null;
+        this.refField = null;
+        this.primaryField = null;
         this.cacheTTL = null;
         this.indexes = [];
         this.entities = new Map();
@@ -232,36 +233,51 @@ class Model {
 
 
             if (this.inherits) {
-                const parentModel = this.repo.get(this.inherits);
-                if (!parentModel.cls_init) {
-                    parentModel._init();
+                this.super = this.repo.get(this.inherits);
+                if (!this.super.cls_init) {
+                    this.super._init();
                 }
                 if (!this.inheritField) {
-                    for(let field of Object.values(parentModel.fields)) {
-                        if (field.type === 'reference') {
-                            this.inheritField = field.name;
-                            break;
-                        }
-                    }
+                    this.inheritField = this.super.refField?.name;
                 }
                 if (!this.inheritField) {
                     this.inheritField = '_inherit';
                 }
-                if (!parentModel.fields[this.inheritField]) {
-                    parentModel.fields[this.inheritField] = Field.define(parentModel, this.inheritField, {
+                if (!this.super.fields[this.inheritField]) {
+                    if (this.super.refField) {
+                        throw new Error(`Model ${this.super.name} already has a reference field ${this.super.refField.name}, cannot create inherit field ${this.inheritField}`);
+                    }
+                    this.super.fields[this.inheritField] = Field.define(this.super, this.inheritField, {
                         type: 'reference', models: [this.name], required: true
                     });
-                } 
-                this.inheritField = parentModel.fields[this.inheritField];
+                    this.super.refField = this.super.fields[this.inheritField];
+                }
+                this.inheritField = this.super.refField;
                 if (!this.inheritField.models.includes(this.name)) {
                     this.inheritField.models.push(this.name);
                 }
-                if (parentModel.mixins) {
-                    parentModel.mixins.forEach((mix) => {
+                if (this.super.mixins) {
+                    this.super.mixins.forEach((mix) => {
                         this.mixins.add(mix);
                     });
                 }
-                extendModel(this, parentModel.cls);
+                for(const mix of this.super.inherited) {
+                    extendModel(this, mix);
+                }
+
+                // Expose parent fields on child instances without polluting child's field map
+                // so schema building stays correct. Define accessors that delegate to parent field.
+                for (const [fname, pField] of Object.entries(this.super.fields)) {
+                    if (fname === 'id') continue; // id already exists
+
+                    if (Object.prototype.hasOwnProperty.call(this.fields, fname)) continue; // child's own field wins
+                    Object.defineProperty(this.cls.prototype, fname, {
+                        get: function() { return pField.read(this); },
+                        set: function(v) { pField.write(this, v); },
+                        configurable: true,
+                        enumerable: true,
+                    });
+                }
             }
 
             this.mixins.forEach((mix) => {
@@ -280,6 +296,34 @@ class Model {
                 if (field.stored) {
                     this.columns.push(field.column);
                 }
+                if (field.type === 'reference') {
+                    this.refField = field;
+                }
+                if (field.type === 'primary') {
+                    this.primaryField = field;
+                }
+            }
+            if (!this.primaryField) {
+                // Ensure primary field exists
+                this.fields['id'] = Field.define(this, 'id', 'primary');
+                this.fields['id'].attach(this, this.cls);
+                this.columns.push(this.fields['id'].column);
+                this.primaryField = this.fields['id'];
+            }
+
+            // For inherited models, include parent stored columns for select convenience
+            if (this.super) {
+                const cols = [];
+                for (const p of Object.values(this.super.fields)) {
+                    if (!p.stored) continue;
+                    // qualify and alias as field name
+                    cols.push(`${this.super.table}.${p.column} as ${p.name}`);
+                }
+                for (const c of Object.values(this.fields)) {
+                    if (!c.stored) continue;
+                    cols.push(`${this.table}.${c.column} as ${c.name}`);
+                }
+                this.columns = cols;
             }
 
             this.cls.model = this;
@@ -300,6 +344,18 @@ class Model {
             }
         }
         if (!this.cls_init) this._init();
+        // If allocating on a parent model and a discriminator/reference points to a child, delegate
+        if (!this.inherits) {
+            // detect discriminator on parent: find a reference field containing a model name
+            const refField = Object.values(this.fields).find(f => f.type === 'reference');
+            if (refField && data && data[refField.name]) {
+                const childName = data[refField.name];
+                if (childName && this.repo.has(childName)) {
+                    // delegate to child; child will rehydrate needed fields as available
+                    return this.repo.get(childName).allocate(data);
+                }
+            }
+        }
         const instance = new this.cls(this, data);
         if (data.id) {
             this.entities.set(data.id, instance);
@@ -315,6 +371,15 @@ class Model {
                 });
             }
         }
+        // If inheriting, hydrate parent fields from provided row when present
+        if (this.inherits && data) {
+            const parentModel = this.repo.get(this.inherits);
+            for (const [fname, f] of Object.entries(parentModel.fields)) {
+                if (!Object.prototype.hasOwnProperty.call(data, fname)) continue;
+                instance._data[fname] = f.deserialize(instance, data[fname]);
+                delete instance._changes[fname];
+            }
+        }
         return instance;
     }
 
@@ -327,9 +392,8 @@ class Model {
         this.checkAbstract();
 
         if (!this.cls_init) this._init();
-        if (this.inherits) {
-            const parentModel = this.repo.get(this.inherits);
-            const parentRecord = await parentModel.create(Object.assign({}, data, {[this.inheritField.name]: this.name}));
+        if (this.super) {
+            const parentRecord = await this.super.create(Object.assign({}, data, {[this.inheritField.name]: this.name}));
             data.id = parentRecord.id;
         }
 

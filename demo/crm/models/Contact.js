@@ -13,6 +13,10 @@ class Contact {
         created_at: { type: 'timestamp', default: () => new Date() },
         updated_at: { type: 'timestamp', default: () => new Date() },
     };
+
+    static findByEmail(email) {
+        return this.query().where('email', email).first();
+    }
 }
 
 module.exports = Contact;

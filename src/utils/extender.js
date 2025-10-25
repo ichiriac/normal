@@ -260,8 +260,21 @@ function extendModel(model, mixin) {
         throw new TypeError('extendModel: model must be an object with a cls constructor');
     }
 
-    // 1) Extend the active record class used by the model
-    model.cls = extendWith(model.cls, mixin);
+    // 1) Extend the active record class used by the model, but only if mixin adds instance members
+    let shouldExtendCls = true;
+    if (mixin && (typeof mixin === 'function' || typeof mixin === 'object')) {
+        const mixinSource = typeof mixin === 'function' ? mixin.prototype : mixin;
+        if (mixinSource && typeof mixinSource === 'object') {
+            const ownNames = Object.getOwnPropertyNames(mixinSource).filter((k) => k !== 'constructor');
+            const ownSyms = Object.getOwnPropertySymbols(mixinSource);
+            if (ownNames.length === 0 && ownSyms.length === 0) {
+                shouldExtendCls = false; // nothing to add at instance level
+            }
+        }
+    }
+    if (shouldExtendCls) {
+        model.cls = extendWith(model.cls, mixin);
+    }
 
     // 2) If mixin is a class, attach its static methods to the model object with super support
     if (typeof mixin === 'function') {
@@ -271,6 +284,11 @@ function extendModel(model, mixin) {
         // Base proto for super resolution is the current prototype of the model object
         const baseProto = Object.getPrototypeOf(model);
         const nextProto = Object.create(baseProto);
+        for (const key of Object.keys(nextProto)) {
+            if (key=== 'length' || key === 'name' || key === 'prototype') continue;
+            delete nextProto[key];
+        }
+
 
         // Generic builders bound to an arbitrary base prototype
         const buildNamed = (key, fn, kind) => {
@@ -355,12 +373,15 @@ function extendModel(model, mixin) {
         for (const key of Object.keys(stat)) {
             const desc = stat[key];
             if (key === 'length' || key === 'name' || key === 'prototype') continue;
+            // Skip dangerous/known-conflicting keys like 'cache'
+            if (key === 'cache') continue;
+            // Avoid redefining any property already defined directly on the model
+            if (Object.prototype.hasOwnProperty.call(model, key)) continue;
             // Only copy callable or accessor statics; skip plain data properties (numbers/booleans/strings/objects)
             if (typeof desc.value !== 'function' && typeof desc.get !== 'function' && typeof desc.set !== 'function') {
                 continue;
             }
             let out = desc;
-            let ignore = true;
             if (typeof desc.value === 'function') {
                 const nv = buildNamed(key, desc.value, 'method');
                 // Fast path for default data descriptor on plain objects
@@ -370,24 +391,20 @@ function extendModel(model, mixin) {
                 }
                 if (nv !== desc.value) {
                     out = out === desc ? { ...desc } : out; out.value = nv;
-                    ignore = false;
                 }
             }
             if (typeof desc.get === 'function') {
                 const ng = buildNamed(key, desc.get, 'get');
                 if (ng !== desc.get) {
                     out = out === desc ? { ...desc } : out; out.get = ng;
-                    ignore = false;
                 }
             }
             if (typeof desc.set === 'function') {
                 const ns = buildNamed(key, desc.set, 'set');
                 if (ns !== desc.set) {
                     out = out === desc ? { ...desc } : out; out.set = ns;
-                    ignore = false;
                 }
             }
-            if (ignore) continue;
             stringProps[key] = out;
             hasString = true;
         }
@@ -399,6 +416,8 @@ function extendModel(model, mixin) {
         for (const sym of Object.getOwnPropertySymbols(mixin)) {
             const desc = Object.getOwnPropertyDescriptor(mixin, sym);
             if (!desc) continue;
+            // Avoid redefining any symbol already present directly on the model
+            if (Object.getOwnPropertySymbols(model).includes(sym)) continue;
             if (typeof desc.value === 'function') {
                 const nv = buildComputed(sym, desc.value, 'method');
                 if (desc.writable === true && desc.configurable === true && desc.enumerable === true && !('get' in desc || 'set' in desc)) {
@@ -418,7 +437,10 @@ function extendModel(model, mixin) {
         }
         if (hasSym) Object.defineProperties(nextProto, symProps);
 
-        Object.setPrototypeOf(model, nextProto);
+        // Use getOwnPropertyNames to account for non-enumerable statics (class methods are non-enumerable)
+        if (Object.getOwnPropertyNames(nextProto).length > 0 || Object.getOwnPropertySymbols(nextProto).length > 0) { 
+            Object.setPrototypeOf(model, nextProto);
+        }
     }
 
     return model;

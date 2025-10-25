@@ -11,6 +11,10 @@ class Record {
         this._flushed = false;
     }
 
+    get _repo() {
+        return this._model.repo;
+    }
+
     sync(data) {
         for(let key in this._model.fields) {
             if (!data.hasOwnProperty(key)) continue;
@@ -25,8 +29,18 @@ class Record {
     }
 
     toJSON() {
-        const json = { model: this._model.name };
-        for(let key in this._model.fields) {
+        const json = {};
+        // Include parent fields first (if any), then child fields so child can override when names clash
+        if (this._model.inherits) {
+            const parentModel = this._model.repo.get(this._model.inherits);
+            for (const field of Object.values(parentModel.fields)) {
+                const value = field.serialize(this);
+                if (value !== undefined) {
+                    json[field.name] = value;
+                }
+            }
+        }
+        for (let key in this._model.fields) {
             const field = this._model.fields[key];
             const value = field.serialize(this);
             if (value !== undefined) {
@@ -69,6 +83,7 @@ class Record {
                 this._model.cache.set(this._model.name + ':' + this.id, this.toJSON(), this._model.cacheTTL);
             }
         }
+        //if (this._model.super && )
         return this;
     }
 
@@ -81,6 +96,12 @@ class Record {
         if (data) {
             for(let key in data) {
                 if (!this._model.fields.hasOwnProperty(key)) {
+                    if (this._model.super) {
+                        if (this._model.super.fields.hasOwnProperty(key)) {
+                            this[key] = data[key];
+                            continue;
+                        }
+                    }
                     throw new Error(`Field ${key} does not exist on model ${this._model.name}`);
                 }
                 this[key] = data[key];
@@ -89,6 +110,7 @@ class Record {
         if (this._isDirty) {
             return await this.flush();
         }
+
         return this;
     }
 }

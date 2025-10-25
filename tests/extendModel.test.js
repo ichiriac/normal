@@ -71,4 +71,36 @@ describe('extendModel', () => {
     const newBase = Object.getPrototypeOf(model);
     expect(typeof newBase.baseStatic).toBe('function');
   });
+
+  test('does not extend cls when class mixin has no instance members; still attaches safe statics', () => {
+    const model = Object.create({});
+    const Original = class AR { x() { return 1; } };
+    model.cls = Original;
+
+    // pre-existing model properties
+    Object.defineProperty(model, 'cache', { get() { return 'CACHE'; }, configurable: true });
+    model.existing = () => 'old';
+
+    class EmptyMixin { 
+      // No instance members
+      static newStatic() { return 'ok'; }
+      static set cache(v) { throw new Error('should not be set'); }
+      static get cache() { return 'bad'; }
+      static existing() { return 'new'; }
+    }
+
+    extendModel(model, EmptyMixin);
+
+    // cls unchanged because mixin adds no instance members
+    expect(model.cls).toBe(Original);
+
+    // cache on model not overridden by mixin statics
+    expect(model.cache).toBe('CACHE');
+
+    // pre-existing property not redefined
+    expect(model.existing()).toBe('old');
+
+    // new static added
+    expect(model.newStatic()).toBe('ok');
+  });
 });
