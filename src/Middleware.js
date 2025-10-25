@@ -18,7 +18,7 @@ class MiddlewareSystem {
     // Execute middleware chain
     async execute(operation, context, next) {
         const middlewares = this.middlewares.get(operation) || [];
-        let index = 0;
+    let index = -1;
 
         const dispatch = async (i) => {
             if (i <= index) throw new Error('next() called multiple times');

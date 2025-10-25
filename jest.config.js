@@ -3,7 +3,7 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>'],
   testMatch: ['**/?(*.)+(spec|test).[jt]s'],
-  collectCoverageFrom: ['src/**/*.js', 'index.js'],
+  collectCoverageFrom: ['src/**/*.js', '!src/cache/**/*.js', 'index.js'],
   coverageDirectory: 'coverage',
   verbose: false,
 };

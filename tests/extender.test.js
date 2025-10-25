@@ -28,10 +28,10 @@ describe('extendWith (class/object mixin extender)', () => {
     expect(Object.prototype.hasOwnProperty.call(Base.prototype, 'say')).toBe(false);
     expect(Object.prototype.hasOwnProperty.call(mixin, 'greet')).toBe(false);
 
-  // Static members from a class mixin are not copied
-  class StaticMixin { static staticFoo() { return 'bar'; } }
-  const Extended2 = extendWith(Base, StaticMixin);
-  expect(Extended2.staticFoo).toBeUndefined();
+    // Static members from a class mixin are not copied
+    class StaticMixin { static staticFoo() { return 'bar'; } }
+    const Extended2 = extendWith(Base, StaticMixin);
+    expect(Extended2.staticFoo).toBeUndefined();
   });
 
   test('does not mutate BaseClass or mixin prototypes; still supports super', () => {
@@ -50,7 +50,7 @@ describe('extendWith (class/object mixin extender)', () => {
     expect(Object.getOwnPropertyNames(Base.prototype).slice().sort()).toEqual(baseProtoBefore);
     // Mixin prototype unchanged (no mutation)
     expect(Object.getOwnPropertyNames(MixinClass.prototype).slice().sort()).toEqual(mixProtoBefore);
-  expect(Object.getPrototypeOf(MixinClass.prototype)).toBe(Object.prototype);
+    expect(Object.getPrototypeOf(MixinClass.prototype)).toBe(Object.prototype);
   });
 
   test('super inside mixin methods works without mutating mixin', () => {
@@ -87,7 +87,7 @@ describe('extendWith (class/object mixin extender)', () => {
     const inst = new Extended();
 
     expect(inst[SYM]()).toBe('hi#');
-  inst[SET] = 'ok';
+    inst[SET] = 'ok';
     expect(inst._label).toBe('OK');
     expect(inst[GET]).toBe('LX');
 
