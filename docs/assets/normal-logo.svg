@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc" xmlns="http://www.w3.org/2000/svg">
+  <title id="title">Normal ORM logo — database with relationships</title>
+  <desc id="desc">A minimalist database cylinder connected to relationship nodes, representing an ORM.</desc>
+
+  <defs>
+    <!-- Accent gradient -->
+    <linearGradient id="normal-accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#14B8A6"/>
+      <stop offset="50%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+
+    <!-- Soft shadow for subtle depth -->
+    <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#0F172A" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <!-- Optional subtle badge -->
+  <g filter="url(#soft-shadow)" opacity="0.06">
+    <rect x="16" y="16" width="224" height="224" rx="28" fill="#0B1220"/>
+  </g>
+
+  <!-- Database cylinder -->
+  <g stroke="url(#normal-accent)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none" vector-effect="non-scaling-stroke">
+    <!-- Top ellipse -->
+    <ellipse cx="128" cy="72" rx="56" ry="18"/>
+    <!-- Sides -->
+    <path d="M72 72 L72 184"/>
+    <path d="M184 72 L184 184"/>
+    <!-- Bottom ellipse -->
+    <ellipse cx="128" cy="184" rx="56" ry="18"/>
+  </g>
+
+  <!-- "Records" dots on the cylinder face -->
+  <g fill="url(#normal-accent)">
+    <circle cx="112" cy="112" r="4.5"/>
+    <circle cx="128" cy="128" r="4.5"/>
+    <circle cx="144" cy="144" r="4.5"/>
+  </g>
+
+  <!-- Relationship edges -->
+  <g stroke="url(#normal-accent)" stroke-width="8" stroke-linecap="round" fill="none" vector-effect="non-scaling-stroke">
+    <!-- Left-top relation -->
+    <path d="M72 96 L44 68"/>
+    <!-- Left-bottom relation -->
+    <path d="M72 160 L44 188"/>
+    <!-- Right relation -->
+    <path d="M184 128 L216 128"/>
+  </g>
+
+  <!-- Relationship nodes -->
+  <g fill="url(#normal-accent)">
+    <circle cx="44" cy="68" r="9"/>
+    <circle cx="44" cy="188" r="9"/>
+    <circle cx="216" cy="128" r="9"/>
+  </g>
+
+  <!-- Optional tiny "join" hint to suggest n:m (diamond node) -->
+  <g>
+    <path d="M92 128 l8 -8 l8 8 l-8 8 Z" fill="none" stroke="url(#normal-accent)" stroke-width="6" vector-effect="non-scaling-stroke"/>
+  </g>
+
+  <metadata>Normal — The simple, straightforward, and advanced Node.js ORM.</metadata>
+</svg>
