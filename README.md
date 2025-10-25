@@ -28,15 +28,14 @@ Normal supports these SQL databases via Knex:
 
 <div align="center">
 
-<a href="https://www.postgresql.org/"><img alt="PostgreSQL" src="https://img.shields.io/badge/-PostgreSQL-4169E1?logo=postgresql&logoColor=white" /></a>
-<a href="https://www.cockroachlabs.com/product/cockroachdb/"><img alt="CockroachDB" src="https://img.shields.io/badge/-CockroachDB-6933FF?logo=cockroachlabs&logoColor=white" /></a>
-<a href="https://www.microsoft.com/sql-server/"><img alt="Microsoft SQL Server" src="https://img.shields.io/badge/-Microsoft%20SQL%20Server-CC2927?logo=microsoftsqlserver&logoColor=white" /></a>
-<a href="https://www.mysql.com/"><img alt="MySQL" src="https://img.shields.io/badge/-MySQL-4479A1?logo=mysql&logoColor=white" /></a>
-<a href="https://mariadb.org/"><img alt="MariaDB" src="https://img.shields.io/badge/-MariaDB-003545?logo=mariadb&logoColor=white" /></a>
-<a href="https://www.sqlite.org/index.html"><img alt="SQLite" src="https://img.shields.io/badge/-SQLite-003B57?logo=sqlite&logoColor=white" /></a>
-<a href="https://github.com/WiseLibs/better-sqlite3"><img alt="Better SQLite3" src="https://img.shields.io/badge/-Better%20SQLite3-003B57?logo=sqlite&logoColor=white" /></a>
-<a href="https://www.oracle.com/database/"><img alt="Oracle" src="https://img.shields.io/badge/-Oracle-F80000?logo=oracle&logoColor=white" /></a>
-<a href="https://aws.amazon.com/redshift/"><img alt="Amazon Redshift" src="https://img.shields.io/badge/-Amazon%20Redshift-8C4FFF?logo=amazonredshift&logoColor=white" /></a>
+<a href="https://www.postgresql.org/"><img alt="PostgreSQL" src="https://img.shields.io/badge/-PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white&logoSize=auto" /></a>
+<a href="https://mariadb.org/"><img alt="MariaDB" src="https://img.shields.io/badge/-MariaDB-003545?style=for-the-badge&logo=mariadb&logoColor=white&logoSize=auto" /></a>
+<a href="https://www.mysql.com/"><img alt="MySQL" src="https://img.shields.io/badge/-MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white&logoSize=auto" /></a>
+<a href="https://www.cockroachlabs.com/product/cockroachdb/"><img alt="CockroachDB" src="https://img.shields.io/badge/-CockroachDB-6933FF?style=for-the-badge&logo=cockroachlabs&logoColor=white&logoSize=auto" /></a>
+<a href="https://www.sqlite.org/index.html"><img alt="SQLite" src="https://img.shields.io/badge/-SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white&logoSize=auto" /></a>
+<a href="https://www.oracle.com/database/"><img alt="Oracle" src="https://img.shields.io/badge/-Oracle-F80000?style=for-the-badge&logo=oracle&logoColor=white&logoSize=auto" /></a>
+<a href="https://www.microsoft.com/sql-server/"><img alt="Microsoft SQL Server" src="https://img.shields.io/badge/-Microsoft%20SQL%20Server-CC2927?style=for-the-badge&logo=microsoftsqlserver&logoColor=white&logoSize=auto" /></a>
+<a href="https://aws.amazon.com/redshift/"><img alt="Amazon Redshift" src="https://img.shields.io/badge/-Amazon%20Redshift-8C4FFF?style=for-the-badge&logo=amazonredshift&logoColor=white&logoSize=auto" /></a>
 
 </div>
 
