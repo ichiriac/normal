@@ -98,7 +98,7 @@ class Request {
         // Default to wrapping unless it's clearly a write operation
         if (!method) return true;
         const m = String(method).toLowerCase();
-        if (m === 'insert' || m === 'update' || m === 'del' || m === 'delete') return false;
+        if (m === 'insert' || m === 'update' || m === 'upsert' || m === 'del' || m === 'delete') return false;
         return true;
     }
     
@@ -118,13 +118,13 @@ class Request {
         const readLike = !method || method === 'select' || method === 'first';
         if (!readLike) return;
         // For inherited models, ensure join with parent table once
-        if (this.model && this.model.inherits && !qb._inheritJoined) {
-            const parent = this.model.repo.get(this.model.inherits);
-            if (typeof qb.leftJoin === 'function') {
-                qb.leftJoin(parent.table, `${parent.table}.id`, `${this.model.table}.id`);
-                qb._inheritJoined = true;
-            }
-        }
+        // if (this.model && this.model.inherits && !qb._inheritJoined) {
+        //    const parent = this.model.repo.get(this.model.inherits);
+        //    if (typeof qb.leftJoin === 'function') {
+        //        qb.leftJoin(parent.table, `${parent.table}.id`, `${this.model.table}.id`);
+        //        qb._inheritJoined = true;
+        //    }
+        // }
         // Skip if select already specified or select() not available
         if (typeof qb.select !== 'function') return;
         const stmts = Array.isArray(qb._statements) ? qb._statements : [];

@@ -8,7 +8,7 @@ const fs = require("fs");
 const { emit } = require("process");
 const db = new Normal.Connection({
   client: "sqlite3",
-  debug: true,
+  debug: false,
   connection: {
     filename: ":memory:",
   },
@@ -50,7 +50,7 @@ fs.readdirSync(__dirname + "/models").forEach((file) => {
             phone: "555-1234"
         });
 
-        //await acme.write({ email: 'alice.new@example.com' });
+        await acme.write({ email: 'alice.new@example.com' });
         console.log("Created customer:", acme.toJSON());
 
         const Contacts = tx.get("Contact");

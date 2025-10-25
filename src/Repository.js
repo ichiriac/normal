@@ -226,7 +226,7 @@ class Repository {
         if (model.cache) {
           for (const record of model.entities.values()) {
             if (record._flushed) {
-              model.cache.set(model.name + ':' + record.id, record.toJSON(), model.cacheTTL);
+              model.cache.set(model.name + ':' + record.id, record.toRawJSON(), model.cacheTTL);
             }
           }
         }

@@ -56,7 +56,7 @@ class LookupIds {
         const result = rows.map(row => {
             let instance = this.model.allocate(row);
             if (this.model.cache && !this.model.repo.connection.transactional) {
-                this.model.cache.set(this.model.name + ':' + instance.id, instance.toJSON(), this.model.cacheTTL);
+                this.model.cache.set(this.model.name + ':' + instance.id, instance.toRawJSON(), this.model.cacheTTL);
             } else {
                 instance._flushed = true;
             }
@@ -264,20 +264,6 @@ class Model {
                 for(const mix of this.super.inherited) {
                     extendModel(this, mix);
                 }
-
-                // Expose parent fields on child instances without polluting child's field map
-                // so schema building stays correct. Define accessors that delegate to parent field.
-                for (const [fname, pField] of Object.entries(this.super.fields)) {
-                    if (fname === 'id') continue; // id already exists
-
-                    if (Object.prototype.hasOwnProperty.call(this.fields, fname)) continue; // child's own field wins
-                    Object.defineProperty(this.cls.prototype, fname, {
-                        get: function() { return pField.read(this); },
-                        set: function(v) { pField.write(this, v); },
-                        configurable: true,
-                        enumerable: true,
-                    });
-                }
             }
 
             this.mixins.forEach((mix) => {
@@ -311,19 +297,23 @@ class Model {
                 this.primaryField = this.fields['id'];
             }
 
-            // For inherited models, include parent stored columns for select convenience
+            // Expose parent fields on child instances without polluting child's field map
+            // so schema building stays correct. Define accessors that delegate to parent field.
             if (this.super) {
-                const cols = [];
-                for (const p of Object.values(this.super.fields)) {
-                    if (!p.stored) continue;
+                for (const field of Object.values(this.super.fields)) {
+                    if (this.fields[field.name]) continue;
+                    Object.defineProperty(this.cls.prototype, field.name, {
+                        get: function() { return this._parent[field.name]; },
+                        set: function(v) { this._parent[field.name] = v; },
+                        configurable: true,
+                        enumerable: true,
+                    });
+                    // @fixme : actually records can be retrieved from parent or child
+                    // so not a good idea to force loading parent fields (from child)
+                    // if (!field.stored) continue;
                     // qualify and alias as field name
-                    cols.push(`${this.super.table}.${p.column} as ${p.name}`);
+                    // this.columns.push(`${this.super.table}.${field.column} as ${field.name}`);
                 }
-                for (const c of Object.values(this.fields)) {
-                    if (!c.stored) continue;
-                    cols.push(`${this.table}.${c.column} as ${c.name}`);
-                }
-                this.columns = cols;
             }
 
             this.cls.model = this;
@@ -336,27 +326,30 @@ class Model {
      * @param {*} data 
      * @returns 
      */
-    allocate(data) {
+    allocate(data, ignoreDiscriminator = false) {
+
         this.checkAbstract();
+        if (!this.cls_init) this._init();
+
+        if (!ignoreDiscriminator && this.refField) {
+            if (!data[this.refField.name]) {
+                throw new Error(`Cannot allocate model ${this.name} without discriminator field ${this.refField.name}`);
+            }
+            return this.repo.get(data[this.refField.name]).allocate(data);
+        }
+
         if (data.id) {
             if (this.entities.has(data.id)) {
                 return this.entities.get(data.id).sync(data);
             }
         }
-        if (!this.cls_init) this._init();
-        // If allocating on a parent model and a discriminator/reference points to a child, delegate
-        if (!this.inherits) {
-            // detect discriminator on parent: find a reference field containing a model name
-            const refField = Object.values(this.fields).find(f => f.type === 'reference');
-            if (refField && data && data[refField.name]) {
-                const childName = data[refField.name];
-                if (childName && this.repo.has(childName)) {
-                    // delegate to child; child will rehydrate needed fields as available
-                    return this.repo.get(childName).allocate(data);
-                }
-            }
+        
+        let parent = null;
+        if (this.super) {
+            parent = this.super.allocate(Object.assign({}, data, {[this.inheritField.name]: this.name}), true);
         }
-        const instance = new this.cls(this, data);
+
+        const instance = new this.cls(this, data, parent);
         if (data.id) {
             this.entities.set(data.id, instance);
             if (instance._isReady === false) {
@@ -371,15 +364,7 @@ class Model {
                 });
             }
         }
-        // If inheriting, hydrate parent fields from provided row when present
-        if (this.inherits && data) {
-            const parentModel = this.repo.get(this.inherits);
-            for (const [fname, f] of Object.entries(parentModel.fields)) {
-                if (!Object.prototype.hasOwnProperty.call(data, fname)) continue;
-                instance._data[fname] = f.deserialize(instance, data[fname]);
-                delete instance._changes[fname];
-            }
-        }
+
         return instance;
     }
 
@@ -398,7 +383,7 @@ class Model {
         }
 
         if (!(data instanceof this.cls)) {
-            data = this.allocate(data);
+            data = this.allocate(data, true);
         }
 
 
@@ -437,7 +422,7 @@ class Model {
 
         // flush data to cache
         if (this.cache && !this.repo.connection.transactional) {
-            this.cache.set(this.name + ':' + data.id, data, this.cacheTTL);
+            this.cache.set(this.name + ':' + data.id, data.toRawJSON(), this.cacheTTL);
         } else {
             data._flushed = true;
         }

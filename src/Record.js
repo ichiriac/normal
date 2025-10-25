@@ -2,9 +2,10 @@
  * Record class representing a data record in a model.
  */
 class Record {
-    constructor(model, data) {
+    constructor(model, data, parent = null) {
         this._model = model;
         this._changes = {};
+        this._parent = parent;
         this._data = {};
         this.sync(data);
         this._isReady = Object.keys(data).length > 1;
@@ -16,7 +17,10 @@ class Record {
     }
 
     sync(data) {
-        for(let key in this._model.fields) {
+        if (this._parent) {
+            this._parent.sync(data);
+        }
+        for (let key in this._model.fields) {
             if (!data.hasOwnProperty(key)) continue;
             if (key === 'id' && this._data[key]) continue;
             const field = this._model.fields[key];
@@ -28,18 +32,22 @@ class Record {
         return this;
     }
 
+    /**
+     * Convert the record to a JSON object (including parent data if applicable).
+     */
     toJSON() {
-        const json = {};
-        // Include parent fields first (if any), then child fields so child can override when names clash
-        if (this._model.inherits) {
-            const parentModel = this._model.repo.get(this._model.inherits);
-            for (const field of Object.values(parentModel.fields)) {
-                const value = field.serialize(this);
-                if (value !== undefined) {
-                    json[field.name] = value;
-                }
-            }
+        let json = {};
+        if (this._parent) {
+            json = this._parent.toJSON();
         }
+        return { ...json, ...this.toRawJSON() };
+    }
+
+    /**
+     * Serialize the record to a plain object.
+     */
+    toRawJSON() {
+        const json = {};
         for (let key in this._model.fields) {
             const field = this._model.fields[key];
             const value = field.serialize(this);
@@ -51,12 +59,13 @@ class Record {
     }
 
     ready() {
-        if (this._isReady === true) return Promise.resolve(this); 
+        if (this._isReady === true) return Promise.resolve(this);
         if (this._isReady === false) return this._model.lookup(this.id).then(() => this);
         return this._isReady;
     }
 
     unlink() {
+        // @todo implement unlinking logic
         this._model = null;
     }
 
@@ -65,6 +74,9 @@ class Record {
      * @returns 
      */
     async flush() {
+        if (this._parent) {
+            await this._parent.flush();
+        }
         if (this._isDirty) {
             this._isDirty = false;
             const update = {};
@@ -73,17 +85,16 @@ class Record {
             }
             await this._model.query().where({ id: this.id }).update(update);
             this._isDirty = false;
-            for(let key in this._changes) {
+            for (let key in this._changes) {
                 this._data[key] = this._changes[key];
             }
             this._changes = {};
             this._flushed = true;
             // update cache
             if (this._model.cache && !this._model.repo.connection.transactional) {
-                this._model.cache.set(this._model.name + ':' + this.id, this.toJSON(), this._model.cacheTTL);
+                this._model.cache.set(this._model.name + ':' + this.id, this.toRawJSON(), this._model.cacheTTL);
             }
         }
-        //if (this._model.super && )
         return this;
     }
 
@@ -94,24 +105,22 @@ class Record {
      */
     async write(data) {
         if (data) {
-            for(let key in data) {
-                if (!this._model.fields.hasOwnProperty(key)) {
-                    if (this._model.super) {
-                        if (this._model.super.fields.hasOwnProperty(key)) {
-                            this[key] = data[key];
-                            continue;
-                        }
-                    }
-                    throw new Error(`Field ${key} does not exist on model ${this._model.name}`);
+            for (let key in data) {
+                if (this._model.fields.hasOwnProperty(key)) {
+                    this[key] = data[key];
+                    delete data[key];
                 }
-                this[key] = data[key];
+            }
+            if (this._parent && Object.keys(data).length > 0) {
+                await this._parent.write(data);
+            }
+            const remainKeys = Object.keys(data);
+            if (remainKeys.length > 0) {
+                throw new Error(`Field ${remainKeys.join(', ')} does not exist on model ${this._model.name}`);
             }
         }
-        if (this._isDirty) {
-            return await this.flush();
-        }
-
-        return this;
+        return await this.flush();
     }
 }
+
 module.exports = { Record };
