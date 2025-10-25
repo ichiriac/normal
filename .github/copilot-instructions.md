@@ -10,6 +10,16 @@ Normal is a lightweight Node.js ORM with active record patterns, built on Knex.j
 - **Connection**: Knex wrapper supporting PostgreSQL/SQLite (`src/Connection.js`)
 - **Fields**: Type system with schema inference (`src/Fields.js`, `src/fields/`)
 
+## Coding patterns
+
+- Use SRP (Single Responsibility Principle) to keep models focused and manageable.
+- DRY (Don't Repeat Yourself): Abstract common logic into base classes or utility functions.
+- Avoid too high complexity in methods, favoring smaller, testable functions.
+- Each method should have a clear purpose and single responsibility.
+- Document with jsdoc annotations for functions and classes.
+- Update tests during code changes to ensure coverage and correctness.
+- We target at least 80% test coverage across the codebase
+
 ## Model Definition Patterns
 
 Models are ES6 classes with static metadata:

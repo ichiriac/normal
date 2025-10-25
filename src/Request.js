@@ -95,9 +95,11 @@ class Request {
 
     _shouldWrapResults() {
         const method = this.queryBuilder && this.queryBuilder._method;
+        // Default to wrapping unless it's clearly a write operation
         if (!method) return true;
-        if (RESULT_METHODS.has(method)) return true;
-        return false;
+        const m = String(method).toLowerCase();
+        if (m === 'insert' || m === 'update' || m === 'del' || m === 'delete') return false;
+        return true;
     }
     
     _getRequestKey() {
@@ -154,12 +156,11 @@ class Request {
         if (this.model && this.model.cls && row instanceof this.model.cls) {
             return false;
         }
-        if (!row.id) return false;
-        const columns = this.model?.columns || [];
-        if (columns.length === 0) {
-            return false;
+        const fields = Object.keys(this.model?.fields || {});
+        if (fields.length === 0) {
+            return true;
         }
-        return columns.some((field) => Object.prototype.hasOwnProperty.call(row, field));
+        return fields.some((field) => Object.prototype.hasOwnProperty.call(row, field));
     }
 }
 

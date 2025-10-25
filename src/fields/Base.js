@@ -53,7 +53,7 @@ class Field {
      * Attach the field to a record prototype.
      * @param {*} proto 
      */
-    attach(cls) {
+    attach(model, cls) {
         const self = this;
         Object.defineProperty(cls.prototype, this.name, {
             get: function() {
@@ -65,8 +65,8 @@ class Field {
             configurable: true,
             enumerable: true
         });
-        cls.fields = cls.fields || {};
-        cls.fields[this.name] = this;
+        model.fields = model.fields || {};
+        model.fields[this.name] = this;
     }
 
     /**

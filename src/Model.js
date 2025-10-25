@@ -1,50 +1,7 @@
 const { Request } = require("./Request.js");
 const { Record } = require("./Record.js");
 const { Field } = require("./Fields.js");
-
-function chainWith(model, MixinClass) {
-    const BaseClass = model.cls;
-    if (typeof MixinClass !== 'function') return BaseClass;
-
-    let proto = Object.assign({}, MixinClass.prototype);
-
-    // Ensure MixinClass participates in the chain so `super` inside mixin methods works.
-    if (Object.getPrototypeOf(proto) !== BaseClass.prototype) {
-        Object.setPrototypeOf(proto, BaseClass.prototype);
-    }
-    if (Object.getPrototypeOf(MixinClass) !== BaseClass) {
-        Object.setPrototypeOf(MixinClass, BaseClass);
-    }
-
-    // Concrete subclass that keeps BaseClass constructor semantics.
-    const Combined = class extends BaseClass {
-        constructor(...args) {
-            super(...args);
-        }
-    };
-    Object.defineProperty (Combined, 'name', {value: MixinClass.name || 'Combined'});
-
-    // Copy instance members (methods/accessors) preserving descriptors and super bindings.
-    const inst = Object.getOwnPropertyDescriptors(proto);
-    delete inst.constructor;
-    Object.defineProperties(Combined.prototype, inst);
-
-    // Copy static members (except standard ones).
-    const stat = Object.getOwnPropertyDescriptors(MixinClass);
-    class ModelProto extends Object.getPrototypeOf(model).constructor {}
-    const found = false;
-    for (const key of Object.keys(stat)) {
-        if (key === 'length' || key === 'name' || key === 'prototype') continue;
-        if (typeof stat[key] === 'function') {
-            ModelProto.prototype[key] = stat[key];
-            found = true
-        }
-    }
-    if (found) {
-        Object.setPrototypeOf(model, ModelProto);
-    }
-    return Combined;
-}
+const { extendModel } = require("./utils/extender");
 
 /**
  * The lookup batching helper.
@@ -145,7 +102,7 @@ class Model {
             id: 'primary'
         };
         this.cls_init = false;
-        this.cls = Record;
+        this.cls = class ActiveRecord extends Record {};
         this.abstract = false;
         this.inherited = [];
         this.mixins = new Set();
@@ -197,7 +154,7 @@ class Model {
             });
         }
         if (typeof MixinClass === 'function') {
-            this.cls = chainWith(this, MixinClass);
+            extendModel(this, MixinClass);
         }
     }
 
@@ -304,6 +261,7 @@ class Model {
                         this.mixins.add(mix);
                     });
                 }
+                extendModel(this, parentModel.cls);
             }
 
             this.mixins.forEach((mix) => {
@@ -311,14 +269,14 @@ class Model {
                 if (mixin.fields) {
                     Object.assign(this.fields, mixin.fields);
                 }
-                this.cls = chainWith(this, mixin.cls);
+                extendModel(this, mixin.cls);
             });
 
             this.columns = [];
             for (let fieldName of Object.keys(this.fields)) {
                 const field = Field.define(this, fieldName, this.fields[fieldName]);
                 this.fields[fieldName] = field;
-                field.attach(this.cls);
+                field.attach(this, this.cls);
                 if (field.stored) {
                     this.columns.push(field.column);
                 }
