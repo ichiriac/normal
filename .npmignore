@@ -1,0 +1,14 @@
+.docusaurus/
+.github/
+.vscode/
+build/
+coverage/
+docs/
+demo/
+tests/
+.eslintignore
+.eslintrc.json
+.prettierrc.json
+babel.config.json
+docusaurus.config.js
+jest.config.js
