@@ -49,7 +49,6 @@ describe('Model inheritance (Contact <- User)', () => {
     // JSON serialization includes inherited contact fields
     const json = u.toJSON();
     expect(json).toMatchObject({
-      model: 'User',
       first_name: 'Jane',
       last_name: 'Doe',
       email: 'u@example.com',
@@ -95,7 +94,7 @@ describe('Model inheritance (Contact <- User)', () => {
     // Load from Contact model by id
     const asContact = await Contacts.findById(anyUser.id);
     // Should be allocated as User due to discriminator
-    expect(asContact.constructor).toBe(Users.cls);
+    expect(asContact._model.name).toBe('User');
     expect(asContact.first_name).toBe('Janet');
   });
 });

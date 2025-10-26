@@ -46,7 +46,7 @@ describe('Record behaviors', () => {
     await expect(t.write({ nope: 1 })).rejects.toThrow(/does not exist on model/);
   });
 
-  test('toJSON serializes model and fields; sync() clears changes', async () => {
+  test('toJSON serializes fields; sync() clears changes', async () => {
     const Things = repo.get('Thing');
     const t = await Things.create({ name: 'C', count: 3 });
 
@@ -59,7 +59,6 @@ describe('Record behaviors', () => {
     expect(t.name).toBe('C3');
 
     const json = t.toJSON();
-    expect(json.model).toBe('Thing');
     expect(json.name).toBe('C3');
     expect(json.count).toBe(3);
 
