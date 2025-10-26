@@ -9,7 +9,7 @@ class Picking {
         from_warehouse_id: { type: 'many2one', model: 'warehouses', required: true },
         to_warehouse_id: { type: 'many2one', model: 'warehouses', required: true },
         sale_id: { type: 'many2one', model: 'sales', required: false },
-        lines: { type: 'one-to-many', foreign: 'stock_move.picking_id' },
+        lines: { type: 'one-to-many', foreign: 'moves.picking_id' },
     };
 
     confirm() {

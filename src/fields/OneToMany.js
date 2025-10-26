@@ -1,4 +1,5 @@
 const { Field } = require('./Base');
+
 const ALIAS = [
     'onetomany',
     'one-to-many',
@@ -33,7 +34,7 @@ class OneToMany extends Field {
     getMetadata() {
         const meta = super.getMetadata();
         meta.foreign = this.definition.foreign;
-        meta.domain = this.definition.domain;
+        meta.where = this.definition.where;
         delete meta.index;
         delete meta.unique;
         delete meta.required;
@@ -51,14 +52,15 @@ class OneToMany extends Field {
             if (this.refFieldName) {
                 where[this.refFieldName] = record.id;
             }
-            if (this.definition.domain) {
-                if (typeof this.definition.domain === 'function') {
-                    where = this.definition.domain(record, this);
+            if (this.definition.where) {
+                if (typeof this.definition.where === 'function') {
+                    where = this.definition.where(record, this);
                 } else {
-                    where = { ...where, ...this.definition.domain };
+                    where = { ...where, ...this.definition.where };
                 }
             }
             const relatedRecords = this.refModel.where(where);
+
             relatedRecords.then(records => {
                 delete record._changes[this.name];
                 record._data[this.name] = records;

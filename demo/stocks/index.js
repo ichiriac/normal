@@ -34,13 +34,13 @@ function wait(ms) {
 
     // init the database with some warehouses and products
     await repo.transaction(async (tx) => {
-        const Warehouses = trx.get("warehouses");
-        const Products = trx.get("products");
+        const Warehouses = tx.get("warehouses");
+        const Products = tx.get("products");
 
-        await Warehouses.create({ name: "Main Warehouse", location: "New York" });
-        await Warehouses.create({ name: "Secondary Warehouse", location: "Los Angeles" });
-        await Warehouses.create({ name: "Inventory", type: "virtual" });
-        await Warehouses.create({ name: "Customers", type: "virtual" });
+        await Warehouses.create({ code: "NY", name: "Main Warehouse", location: "New York" });
+        await Warehouses.create({ code: "LA", name: "Secondary Warehouse", location: "Los Angeles" });
+        await Warehouses.create({ code: "INV", name: "Inventory", type: "virtual" });
+        await Warehouses.create({ code: "CUS", name: "Customers", type: "virtual" });
 
         await Products.create({ name: "Laptop", sku: "LAP123", price: 1200.00, cost: 800.00 });
         await Products.create({ name: "Smartphone", sku: "SMP456", price: 800.00, cost: 500.00 });
@@ -48,7 +48,7 @@ function wait(ms) {
     });
 
     // Demo stock operations
-    repo.transaction(async (tx) => {
+    await repo.transaction(async (tx) => {
         const Warehouses = tx.get("warehouses");
         const Products = tx.get("products");
         const Pickings = tx.get("picking");
@@ -60,7 +60,7 @@ function wait(ms) {
         const prod2 = await Products.findBySKU("SMP456");
 
         // initialize stocks
-        const init1 = Pickings.create({
+        const init1 = await Pickings.create({
             origin: "Initial Stock",
             scheduled_date: new Date(),
             from_warehouse_id: inventory.id,
@@ -87,42 +87,41 @@ function wait(ms) {
         console.log("Created transfer from NY to LA (pending completion)");
     });
 
-    repo.transaction(async (tx) => {
-        await wait(500); // simulate some delay
-        const Pickings = tx.get("picking");
-        const transfer = await Pickings.where({ origin: "Transfer Order #001" }).first();
-        console.log("Processing transfer from NY to LA...");
-        await wait(1500); // simulate some delay
-        await transfer.done();
-        console.log("Completed transfer from NY to LA");
-    });
+    await Promise.all([
+        repo.transaction(async (tx) => {
+            await wait(500); // simulate some delay
+            const Pickings = tx.get("picking");
+            const transfer = await Pickings.where({ origin: "Transfer Order #001" }).first();
+            console.log("Processing transfer from NY to LA...");
+            await wait(1500); // simulate some delay
+            await transfer.done();
+            console.log("Completed transfer from NY to LA");
+        }),
+        repo.transaction(async (tx) => {
+            await wait(500); // simulate some delay
+
+            const Warehouses = tx.get("warehouses");
+            const Products = tx.get("products");
+            const Sales = tx.get("sales");
 
 
-    repo.transaction(async (tx) => {
-        await wait(500); // simulate some delay
+            const wh2 = await Warehouses.findByCode("LA");
+            const prod2 = await Products.findBySKU("SMP456");
+            const customers = await Warehouses.findByCode("CUS");
 
-        const Warehouses = tx.get("warehouses");
-        const Products = tx.get("products");
-        const Sales = tx.get("sales");
-
-
-        const wh2 = await Warehouses.findByCode("LA");
-        const prod2 = await Products.findBySKU("SMP456");
-        const customers = await Warehouses.findByCode("CUS");
-
-        // start a sale from wh2 to customers
-        const sale = await Sales.create({
-            order_date: new Date(),
-            customer_name: "John Doe",
-            from_warehouse_id: wh2.id,
-            to_warehouse_id: customers.id,
-            lines: [
-                { product_id: prod2.id, quantity: 5 },
-            ],
-        });
-        await sale.confirm();
-    });
-
+            // start a sale from wh2 to customers
+            const sale = await Sales.create({
+                order_date: new Date(),
+                customer_name: "John Doe",
+                from_warehouse_id: wh2.id,
+                to_warehouse_id: customers.id,
+                lines: [
+                    { product_id: prod2.id, quantity: 5 },
+                ],
+            });
+            await sale.confirm();
+        })
+    ]);
     process.exit(0);
 })().catch((err) => {
     console.error("Error syncing stocks models:", err);

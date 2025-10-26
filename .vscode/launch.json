@@ -60,7 +60,6 @@
             ],
             "program": "${workspaceFolder}/demo/schema/index.js"
         },
-        
         {
             "type": "node",
             "request": "launch",
@@ -73,6 +72,18 @@
                 "DEBUG": "knex:tx,knex:query"
             },
             "program": "${workspaceFolder}/demo/cache/index.js"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Stock Demo",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "env": {
+                "DEBUG": "knex:tx,knex:query"
+            },
+            "program": "${workspaceFolder}/demo/stocks/index.js"
         }
     ]
 }

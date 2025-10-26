@@ -2,6 +2,8 @@ const { Request } = require("./Request.js");
 const { Record } = require("./Record.js");
 const { Field } = require("./Fields.js");
 const { extendModel } = require("./utils/extender");
+const { applyCriteria } = require('./utils/criteria');
+
 const EventEmitter = require('node:events');
 
 /**
@@ -484,11 +486,13 @@ class Model {
 
     /**
      * Create a new query request.
-     * @param  {...any} args 
+     * @param  {*} condition 
      * @returns 
      */
-    where(...args) {        
-        return this.query().where(...args);
+    where(condition) {
+        const request = this.query();
+        applyCriteria(request.queryBuilder, condition);
+        return request;
     }
 
     /**

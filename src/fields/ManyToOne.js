@@ -49,6 +49,7 @@ class ManyToOne extends Field {
         const meta = super.getMetadata();
         meta.model = this.definition.model;
         meta.cascade = this.definition.cascade;
+        meta.where = this.definition.where;
         delete meta.index;
         return meta;
     }

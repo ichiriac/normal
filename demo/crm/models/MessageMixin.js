@@ -6,7 +6,7 @@ class MessageMixin {
         messages: { 
             type: "one2many", 
             foreign: "Message", 
-            domain: function(record) {
+            where: function(record) {
                 return {
                     res_model: record.model.name,
                     res_id: record.id,

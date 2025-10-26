@@ -6,7 +6,7 @@ class ActivityMixin {
         activities: { 
             type: "one2many", 
             foreign: "Activity", 
-            domain: function(record) {
+            where: function(record) {
                 return {
                     res_model: record._model.name,
                     res_id: record.id,
