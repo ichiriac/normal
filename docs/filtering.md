@@ -1,3 +1,8 @@
+---
+id: filtering
+title: Filtering (criteria DSL)
+---
+
 # Filtering and criteria syntax
 
 This document explains all supported ways to filter records with Normal, from simple object filters to a JSON‑serializable criteria DSL with logic gates and operators that maps cleanly to SQL (via Knex).

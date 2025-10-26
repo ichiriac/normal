@@ -104,55 +104,11 @@ console.log(u.name); // "Ada Lovelace"
 - Active records: reads wrap rows into instances (methods/getters work); default queries select only `id` for speed.
 - Model extension: register classes with the same `static name` to add fields and methods/getters.
 
-See full field reference in `docs/FIELDS.md`.
+See full field reference in `docs/fields.md`.
 
 ## Demo
 
 Explore `demo/` for a working blog schema (Users, Posts, Tags, Comments) and a CRM and Stocks example.
-
-## Testing
-
-This repo uses Jest. Tests run against an in-memory SQLite database.
-
-- Run tests
-
-```bash
-npm test
-```
-
-- Watch mode
-
-```bash
-npm run test:watch
-```
-
-- Coverage report
-
-```bash
-npm run test:coverage
-```
-
-## Linting and formatting
-
-This project uses ESLint and Prettier.
-
-- Lint code
-
-```bash
-npm run lint
-```
-
-- Auto-fix lint/format issues
-
-```bash
-npm run lint:fix
-```
-
-- Format all files with Prettier
-
-```bash
-npm run format
-```
 
 ## License
 
