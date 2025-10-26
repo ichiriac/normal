@@ -35,7 +35,7 @@ class EnumField extends Field {
         return meta;
     }
     getColumnDefinition(table) {
-        return table.enum(this.name, this.definition.values);
+        return table.enum(this.column, this.definition.values);
     }
 }
 

@@ -51,7 +51,7 @@ class DateTimeField extends Field {
         return null;
     }
     getColumnDefinition(table) {
-        const column = table.timestamp(this.name, { useTz: false });
+        const column = table.timestamp(this.column, { useTz: false });
         if (this.definition.defaultToNow) {
             column.defaultTo(this.model.repo.cnx.fn.now());
         }

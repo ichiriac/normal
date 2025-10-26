@@ -15,7 +15,7 @@ class JsonField extends Field {
         return JSON.stringify(value);
     }
     getColumnDefinition(table) {
-        return table.json(this.name);
+        return table.json(this.column);
     }
 }
 

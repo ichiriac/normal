@@ -34,6 +34,9 @@ class ManyToOne extends Field {
         if (value === null || value === undefined) {
             return null;
         }
+        if (typeof value === 'object') {
+            return this.refModel.allocate(value);
+        }
         return this.refModel.allocate({ id: value });
     }
 

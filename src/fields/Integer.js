@@ -34,7 +34,7 @@ class IntegerField extends Field {
     }
 
     getColumnDefinition(table) {
-        const column = table.integer(this.name);
+        const column = table.integer(this.column);
         if (this.definition.unsigned) {
             column.unsigned();
         }

@@ -36,7 +36,7 @@ class FloatField extends Field {
     }
 
     getColumnDefinition(table) {
-        const column = table.float(this.name);
+        const column = table.float(this.column);
         if (this.definition.unsigned) {
             column.unsigned();
         }

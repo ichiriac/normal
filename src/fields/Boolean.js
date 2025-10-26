@@ -17,7 +17,7 @@ class BooleanField extends Field {
         return value ? 1 : 0;
     }
     getColumnDefinition(table) {
-        return table.boolean(this.name);
+        return table.boolean(this.column);
     }
 }
 

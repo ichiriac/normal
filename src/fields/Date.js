@@ -45,7 +45,7 @@ class DateField extends Field {
     }
 
     getColumnDefinition(table) {
-        const column = table.date(this.name);
+        const column = table.date(this.column);
         if (this.definition.defaultToNow) {
             column.defaultTo(this.model.repo.cnx.fn.now());
         }

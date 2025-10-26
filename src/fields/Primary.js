@@ -33,7 +33,7 @@ class Primary extends Field {
     }
 
     getColumnDefinition(table) {
-        return table.increments(this.name).primary();
+        return table.increments(this.column).primary();
     }
 
 }

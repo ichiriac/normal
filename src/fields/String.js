@@ -30,7 +30,7 @@ class StringField extends Field {
     }
 
     getColumnDefinition(table) {
-        return table.string(this.name, this.definition.size || 255);
+        return table.string(this.column, this.definition.size || 255);
     }
 }
 
