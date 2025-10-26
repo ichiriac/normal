@@ -8,19 +8,21 @@ See fields reference in `docs/FIELDS.md` for all column types and relation optio
 
 ```js
 class Users {
-	static name = 'Users';                 // Registry key (required)
-	static table = 'users';                // DB table (optional; inferred from name)
-	static cache = true;                   // Enable cache (true=default TTL, or a number in seconds)
+  static name = 'Users'; // Registry key (required)
+  static table = 'users'; // DB table (optional; inferred from name)
+  static cache = true; // Enable cache (true=default TTL, or a number in seconds)
 
-	static fields = {
-		id: 'primary',
-		email: { type: 'string', unique: true, required: true },
-		active: { type: 'boolean', default: true },
-		created_at: { type: 'datetime', default: () => new Date() },
-	};
+  static fields = {
+    id: 'primary',
+    email: { type: 'string', unique: true, required: true },
+    active: { type: 'boolean', default: true },
+    created_at: { type: 'datetime', default: () => new Date() },
+  };
 
-	// Instance API works on active records
-	get isStaff() { return this.email.endsWith('@example.com'); }
+  // Instance API works on active records
+  get isStaff() {
+    return this.email.endsWith('@example.com');
+  }
 }
 ```
 
@@ -34,23 +36,23 @@ Declare columns and relations under `static fields`. See `docs/FIELDS.md` for fu
 
 - Primitives: `primary`, `integer|number`, `float`, `boolean`, `string`, `text`, `date`, `datetime|timestamp`, `enum`, `json`, `reference`.
 - Relations:
-	- Many-to-one: `{ type: 'many-to-one', model: 'OtherModel', cascade?: boolean }`
-	- One-to-many: `{ type: 'one-to-many', foreign: 'ChildModel.fkField' }`
-	- Many-to-many: `{ type: 'many-to-many', model: 'OtherModel', joinTable?: 'rel_custom' }`
+  - Many-to-one: `{ type: 'many-to-one', model: 'OtherModel', cascade?: boolean }`
+  - One-to-many: `{ type: 'one-to-many', foreign: 'ChildModel.fkField' }`
+  - Many-to-many: `{ type: 'many-to-many', model: 'OtherModel', joinTable?: 'rel_custom' }`
 
 Example with relations:
 
 ```js
 class Posts {
-	static name = 'Posts';
-	static fields = {
-		id: 'primary',
-		title: { type: 'string', unique: true },
-		content: { type: 'text', required: true },
-		author: { type: 'many-to-one', model: 'Users' },
-		tags:   { type: 'many-to-many', model: 'Tags' },
-		comments: { type: 'one-to-many', foreign: 'Comments.post' },
-	};
+  static name = 'Posts';
+  static fields = {
+    id: 'primary',
+    title: { type: 'string', unique: true },
+    content: { type: 'text', required: true },
+    author: { type: 'many-to-one', model: 'Users' },
+    tags: { type: 'many-to-many', model: 'Tags' },
+    comments: { type: 'one-to-many', foreign: 'Comments.post' },
+  };
 }
 ```
 
@@ -93,18 +95,27 @@ repo.register(UsersEx); // merged into a single model
 ```
 
 Notes:
+
 - If any of the registered classes declares `static cache = true|number`, the model’s cache TTL is set accordingly.
 - If a class declares `static abstract = true`, the model becomes abstract (cannot be instantiated directly).
 
 ## Mixins (compose from other models)
 
 A model can declare `static mixins = ['OtherModel', 'CommonBehavior']` to compose fields and behavior from other registered models. During initialization:
+
 - the mixin model’s fields are merged
 - the mixin’s active record class is chained so its instance methods/getters are available
 
 ```js
-class Auditable { static name = 'Auditable'; static fields = { created_at: 'datetime', updated_at: 'datetime' }; }
-class Posts { static name = 'Posts'; static mixins = ['Auditable']; static fields = { id: 'primary', title: 'string' }; }
+class Auditable {
+  static name = 'Auditable';
+  static fields = { created_at: 'datetime', updated_at: 'datetime' };
+}
+class Posts {
+  static name = 'Posts';
+  static mixins = ['Auditable'];
+  static fields = { id: 'primary', title: 'string' };
+}
 
 repo.register(Auditable);
 repo.register(Posts);
@@ -123,10 +134,10 @@ class Documents {
   static name = 'Documents';
   static fields = {
     id: 'primary',
-    title: 'string'
+    title: 'string',
   };
 }
-class Invoices  {
+class Invoices {
   static name = 'Invoices';
   static inherits = 'Documents';
   static fields = { total: 'float' };
@@ -137,6 +148,7 @@ repo.register(Invoices);
 ```
 
 Caveats:
+
 - Only single inheritance is supported (one parent).
 - Ensure both parent and child are registered before syncing.
 

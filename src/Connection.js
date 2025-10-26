@@ -1,5 +1,5 @@
-"use strict";
-const knex = require("knex");
+'use strict';
+const knex = require('knex');
 
 /**
  * Simple Knex-backed connection wrapper.
@@ -23,32 +23,30 @@ class Connection {
   }
 
   _buildConfig(opts) {
-    const client = opts.client || process.env.DB_CLIENT || "pg";
+    const client = opts.client || process.env.DB_CLIENT || 'pg';
 
-    if (client === "pg") {
+    if (client === 'pg') {
       const connection = opts.connection || {
-        host: process.env.PGHOST || "localhost",
+        host: process.env.PGHOST || 'localhost',
         port: +(process.env.PGPORT || 5432),
-        database: process.env.PGDATABASE || "postgres",
-        user: process.env.PGUSER || "postgres",
-        password: process.env.PGPASSWORD || "postgres",
+        database: process.env.PGDATABASE || 'postgres',
+        user: process.env.PGUSER || 'postgres',
+        password: process.env.PGPASSWORD || 'postgres',
         ssl: process.env.PGSSL ? { rejectUnauthorized: false } : undefined,
       };
       return {
-        client: "pg",
+        client: 'pg',
         connection,
         pool: opts.pool || { min: 0, max: 10 },
         acquireConnectionTimeout: 15000,
       };
     }
 
-    if (client === "sqlite3") {
+    if (client === 'sqlite3') {
       const filename =
-        (opts.connection && opts.connection.filename) ||
-        process.env.SQLITE_FILENAME ||
-        ":memory:";
+        (opts.connection && opts.connection.filename) || process.env.SQLITE_FILENAME || ':memory:';
       return {
-        client: "sqlite3",
+        client: 'sqlite3',
         debug: opts.debug || false,
         connection: { filename },
         useNullAsDefault: true,
@@ -72,7 +70,7 @@ class Connection {
   // Ensure connectivity (simple ping)
   async connect() {
     const kx = this.instance;
-    await kx.raw("select 1");
+    await kx.raw('select 1');
     return kx;
   }
 

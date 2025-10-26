@@ -9,6 +9,7 @@ This demo implements a production-ready job queue system where a master process 
 ## 🏗️ Architecture
 
 ### Master Process
+
 - **Database Setup**: Creates and syncs `queues` and `jobs` tables
 - **Queue Management**: Sets up 4 different job queues for different job types
 - **Job Creation**: Generates 20 sample jobs across various categories
@@ -16,6 +17,7 @@ This demo implements a production-ready job queue system where a master process 
 - **Performance Monitoring**: Tracks real-time statistics and memory usage
 
 ### Worker Processes (4 forks)
+
 - **Job Claiming**: Uses atomic database operations to claim jobs without race conditions
 - **Job Processing**: Handles different job types with realistic processing times
 - **Error Handling**: Captures failures and updates job status appropriately
@@ -24,6 +26,7 @@ This demo implements a production-ready job queue system where a master process 
 ### Database Models
 
 #### Queue Model (`models/Queue.js`)
+
 ```javascript
 static fields = {
   id: 'primary',
@@ -36,6 +39,7 @@ static fields = {
 ```
 
 #### Job Model (`models/Job.js`)
+
 ```javascript
 static fields = {
   id: 'primary',
@@ -55,30 +59,35 @@ static fields = {
 The demo creates 5 different job types with realistic processing characteristics:
 
 ### 1. **Email Jobs** (5 jobs)
+
 - **Purpose**: Send welcome emails to new users
 - **Processing Time**: 500-1500ms
 - **Payload**: `{ to, subject, template }`
 - **Result**: `{ messageId, recipient, status }`
 
 ### 2. **Image Resize Jobs** (3 jobs)
+
 - **Purpose**: Resize and optimize uploaded images
 - **Processing Time**: 1-3 seconds
 - **Payload**: `{ imagePath, targetSize, format }`
 - **Result**: `{ originalSize, newSize, compressionRatio }`
 
 ### 3. **Data Sync Jobs** (4 jobs)
+
 - **Purpose**: Synchronize data from external APIs
 - **Processing Time**: 200-1000ms
 - **Payload**: `{ source, destination, syncType }`
 - **Result**: `{ recordsSynced, source, destination }`
 
 ### 4. **Report Generation Jobs** (2 jobs)
+
 - **Purpose**: Generate analytics and sales reports
 - **Processing Time**: 2-5 seconds
 - **Payload**: `{ reportType, dateRange }`
 - **Result**: `{ reportId, pages, fileSize }`
 
 ### 5. **Webhook Jobs** (6 jobs)
+
 - **Purpose**: Send notifications to external services
 - **Processing Time**: 100-600ms
 - **Payload**: `{ url, event, payload }`
@@ -88,23 +97,27 @@ The demo creates 5 different job types with realistic processing characteristics
 ## 🔧 Key Features
 
 ### Multi-Process Safety
+
 - **Atomic Job Claiming**: Uses database transactions to prevent race conditions
 - **Persistent Storage**: SQLite database shared across all processes
 - **Process Isolation**: Each worker runs independently with separate connections
 
 ### Performance Monitoring
+
 - **Real-time Statistics**: Live tracking of job queue status every 2 seconds
 - **Memory Usage**: RSS, heap, and external memory monitoring
 - **Execution Timing**: Individual job processing times
 - **Success/Failure Rates**: Complete job outcome tracking
 
 ### Error Handling
+
 - **Job Failure Tracking**: Failed jobs marked with error details
 - **Retry Logic**: Framework for implementing exponential backoff
 - **Worker Recovery**: System continues if individual workers fail
 - **Graceful Shutdown**: Waits for all jobs to complete before exit
 
 ### Job State Management
+
 ```
 pending → in_progress → completed
                      → failed
@@ -161,16 +174,19 @@ node index.js
 ## 📊 Performance Characteristics
 
 ### Scalability
+
 - **Concurrent Processing**: 4 workers processing jobs simultaneously
 - **Load Distribution**: Jobs automatically distributed across available workers
 - **Memory Efficiency**: ~65MB total memory usage for master + 4 workers
 
 ### Throughput
+
 - **Job Processing Rate**: ~2-3 jobs per second (varies by job type)
 - **Queue Coordination**: Sub-millisecond job claiming operations
 - **Database Performance**: SQLite handles concurrent worker access efficiently
 
 ### Fault Tolerance
+
 - **Worker Failures**: System continues operating if individual workers crash
 - **Job Recovery**: Failed jobs can be identified and retried
 - **Database Consistency**: ACID transactions ensure data integrity
@@ -178,13 +194,16 @@ node index.js
 ## 🛠️ Customization
 
 ### Adding New Job Types
+
 1. Add job type constant to `JOB_TYPES`
 2. Implement processing function (e.g., `simulateNewJobType()`)
 3. Add case to `processJob()` switch statement
 4. Create jobs with new type in master process
 
 ### Scaling Workers
+
 Change the worker count in the master process:
+
 ```javascript
 // Fork N workers instead of 4
 for (let i = 0; i < N; i++) {
@@ -193,37 +212,43 @@ for (let i = 0; i < N; i++) {
 ```
 
 ### Different Databases
+
 Switch from SQLite to PostgreSQL:
+
 ```javascript
 const db = new Normal.Connection({
-  client: "pg",
+  client: 'pg',
   connection: {
-    host: "localhost",
-    database: "job_queue",
-    user: "postgres",
-    password: "password"
-  }
+    host: 'localhost',
+    database: 'job_queue',
+    user: 'postgres',
+    password: 'password',
+  },
 });
 ```
 
 ## 🎯 Production Considerations
 
 ### Database Optimization
+
 - Add indexes on `status` and `scheduled_at` for faster job queries
 - Consider partitioning jobs table for high-volume systems
 - Implement job archival for completed jobs
 
 ### Monitoring & Observability
+
 - Add structured logging with job IDs and worker IDs
 - Implement metrics collection (Prometheus, StatsD)
 - Set up alerting for high failure rates or queue backlog
 
 ### Reliability Improvements
+
 - Implement exponential backoff for failed jobs
 - Add job timeouts to prevent stuck jobs
 - Consider using Redis for higher-performance job queuing
 
 ### Security
+
 - Validate job payloads before processing
 - Implement job payload encryption for sensitive data
 - Add authentication for job creation endpoints
@@ -231,9 +256,10 @@ const db = new Normal.Connection({
 ## 💡 Use Cases
 
 This pattern is ideal for:
+
 - **Email Processing**: Sending transactional emails, newsletters
 - **Media Processing**: Image/video resizing, format conversion
-- **Data Integration**: ETL processes, API synchronization  
+- **Data Integration**: ETL processes, API synchronization
 - **Report Generation**: Analytics, scheduled reports
 - **Webhook Delivery**: Event notifications, third-party integrations
 - **Background Tasks**: Cleanup jobs, maintenance operations

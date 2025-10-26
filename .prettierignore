@@ -1,0 +1,5 @@
+node_modules/
+coverage/
+lcov-report/
+dist/
+package-lock.json

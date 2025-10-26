@@ -1,29 +1,29 @@
 class Users {
-  static name = "Users";
-  static table = "users";
+  static name = 'Users';
+  static table = 'users';
   static cache = true;
-  static order = [["id", "desc"]];
+  static order = [['id', 'desc']];
 
   static fields = {
-    id: "primary",
-    firstname: "string" ,
-    lastname: { type: "string", required: true },
-    email: { type: "string", unique: true, required: true },
-    password_hash: { type: "string", size: 64, required: true },
-    active: { type: "boolean", default: true },
-    posts: { type: "one-to-many", foreign: "Posts.author_id" },
-    comments: { type: "one-to-many", foreign: "Comments.author_id" },
+    id: 'primary',
+    firstname: 'string',
+    lastname: { type: 'string', required: true },
+    email: { type: 'string', unique: true, required: true },
+    password_hash: { type: 'string', size: 64, required: true },
+    active: { type: 'boolean', default: true },
+    posts: { type: 'one-to-many', foreign: 'Posts.author_id' },
+    comments: { type: 'one-to-many', foreign: 'Comments.author_id' },
     status: {
-      type: "enum",
-      default: "user",
-      values: ["user", "admin", "moderator"],
+      type: 'enum',
+      default: 'user',
+      values: ['user', 'admin', 'moderator'],
     },
-    created_at: { type: "datetime", default: () => new Date() },
-    updated_at: { type: "datetime", default: () => new Date() },
+    created_at: { type: 'datetime', default: () => new Date() },
+    updated_at: { type: 'datetime', default: () => new Date() },
   };
 
   static findByEmail(email) {
-    return this.query().where("email", email).first();
+    return this.query().where('email', email).first();
   }
 
   get name() {

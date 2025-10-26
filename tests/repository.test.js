@@ -66,7 +66,7 @@ describe('Repository + sqlite3', () => {
     await p.tags.add(t2.id);
 
     const loaded = await p.tags.load();
-    const tagNames = loaded.map(t => t.name).sort();
+    const tagNames = loaded.map((t) => t.name).sort();
     expect(tagNames).toEqual(['history', 'web']);
   });
 

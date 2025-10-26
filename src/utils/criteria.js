@@ -18,8 +18,8 @@ function applyCriteria(qb, criteria, combine = 'and') {
   const logicKeys = new Set(['and', 'or', 'not']);
 
   // Group logical parts to wrap them properly
-  const logic = keys.filter(k => logicKeys.has(k));
-  const fields = keys.filter(k => !logicKeys.has(k));
+  const logic = keys.filter((k) => logicKeys.has(k));
+  const fields = keys.filter((k) => !logicKeys.has(k));
 
   // Apply field predicates
   for (const field of fields) {
@@ -36,7 +36,7 @@ function applyCriteria(qb, criteria, combine = 'and') {
       const wrap = (subQb) => {
         for (let i = 0; i < arr.length; i++) {
           const sub = arr[i];
-          const subCombine = i === 0 ? 'and' : (useOr ? 'or' : 'and');
+          const subCombine = i === 0 ? 'and' : useOr ? 'or' : 'and';
           applyCriteria(subQb, sub, subCombine);
         }
       };
@@ -66,14 +66,26 @@ function applyFieldPredicate(qb, combine, col, spec) {
 function addCmp(qb, combine, col, op, val) {
   const or = combine === 'or';
   switch (op) {
-    case 'eq':    return or ? qb.orWhere(col, val) : qb.where(col, val);
-    case 'ne':    return or ? qb.orWhereNot(col, val) : qb.whereNot(col, val);
-    case 'gt':    return or ? qb.orWhere(col, '>', val) : qb.where(col, '>', val);
-    case 'gte':   return or ? qb.orWhere(col, '>=', val) : qb.where(col, '>=', val);
-    case 'lt':    return or ? qb.orWhere(col, '<', val) : qb.where(col, '<', val);
-    case 'lte':   return or ? qb.orWhere(col, '<=', val) : qb.where(col, '<=', val);
-    case 'in':    return or ? qb.orWhereIn(col, Array.isArray(val) ? val : [val]) : qb.whereIn(col, Array.isArray(val) ? val : [val]);
-    case 'nin':   return or ? qb.orWhereNotIn(col, Array.isArray(val) ? val : [val]) : qb.whereNotIn(col, Array.isArray(val) ? val : [val]);
+    case 'eq':
+      return or ? qb.orWhere(col, val) : qb.where(col, val);
+    case 'ne':
+      return or ? qb.orWhereNot(col, val) : qb.whereNot(col, val);
+    case 'gt':
+      return or ? qb.orWhere(col, '>', val) : qb.where(col, '>', val);
+    case 'gte':
+      return or ? qb.orWhere(col, '>=', val) : qb.where(col, '>=', val);
+    case 'lt':
+      return or ? qb.orWhere(col, '<', val) : qb.where(col, '<', val);
+    case 'lte':
+      return or ? qb.orWhere(col, '<=', val) : qb.where(col, '<=', val);
+    case 'in':
+      return or
+        ? qb.orWhereIn(col, Array.isArray(val) ? val : [val])
+        : qb.whereIn(col, Array.isArray(val) ? val : [val]);
+    case 'nin':
+      return or
+        ? qb.orWhereNotIn(col, Array.isArray(val) ? val : [val])
+        : qb.whereNotIn(col, Array.isArray(val) ? val : [val]);
     case 'between': {
       const v = Array.isArray(val) ? val : [undefined, undefined];
       return or ? qb.orWhereBetween(col, v) : qb.whereBetween(col, v);
@@ -95,12 +107,22 @@ function addCmp(qb, combine, col, op, val) {
       return or ? qb.orWhere(raw) : qb.where(raw);
     }
     case 'null': {
-      return val ? (or ? qb.orWhereNull(col) : qb.whereNull(col))
-                 : (or ? qb.orWhereNotNull(col) : qb.whereNotNull(col));
+      return val
+        ? or
+          ? qb.orWhereNull(col)
+          : qb.whereNull(col)
+        : or
+          ? qb.orWhereNotNull(col)
+          : qb.whereNotNull(col);
     }
     case 'notNull': {
-      return val ? (or ? qb.orWhereNotNull(col) : qb.whereNotNull(col))
-                 : (or ? qb.orWhereNull(col) : qb.whereNull(col));
+      return val
+        ? or
+          ? qb.orWhereNotNull(col)
+          : qb.whereNotNull(col)
+        : or
+          ? qb.orWhereNull(col)
+          : qb.whereNull(col);
     }
     default: {
       // Unknown op → ignore

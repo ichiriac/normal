@@ -3,5 +3,5 @@ const Job = require('./Job');
 
 module.exports = {
   Queue,
-  Job
+  Job,
 };

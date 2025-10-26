@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 const { BlockArena } = require('./BlockArena');
 
@@ -40,14 +40,24 @@ class ArenaStore {
   get(key) {
     const s = this._arena.get(String(key));
     if (s == null) return null;
-    try { return JSON.parse(s); } catch { return null; }
+    try {
+      return JSON.parse(s);
+    } catch {
+      return null;
+    }
   }
 
-  delete(key) { return this._arena.delete(String(key)); }
+  delete(key) {
+    return this._arena.delete(String(key));
+  }
 
-  sweep(maxChecks = 256) { return this._arena.sweep(maxChecks); }
+  sweep(maxChecks = 256) {
+    return this._arena.sweep(maxChecks);
+  }
 
-  clear() { this._arena = new BlockArena(this._opts); }
+  clear() {
+    this._arena = new BlockArena(this._opts);
+  }
 
   _rehash() {
     try {
@@ -56,12 +66,15 @@ class ArenaStore {
       const nextOpts = { ...this._opts, dictCapacity: newCap };
       const neo = new BlockArena(nextOpts);
       const now = Date.now();
-      old.forEach(({ key, value, expiresMs }) => {
-        if (!key || value == null) return;
-        const ttlSec = expiresMs > 0 ? Math.max(1, Math.floor((expiresMs - now) / 1000)) : 300;
-        // Insert value string directly into low-level arena
-        neo.put(String(key), String(value), ttlSec);
-      }, { includeExpired: false });
+      old.forEach(
+        ({ key, value, expiresMs }) => {
+          if (!key || value == null) return;
+          const ttlSec = expiresMs > 0 ? Math.max(1, Math.floor((expiresMs - now) / 1000)) : 300;
+          // Insert value string directly into low-level arena
+          neo.put(String(key), String(value), ttlSec);
+        },
+        { includeExpired: false }
+      );
       this._arena = neo;
       this._opts = nextOpts;
       return true;
@@ -70,7 +83,9 @@ class ArenaStore {
     }
   }
 
-  _nextPow2(n) { return 1 << (32 - Math.clz32(n - 1)); }
+  _nextPow2(n) {
+    return 1 << (32 - Math.clz32(n - 1));
+  }
 }
 
 module.exports = { ArenaStore };

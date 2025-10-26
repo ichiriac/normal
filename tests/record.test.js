@@ -22,7 +22,9 @@ describe('Record behaviors', () => {
     await repo.sync({ force: true });
   });
 
-  afterAll(async () => { await conn.destroy(); });
+  afterAll(async () => {
+    await conn.destroy();
+  });
 
   test('write() applies changes and flush persists to DB', async () => {
     const Things = repo.get('Thing');

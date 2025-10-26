@@ -9,6 +9,7 @@ This demo shows how Normal ORM synchronizes your database schema from model defi
 - Showing a no-op sync when nothing changed
 
 Files:
+
 - `index.js` – runs the progressive schema changes and prints SQL statements
 - `models/User.js`, `models/Group.js` – initial model definitions
 
@@ -51,10 +52,10 @@ You’ll see sections like:
 
 - Model extension: `Users.extends({...})` adds a new `age` field, then we sync.
 - Type change (safe flow): Normal supports type modifications by:
-	1) renaming the old column (e.g. `notes` → `notes_mig_tmp`),
-	2) creating the new column with the target type,
-	3) attempting to migrate data using the database’s type conversion.
-	If the conversion fails, the previous column remains available so data can be restored.
+  1.  renaming the old column (e.g. `notes` → `notes_mig_tmp`),
+  2.  creating the new column with the target type,
+  3.  attempting to migrate data using the database’s type conversion.
+      If the conversion fails, the previous column remains available so data can be restored.
 - Dry run safety: inspect SQL before applying; great for CI/migrations.
 - Idempotency: when there are no model changes, sync returns no statements.
 
@@ -69,4 +70,3 @@ You’ll see sections like:
 - Add a new field to `User` or `Group` by extending the model in `index.js`.
 - Remove a field from the extension to observe drop/alter behavior.
 - Add a brand new model file and register it to see create table statements.
-

@@ -1,5 +1,5 @@
-"use strict";
+'use strict';
 module.exports = {
-  ...require("./src/Connection"),
-  ...require("./src/Repository"),
+  ...require('./src/Connection'),
+  ...require('./src/Repository'),
 };

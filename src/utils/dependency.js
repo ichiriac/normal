@@ -28,7 +28,9 @@ function buildJoinChain(rootModel, dependencyPath) {
   }
   const parts = dependencyPath.split('.');
   if (parts.length < 2) {
-    throw new Error(`Dependency path must include at least one relation and a field, got '${dependencyPath}'`);
+    throw new Error(
+      `Dependency path must include at least one relation and a field, got '${dependencyPath}'`
+    );
   }
 
   const aliases = [];
@@ -46,16 +48,22 @@ function buildJoinChain(rootModel, dependencyPath) {
     const seg = parts[i];
     const field = currentModel.fields && currentModel.fields[seg];
     if (!field) {
-      throw new Error(`Unknown relation segment '${seg}' on model '${currentModel.name}' for path '${dependencyPath}'`);
+      throw new Error(
+        `Unknown relation segment '${seg}' on model '${currentModel.name}' for path '${dependencyPath}'`
+      );
     }
     if (!field.refModel) {
-      throw new Error(`Segment '${seg}' on model '${currentModel.name}' is not a reference/many-to-one field`);
+      throw new Error(
+        `Segment '${seg}' on model '${currentModel.name}' is not a reference/many-to-one field`
+      );
     }
     const nextModel = field.refModel;
     const nextAlias = `t${i + 1}`;
 
     // Default FK join: currentAlias.field.column = nextAlias.id
-    const fkCol = field.refFieldName ? nextModel.fields[field.refFieldName]?.column : (field.column || `${seg}_id`);
+    const fkCol = field.refFieldName
+      ? nextModel.fields[field.refFieldName]?.column
+      : field.column || `${seg}_id`;
     joins.push({
       table: nextModel.table,
       alias: nextAlias,
@@ -87,9 +95,9 @@ async function selectRootIdsByLeafRecord(rootModel, dependencyPath, leafRecord) 
   if (!leafRecord.id) {
     // not yet saved, compute parents from in-memory only
     let parentRecord = leafRecord;
-    for(let i = relations.length - 1; i >= 0; i--) {
-        const rel = relations[i];
-        parentRecord = await parentRecord[rel].ready();
+    for (let i = relations.length - 1; i >= 0; i--) {
+      const rel = relations[i];
+      parentRecord = await parentRecord[rel].ready();
     }
     return [parentRecord];
   }
@@ -110,7 +118,7 @@ async function selectRootIdsByLeafRecord(rootModel, dependencyPath, leafRecord) 
   qb.where(`${leafAlias}.id`, leafId);
 
   const rows = await qb;
-  return await rootModel.lookup(rows.map(r => r.id));
+  return await rootModel.lookup(rows.map((r) => r.id));
 }
 
 module.exports = { buildJoinChain, selectRootIdsByLeafRecord };

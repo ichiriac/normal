@@ -1,0 +1,7 @@
+{
+    "editor.formatOnSave": true,
+    "eslint.validate": [
+        "javascript"
+    ],
+    "prettier.printWidth": 100
+}

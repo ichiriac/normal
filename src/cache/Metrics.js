@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 class CacheMetrics {
   constructor(enabled = true) {
@@ -6,7 +6,9 @@ class CacheMetrics {
     this.reset();
   }
 
-  get enabled() { return this._enabled; }
+  get enabled() {
+    return this._enabled;
+  }
 
   reset() {
     const enabled = this._enabled;
@@ -31,27 +33,62 @@ class CacheMetrics {
     };
   }
 
-  _now() { return process.hrtime.bigint(); }
-
-  setStart() { return this._enabled ? this._now() : 0n; }
-  setEnd(t0) {
-    if (!this._enabled) return;
-    const d = this._data; d.setCount++; const dt = this._now() - t0; d.lastSetNs = dt; d.setTimeNs += dt; if (dt > d.maxSetNs) d.maxSetNs = dt;
+  _now() {
+    return process.hrtime.bigint();
   }
 
-  getStart() { return this._enabled ? this._now() : 0n; }
+  setStart() {
+    return this._enabled ? this._now() : 0n;
+  }
+  setEnd(t0) {
+    if (!this._enabled) return;
+    const d = this._data;
+    d.setCount++;
+    const dt = this._now() - t0;
+    d.lastSetNs = dt;
+    d.setTimeNs += dt;
+    if (dt > d.maxSetNs) d.maxSetNs = dt;
+  }
+
+  getStart() {
+    return this._enabled ? this._now() : 0n;
+  }
   getHit(t0) {
     if (!this._enabled) return;
-    const d = this._data; d.getCount++; d.hitCount++; const dt = this._now() - t0; d.lastGetNs = dt; d.getTimeNs += dt; if (dt > d.maxGetNs) d.maxGetNs = dt;
+    const d = this._data;
+    d.getCount++;
+    d.hitCount++;
+    const dt = this._now() - t0;
+    d.lastGetNs = dt;
+    d.getTimeNs += dt;
+    if (dt > d.maxGetNs) d.maxGetNs = dt;
   }
   getMiss(t0) {
     if (!this._enabled) return;
-    const d = this._data; d.getCount++; d.missCount++; const dt = this._now() - t0; d.lastGetNs = dt; d.getTimeNs += dt; if (dt > d.maxGetNs) d.maxGetNs = dt;
+    const d = this._data;
+    d.getCount++;
+    d.missCount++;
+    const dt = this._now() - t0;
+    d.lastGetNs = dt;
+    d.getTimeNs += dt;
+    if (dt > d.maxGetNs) d.maxGetNs = dt;
   }
 
-  incExpire() { if (this._enabled) this._data.expireCount++; }
-  onSweep(res) { if (this._enabled) { this._data.sweepCount++; this._data.sweepFreed += (res?.freed || 0); } }
-  onUdpFlush(count) { if (this._enabled) { this._data.udpSentBatches++; this._data.udpSentKeys += (count || 0); } }
+  incExpire() {
+    if (this._enabled) this._data.expireCount++;
+  }
+  onSweep(res) {
+    if (this._enabled) {
+      this._data.sweepCount++;
+      this._data.sweepFreed += res?.freed || 0;
+    }
+  }
+  onUdpFlush(count) {
+    if (this._enabled) {
+      this._data.udpSentBatches++;
+      this._data.udpSentKeys += count || 0;
+    }
+  }
 
   snapshot() {
     const m = this._data;
@@ -79,7 +116,7 @@ class CacheMetrics {
         maxGet: us(m.maxGetNs),
         lastSet: us(m.lastSetNs),
         lastGet: us(m.lastGetNs),
-      }
+      },
     };
   }
 }

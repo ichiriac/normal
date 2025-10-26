@@ -1,8 +1,8 @@
-"use strict";
+'use strict';
 
 const { Model } = require('./Model');
 const { Cache } = require('./Cache');
-const { Synchronize } = require("./Schema.js");
+const { Synchronize } = require('./Schema.js');
 
 // Initialize shared cache if enabled via environment variable
 // Supported env vars (examples):
@@ -72,7 +72,8 @@ if (!CACHE_DISABLED) {
       .filter(Boolean);
   }
   if (process.env.CACHE_PORT) cacheOptions.port = envInt(process.env.CACHE_PORT, 1983);
-  if (process.env.CACHE_LISTEN_PORT) cacheOptions.listenPort = envInt(process.env.CACHE_LISTEN_PORT, 1983);
+  if (process.env.CACHE_LISTEN_PORT)
+    cacheOptions.listenPort = envInt(process.env.CACHE_LISTEN_PORT, 1983);
   cacheOptions.metrics = envBool(process.env.CACHE_METRICS, true);
   if (process.env.CACHE_METRICS_LOG_INTERVAL_MS) {
     cacheOptions.metricsLogIntervalMs = envInt(process.env.CACHE_METRICS_LOG_INTERVAL_MS, 0);
@@ -80,7 +81,6 @@ if (!CACHE_DISABLED) {
 
   cache = new Cache(cacheOptions);
 }
-
 
 /**
  * Repository: registers model definitions and exposes CRUD and schema sync over a Knex connection.
@@ -97,7 +97,6 @@ if (!CACHE_DISABLED) {
  * Models can be registered multiple times (extensions) and are merged by static name.
  */
 class Repository {
-
   /**
    * @param {import('./Connection').Connection|{ instance: any, transactional?: boolean, config?: any }} connection Knex connection or a minimal wrapper
    */
@@ -110,7 +109,6 @@ class Repository {
     this.cnx.on('query', () => {
       this.queryCount++;
     });
-
   }
 
   /** Reset the query count to zero. */
@@ -123,7 +121,6 @@ class Repository {
     return this.connection.instance;
   }
 
-
   /**
    * Register a model class or an extension class/module.
    * If an object with multiple model classes is provided, registers each and
@@ -133,16 +130,16 @@ class Repository {
    */
   register(modelModule) {
     let ModelClass = modelModule?.default || modelModule;
-    if (typeof ModelClass !== "function") {
+    if (typeof ModelClass !== 'function') {
       const result = {};
       for (let k of Object.keys(modelModule || {})) {
-        if (typeof modelModule[k] !== "function") continue;
+        if (typeof modelModule[k] !== 'function') continue;
         result[k] = this.register(modelModule[k]);
       }
       return result;
     }
     const name = ModelClass.name || ModelClass?.name;
-    if (!name) throw new Error("Model class must have a name");
+    if (!name) throw new Error('Model class must have a name');
     if (!this.models[name]) {
       this.models[name] = new Model(this, name, ModelClass.table);
     }
@@ -206,8 +203,12 @@ class Repository {
       }
     }
     const trx = await this.cnx.transaction(config);
-    const txRepo = new Repository({ instance: trx, transactional: true, config: this.connection.config });
-    let result
+    const txRepo = new Repository({
+      instance: trx,
+      transactional: true,
+      config: this.connection.config,
+    });
+    let result;
     // Re-register models with the same metadata
     for (const name of Object.keys(this.models)) {
       const model = this.models[name];

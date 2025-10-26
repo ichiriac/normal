@@ -3,18 +3,21 @@
 This demo showcases Normal ORM’s shared cache with multiple related models and a simulated visitor workload.
 
 Models included:
+
 - Posts (many-to-one Category, many-to-many Tags, one-to-many Comments)
 - Categories (one-to-many Posts)
 - Tags (many-to-many Posts)
 - Comments (many-to-one Post)
 
 The script seeds random data:
+
 - 1,000 posts
 - 100 categories
 - 200 tags
 - 500 comments
 
 Then it simulates visitors who:
+
 - browse random categories (listing posts)
 - read random posts (and add comments sometimes)
 - search posts by random tags

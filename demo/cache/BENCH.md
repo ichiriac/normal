@@ -10,6 +10,7 @@ It uses the cache’s built-in metrics to report throughput, latency, counts, an
 ## What it measures
 
 For each scenario (mode + parameters):
+
 - Warm-up: Pre-fills the cache with N keys
 - Timed workload:
   - Set loop (setOps)
@@ -25,12 +26,14 @@ No network invalidation is used (no peers), so UDP metrics remain zero.
 ## Scenarios and tunables
 
 Environment variables (with defaults):
+
 - BENCH_ENTRIES: number of unique keys (default: 20000)
 - BENCH_SET_OPS: number of set operations (default: 50000)
 - BENCH_GET_OPS: number of get operations (default: 100000)
 - BENCH_PAYLOADS: comma-separated payload sizes in bytes (default: `64,512,1024,4096`)
 
 Each payload size runs three scenarios:
+
 - Fixed-slot mode: `maxEntries = BENCH_ENTRIES`, `entrySize` ≈ `payload * 2 + 256`
 - Arena mode (1KB blocks): `variableArena = true`, `memoryBytes = 64MB`, `blockSize = 1024`, `dictCapacity ≈ nextPow2(entries * 2)`
 - Arena mode (512B blocks): same as above, but `blockSize = 512`
@@ -47,9 +50,11 @@ You can tweak `memoryBytes`, `blockSize`, `dictCapacity`, `sweepIntervalMs`, and
 ## Example results (quick run)
 
 Example collected on the dev container (Linux, Node.js) with:
+
 - `BENCH_ENTRIES=2000 BENCH_SET_OPS=2000 BENCH_GET_OPS=4000 BENCH_PAYLOADS=64`
 
 Fixed-slot (entrySize=512):
+
 - elapsed: ~0.029 s
 - throughput: ~209k ops/s (set ~70k/s, get ~139k/s)
 - latency (us): avgSet ~4, avgGet ~4, maxSet ~2104, maxGet ~1342
@@ -57,6 +62,7 @@ Fixed-slot (entrySize=512):
 - memory Δ: rss ~10.6–11.1 MB, small heap change
 
 Arena (block=1024B, dict=4096):
+
 - elapsed: ~0.030 s
 - throughput: ~201k ops/s (set ~67k/s, get ~134k/s)
 - latency (us): avgSet ~5, avgGet ~4, maxSet ~200, maxGet ~516
@@ -64,6 +70,7 @@ Arena (block=1024B, dict=4096):
 - memory Δ: rss ~258–271 MB (includes one or more 64MB arenas allocated across scenarios); heap small
 
 Arena (block=512B, dict=4096):
+
 - elapsed: ~0.018 s
 - throughput: ~327k ops/s (set ~109k/s, get ~218k/s)
 - latency (us): avgSet ~4, avgGet ~2, maxSet ~271, maxGet ~185

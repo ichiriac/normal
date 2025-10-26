@@ -3,6 +3,7 @@
 This folder contains small, focused demos that showcase Normal’s core features: simple models, relations, transactions, and model extension.
 
 ## Blog
+
 - Path: `demo/blog`
 - Models: `Users`, `Posts`, `Tags`, `Comments`
 - Highlights:
@@ -17,6 +18,7 @@ This folder contains small, focused demos that showcase Normal’s core features
   ```
 
 ## Workers
+
 - Path: `demo/workers`
 - Models: `Queue`, `Job`
 - Highlights:
@@ -27,6 +29,7 @@ This folder contains small, focused demos that showcase Normal’s core features
   - Live queue status + memory/time stats in the console
 
 ## Schema
+
 - Path: `demo/schema`
 - Models: `Users`, `Groups`
 - Highlights:
@@ -37,6 +40,7 @@ This folder contains small, focused demos that showcase Normal’s core features
   - Prints the SQL statements returned by `repo.sync()` for full transparency
 
 ## CRM
+
 - Path: `demo/crm`
 - Models: `Customer`, `Contact`, `Lead`, `Activity`, `Message`, `Quotation`, `QuotationLine`, `User`
 - Highlights:
@@ -45,6 +49,7 @@ This folder contains small, focused demos that showcase Normal’s core features
   - Demonstrates how to model lifecycles (leads → customers, quotations → lines)
 
 ## Stocks
+
 - Path: `demo/stocks`
 - Models: `Warehouse`, `Product`, `Moves`, `Picking`, `Quant`, `Sale`, `SaleLine`
 - Highlights:
@@ -53,6 +58,7 @@ This folder contains small, focused demos that showcase Normal’s core features
   - Shows how defaults and basic integrity can be expressed in field specs
 
 ## Notes
+
 - All demos run against an in‑memory SQLite database by default; no external DB required.
 - Explore the models under each demo’s `models/` directory for concrete field definitions and relations.
 - See `docs/FIELDS.md` for the full field spec and relation patterns.

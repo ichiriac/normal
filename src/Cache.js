@@ -68,14 +68,20 @@ class SharedMemoryCache {
         })
       : null;
     if (!this.arena) {
-      this.fixed = new FixedSlots({ maxEntries: this.maxEntries, entrySize: this.entrySize, headerSize: this.headerSize });
+      this.fixed = new FixedSlots({
+        maxEntries: this.maxEntries,
+        entrySize: this.entrySize,
+        headerSize: this.headerSize,
+      });
     }
 
     // Cluster transport (inbound + outbound batching)
     this._cluster = new ClusterTransport({
       listenPort: this.listenPort,
       peers: this.clusterPeers,
-      onKeys: (keys) => { for (const k of keys) this.expire(k, false); },
+      onKeys: (keys) => {
+        for (const k of keys) this.expire(k, false);
+      },
       batchIntervalMs: this._batchIntervalMs,
       onFlush: (count) => this._metrics.onUdpFlush(count),
     });
@@ -86,7 +92,10 @@ class SharedMemoryCache {
       const sweepEveryMs = options.sweepIntervalMs || 250;
       const sweepChecks = options.sweepChecks || 512;
       this._sweepTimer = setInterval(() => {
-        try { const res = this.arena.sweep(sweepChecks); this._metrics.onSweep(res); } catch (_) {}
+        try {
+          const res = this.arena.sweep(sweepChecks);
+          this._metrics.onSweep(res);
+        } catch (_) {}
       }, sweepEveryMs);
       this._sweepTimer.unref?.();
     }
@@ -123,7 +132,7 @@ class SharedMemoryCache {
       m.setEnd(t0);
       return ok;
     }
-    const expires = Date.now() + (ttl * 1000);
+    const expires = Date.now() + ttl * 1000;
     const entry = { key, value, expires };
     const serialized = JSON.stringify(entry);
     const ok = this.fixed.putSerialized(String(key), serialized);
@@ -142,15 +151,27 @@ class SharedMemoryCache {
     const t0 = m.getStart();
     if (this.arena) {
       const out = this.arena.get(String(key));
-      if (out == null) { m.getMiss(t0); return null; }
-      m.getHit(t0); return out;
+      if (out == null) {
+        m.getMiss(t0);
+        return null;
+      }
+      m.getHit(t0);
+      return out;
     }
     const serialized = this.fixed.readSerialized(String(key));
-    if (serialized == null) { m.getMiss(t0); return null; }
+    if (serialized == null) {
+      m.getMiss(t0);
+      return null;
+    }
     try {
       const entry = JSON.parse(serialized);
-      if (entry.key === key && entry.expires > Date.now()) { m.getHit(t0); return entry.value; }
-    } catch (_) { /* ignore */ }
+      if (entry.key === key && entry.expires > Date.now()) {
+        m.getHit(t0);
+        return entry.value;
+      }
+    } catch (_) {
+      /* ignore */
+    }
     m.getMiss(t0);
     return null;
   }
@@ -189,13 +210,17 @@ class SharedMemoryCache {
    * Capture a snapshot of current metrics counters and timings.
    * @returns {object} Plain object with counters and durations
    */
-  metrics() { return this._metrics.snapshot(); }
+  metrics() {
+    return this._metrics.snapshot();
+  }
 
   /**
    * Reset all metrics counters and timers to zero.
    * @returns {void}
    */
-  resetMetrics() { this._metrics.reset(); }
+  resetMetrics() {
+    this._metrics.reset();
+  }
 }
 
 module.exports = { Cache: SharedMemoryCache };

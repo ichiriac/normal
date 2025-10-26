@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 // Fixed-slot storage engine for SharedMemoryCache
 // Direct-mapped slots using a simple hash(key) -> index, storing a serialized JSON string.
@@ -10,7 +10,7 @@ class FixedSlots {
     this.headerSize = options.headerSize || 64; // metadata
 
     // Memory layout: [header][entry0][entry1]...[entryN]
-    this.totalSize = this.headerSize + (this.maxEntries * this.entrySize);
+    this.totalSize = this.headerSize + this.maxEntries * this.entrySize;
     this.sharedBuffer = new SharedArrayBuffer(this.totalSize);
     this.header = new Int32Array(this.sharedBuffer, 0, 16);
     this.data = new Uint8Array(this.sharedBuffer, this.headerSize);

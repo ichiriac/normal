@@ -5,37 +5,35 @@ const { Field } = require('./Base');
  * @extends Field
  */
 class Primary extends Field {
-
-    /**
-     * Sets the primary key value on the record.
-     * @param {*} record 
-     * @param {*} value 
-     * @returns 
-     */
-    write(record, value) {
-        if (record._data[this.name]) {
-            throw new Error(`Cannot modify primary key field ${this.name}`);
-        }
-        record._data[this.name] = value;
-        this.model.entities.set(value, record);
-        return record;
+  /**
+   * Sets the primary key value on the record.
+   * @param {*} record
+   * @param {*} value
+   * @returns
+   */
+  write(record, value) {
+    if (record._data[this.name]) {
+      throw new Error(`Cannot modify primary key field ${this.name}`);
     }
+    record._data[this.name] = value;
+    this.model.entities.set(value, record);
+    return record;
+  }
 
-    read(record) {
-        return record._data[this.name];
-    }
+  read(record) {
+    return record._data[this.name];
+  }
 
-    getMetadata() {
-        return {
-            type: 'primary',
-            column: this.column
-        };
-    }
+  getMetadata() {
+    return {
+      type: 'primary',
+      column: this.column,
+    };
+  }
 
-    getColumnDefinition(table) {
-        return table.increments(this.column).primary();
-    }
-
+  getColumnDefinition(table) {
+    return table.increments(this.column).primary();
+  }
 }
 
 Field.behaviors.primary = Primary;

@@ -15,5 +15,19 @@ const { Reference } = require('./fields/Reference');
 const { JsonField } = require('./fields/Json');
 
 module.exports = {
-    Field, ManyToMany, DateField, OneToMany, ManyToOne, FloatField, DateTimeField, BooleanField, EnumField, Primary, StringField, TextField, IntegerField, Reference, JsonField
+  Field,
+  ManyToMany,
+  DateField,
+  OneToMany,
+  ManyToOne,
+  FloatField,
+  DateTimeField,
+  BooleanField,
+  EnumField,
+  Primary,
+  StringField,
+  TextField,
+  IntegerField,
+  Reference,
+  JsonField,
 };

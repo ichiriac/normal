@@ -5,38 +5,59 @@ const { extendWith } = require('../src/utils/extender');
 describe('extendWith (class/object mixin extender)', () => {
   test('combines base instance methods with object mixin methods and getters', () => {
     class Base {
-      greet() { return 'hi'; }
-      setName(n) { this.name = n; }
+      greet() {
+        return 'hi';
+      }
+      setName(n) {
+        this.name = n;
+      }
     }
 
     const secret = Symbol('secret');
     const mixin = {
-      say(n) { this.setName(n); return `hello ${n}`; },
-      get upperName() { return this.name ? String(this.name).toUpperCase() : undefined; },
+      say(n) {
+        this.setName(n);
+        return `hello ${n}`;
+      },
+      get upperName() {
+        return this.name ? String(this.name).toUpperCase() : undefined;
+      },
       [secret]: 42,
     };
 
     const Extended = extendWith(Base, mixin);
     const x = new Extended();
 
-    expect(x.greet()).toBe('hi');                 // from Base
-    expect(x.say('world')).toBe('hello world');   // from mixin
-    expect(x.upperName).toBe('WORLD');            // getter preserved
-    expect(x[secret]).toBe(42);                   // symbol copied
+    expect(x.greet()).toBe('hi'); // from Base
+    expect(x.say('world')).toBe('hello world'); // from mixin
+    expect(x.upperName).toBe('WORLD'); // getter preserved
+    expect(x[secret]).toBe(42); // symbol copied
 
     // Prototypes are not altered
     expect(Object.prototype.hasOwnProperty.call(Base.prototype, 'say')).toBe(false);
     expect(Object.prototype.hasOwnProperty.call(mixin, 'greet')).toBe(false);
 
     // Static members from a class mixin are not copied
-    class StaticMixin { static staticFoo() { return 'bar'; } }
+    class StaticMixin {
+      static staticFoo() {
+        return 'bar';
+      }
+    }
     const Extended2 = extendWith(Base, StaticMixin);
     expect(Extended2.staticFoo).toBeUndefined();
   });
 
   test('does not mutate BaseClass or mixin prototypes; still supports super', () => {
-    class Base { base() { return 'base'; } }
-    class MixinClass { mix() { return 'mix'; } }
+    class Base {
+      base() {
+        return 'base';
+      }
+    }
+    class MixinClass {
+      mix() {
+        return 'mix';
+      }
+    }
 
     const baseProtoBefore = Object.getOwnPropertyNames(Base.prototype).slice().sort();
     const mixProtoBefore = Object.getOwnPropertyNames(MixinClass.prototype).slice().sort();
@@ -54,9 +75,15 @@ describe('extendWith (class/object mixin extender)', () => {
   });
 
   test('super inside mixin methods works without mutating mixin', () => {
-    class Base { greet() { return 'hi'; } }
+    class Base {
+      greet() {
+        return 'hi';
+      }
+    }
     class MixinClass {
-      greet() { return super.greet() + '!'; }
+      greet() {
+        return super.greet() + '!';
+      }
     }
     const Extended = extendWith(Base, MixinClass);
     const inst = new Extended();
@@ -71,15 +98,27 @@ describe('extendWith (class/object mixin extender)', () => {
     const SET = Symbol('set');
 
     class Base {
-      greet() { return 'hi'; }
-      get label() { return 'L'; }
-      set label(v) { this._label = v; }
+      greet() {
+        return 'hi';
+      }
+      get label() {
+        return 'L';
+      }
+      set label(v) {
+        this._label = v;
+      }
     }
 
     class MixinClass {
-      [SYM]() { return super.greet() + '#'; }
-      get [GET]() { return (super.label || '') + 'X'; }
-      set [SET](v) { super.label = String(v).toUpperCase(); }
+      [SYM]() {
+        return super.greet() + '#';
+      }
+      get [GET]() {
+        return (super.label || '') + 'X';
+      }
+      set [SET](v) {
+        super.label = String(v).toUpperCase();
+      }
     }
 
     const mixProtoBefore = Object.getOwnPropertyNames(MixinClass.prototype).slice().sort();
@@ -98,7 +137,9 @@ describe('extendWith (class/object mixin extender)', () => {
     // Also ensure object mixin with symbol method works
     const SYM2 = Symbol('sym2');
     const objMixin = {
-      [SYM2]() { return super.greet() + '@'; }
+      [SYM2]() {
+        return super.greet() + '@';
+      },
     };
     const Extended2 = extendWith(Base, objMixin);
     const inst2 = new Extended2();

@@ -9,22 +9,22 @@ The goals of the filtering DSL are:
 - Safe: parameterized under the hood (no string concatenation)
 - Dialect‑aware: small differences bridged where sensible (e.g., case‑insensitive matching)
 
-
 ## Quick start
 
 You can filter in three complementary ways:
 
-1) Simple Knex‑style object filter (equality only)
+1. Simple Knex‑style object filter (equality only)
 
 ```js
 // WHERE status = 'active' AND org_id = 42
 await repo.get('Users').where({ status: 'active', org_id: 42 });
 ```
 
-2) Chained query builder methods (full Knex power)
+2. Chained query builder methods (full Knex power)
 
 ```js
-await repo.get('Orders')
+await repo
+  .get('Orders')
   .query()
   .where('total_amount', '>', 100)
   .whereIn('state', ['draft', 'confirmed'])
@@ -32,7 +32,7 @@ await repo.get('Orders')
   .limit(50);
 ```
 
-3) JSON Criteria (recommended for UI/API payloads)
+3. JSON Criteria (recommended for UI/API payloads)
 
 ```json
 {
@@ -50,7 +50,6 @@ await repo.get('Orders')
 ```
 
 Use the JSON Criteria with a tiny helper that walks the object and applies it to a Knex query. See mapping details below.
-
 
 ## JSON Criteria grammar
 
@@ -82,7 +81,6 @@ Examples:
 { "and": [ { "org_id": 1 }, { "or": [ { "role": "admin" }, { "role": "owner" } ] } ] }
 ```
 
-
 ## Mapping to Knex
 
 The following table shows how each operator maps to Knex calls:
@@ -110,9 +108,7 @@ Logic gates:
 - `or: [c1, c2, …]` → `qb.where(sub => { apply(c1); sub.orWhere(() => apply(c2)); … })`
 - `not: c` → `qb.whereNot(sub => apply(c))`
 
-
 ## Helper: apply JSON Criteria to a query
-
 
 Usage with a model request:
 
@@ -120,16 +116,12 @@ Usage with a model request:
 const { applyCriteria } = require('../src/utils/criteria');
 
 const criteria = {
-  and: [
-    { 'orders.state': { in: ['draft','confirmed'] } },
-    { 'orders.total_amount': { gt: 100 } }
-  ]
+  and: [{ 'orders.state': { in: ['draft', 'confirmed'] } }, { 'orders.total_amount': { gt: 100 } }],
 };
 
 const Orders = repo.get('Orders');
-const rows = await Orders.where(criteria); 
+const rows = await Orders.where(criteria);
 ```
-
 
 ## Relation filters in field definitions
 
@@ -156,14 +148,15 @@ lines: {
 When filtering joined queries (e.g., inherited models or manual joins), qualify columns with `table.column` to avoid ambiguity:
 
 ```json
-{ "and": [
-  { "users.email": { "ilike": "%@example.com" } },
-  { "contacts.first_name": { "ilike": "Jane%" } }
-]}
+{
+  "and": [
+    { "users.email": { "ilike": "%@example.com" } },
+    { "contacts.first_name": { "ilike": "Jane%" } }
+  ]
+}
 ```
 
 Normal’s inherited models may auto‑join parent tables on reads; qualifying avoids ambiguous column errors when names overlap.
-
 
 ## Dialect notes
 
@@ -171,20 +164,17 @@ Normal’s inherited models may auto‑join parent tables on reads; qualifying a
 - Date/time comparisons should use ISO strings or numbers (epoch ms) compatible with your dialect and column type.
 - `between` bounds are inclusive on most engines.
 
-
 ## Performance tips
 
 - Prefer equality, IN, and range operators on indexed columns.
 - Qualify columns when joining to keep the planner effective and avoid unexpected cross‑refs.
 - Avoid deeply nested ORs when possible; consider denormalization or search indices for complex text queries.
 
-
 ## Error handling and validation
 
 - Unknown operators are ignored by the helper; validate criteria upfront if you need strictness.
 - Ensure arrays are provided for `in`/`nin`/`between`.
 - Treat untrusted input carefully; the helper uses parameter binding to avoid injection, but you should still whitelist fields where appropriate.
-
 
 ## Examples
 
@@ -193,9 +183,9 @@ Case‑insensitive customer search within a date range:
 ```json
 {
   "and": [
-    { "created_at": { "between": ["2025-01-01","2025-12-31"] } },
+    { "created_at": { "between": ["2025-01-01", "2025-12-31"] } },
     { "customer_name": { "ilike": "%smith%" } },
-    { "state": { "in": ["confirmed","shipped"] } }
+    { "state": { "in": ["confirmed", "shipped"] } }
   ]
 }
 ```
@@ -214,10 +204,7 @@ Nested logic with joins:
   "and": [
     { "users.org_id": 7 },
     {
-      "or": [
-        { "contacts.city": { "eq": "Paris" } },
-        { "contacts.country": { "eq": "FR" } }
-      ]
+      "or": [{ "contacts.city": { "eq": "Paris" } }, { "contacts.country": { "eq": "FR" } }]
     }
   ]
 }

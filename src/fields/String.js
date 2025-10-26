@@ -5,35 +5,35 @@ const { Field } = require('./Base');
  * @extends Field
  */
 class StringField extends Field {
-    write(record, value) {
-        return super.write(record, String(value));
+  write(record, value) {
+    return super.write(record, String(value));
+  }
+  read(record) {
+    const value = super.read(record);
+    if (value === null || value === undefined) {
+      return null;
     }
-    read(record) {
-        const value = super.read(record);
-        if (value === null || value === undefined) {
-            return null;
-        }
-        return String(value);
+    return String(value);
+  }
+  serialize(record) {
+    const value = this.read(record);
+    if (value === null || value === undefined) {
+      return null;
     }
-    serialize(record) {
-        const value = this.read(record);
-        if (value === null || value === undefined) {
-            return null;
-        }
-        return String(value);
-    }
+    return String(value);
+  }
 
-    getMetadata() {
-        const meta = super.getMetadata();
-        meta.size = this.definition.size;
-        return meta;
-    }
+  getMetadata() {
+    const meta = super.getMetadata();
+    meta.size = this.definition.size;
+    return meta;
+  }
 
-    getColumnDefinition(table) {
-        return table.string(this.column, this.definition.size || 255);
-    }
+  getColumnDefinition(table) {
+    return table.string(this.column, this.definition.size || 255);
+  }
 }
 
 Field.behaviors.string = StringField;
 
-module.exports = { StringField };   
+module.exports = { StringField };

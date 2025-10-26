@@ -5,7 +5,7 @@
 Normal is a lightweight Node.js ORM with active record patterns, built on Knex.js. Core components:
 
 - **Repository**: Model registry and transaction coordinator (`src/Repository.js`)
-- **Model**: Query builder and schema management (`src/Model.js`) 
+- **Model**: Query builder and schema management (`src/Model.js`)
 - **Record**: Active record instances with lazy field access (`src/Record.js`)
 - **Connection**: Knex wrapper supporting PostgreSQL/SQLite (`src/Connection.js`)
 - **Fields**: Type system with schema inference (`src/Fields.js`, `src/fields/`)
@@ -26,17 +26,19 @@ Models are ES6 classes with static metadata:
 
 ```javascript
 class Users {
-  static name = "Users";        // Registry key (required)
-  static table = "users";       // DB table name (optional, inferred from name)
+  static name = 'Users'; // Registry key (required)
+  static table = 'users'; // DB table name (optional, inferred from name)
   static fields = {
-    id: "primary",              // Shorthand for { type: "number", primary: true, generated: true }
-    email: { type: "string", unique: true, required: true },
-    posts: { type: "one-to-many", foreign: "Posts.author_id" },  // Relations
-    tags: { type: "many-to-many", model: "Tags" }               // Auto-creates join table
+    id: 'primary', // Shorthand for { type: "number", primary: true, generated: true }
+    email: { type: 'string', unique: true, required: true },
+    posts: { type: 'one-to-many', foreign: 'Posts.author_id' }, // Relations
+    tags: { type: 'many-to-many', model: 'Tags' }, // Auto-creates join table
   };
-  
+
   // Instance methods/getters work on active records
-  get name() { return `${this.firstname} ${this.lastname}`; }
+  get name() {
+    return `${this.firstname} ${this.lastname}`;
+  }
 }
 ```
 
@@ -67,9 +69,10 @@ repo.register(ExtendedUsers);  // Merged into single model
 
 **Testing**: `npm test` (Jest + SQLite in-memory), `npm run test:watch`, `npm run test:coverage`
 
-**Demo Examples**: 
+**Demo Examples**:
+
 - `demo/blog/` - Users/Posts/Tags/Comments with relations
-- `demo/crm/` - Business workflow models  
+- `demo/crm/` - Business workflow models
 - `demo/stocks/` - Inventory/warehouse models
 - Run: `cd demo/blog && node index.js`
 

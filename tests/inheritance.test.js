@@ -26,7 +26,9 @@ describe('Model inheritance (Contact <- User)', () => {
     await repo.sync({ force: true });
   });
 
-  afterAll(async () => { await conn.destroy(); });
+  afterAll(async () => {
+    await conn.destroy();
+  });
 
   test('create user stores parent(Contact) and child(User) parts; reading user exposes contact fields', async () => {
     const Users = repo.get('User');
@@ -65,7 +67,7 @@ describe('Model inheritance (Contact <- User)', () => {
     const Users = repo.get('User');
     const Contacts = repo.get('Contact');
 
-  const u = await Users.firstWhere({ 'users.email': 'u@example.com' });
+    const u = await Users.firstWhere({ 'users.email': 'u@example.com' });
     expect(u).toBeTruthy();
     u.first_name = 'Janet';
     await u.flush();
@@ -77,7 +79,9 @@ describe('Model inheritance (Contact <- User)', () => {
   test('fetching a user includes parent(contact) fields due to auto-join', async () => {
     const Users = repo.get('User');
     // Ensure select without manual joins returns both parent+child fields hydrated
-  const got = await Users.findById((await Users.firstWhere({ 'users.email': 'u@example.com' })).id);
+    const got = await Users.findById(
+      (await Users.firstWhere({ 'users.email': 'u@example.com' })).id
+    );
     expect(got.first_name).toBe('Janet');
     const json = got.toJSON();
     expect(json.first_name).toBe('Janet');
@@ -87,7 +91,7 @@ describe('Model inheritance (Contact <- User)', () => {
     const Contacts = repo.get('Contact');
     const Users = repo.get('User');
 
-  const anyUser = await Users.firstWhere({ 'users.email': 'u@example.com' });
+    const anyUser = await Users.firstWhere({ 'users.email': 'u@example.com' });
     // Load from Contact model by id
     const asContact = await Contacts.findById(anyUser.id);
     // Should be allocated as User due to discriminator

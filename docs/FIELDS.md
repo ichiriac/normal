@@ -3,24 +3,27 @@
 Models declare fields via a static `fields` object on the class. Each entry describes the column type, constraints, defaults, and (optionally) relations.
 
 Quick example:
+
 ```js
 class Users {
-  static name = "Users";
-  static table = "users";
+  static name = 'Users';
+  static table = 'users';
 
   static fields = {
-    id: "primary",                      // auto-increment PK
-    firstname: "string",
-    lastname: { type: "string", required: true },
-    email: { type: "string", unique: true, required: true },
-    password_hash: { type: "string", size: 64, required: true },
-    active: { type: "boolean", default: true },
-    status: { type: "enum", values: ["user", "admin", "moderator"], default: "user" },
-    created_at: { type: "datetime", default: () => new Date() },
-    updated_at: { type: "datetime", default: () => new Date() },
+    id: 'primary', // auto-increment PK
+    firstname: 'string',
+    lastname: { type: 'string', required: true },
+    email: { type: 'string', unique: true, required: true },
+    password_hash: { type: 'string', size: 64, required: true },
+    active: { type: 'boolean', default: true },
+    status: { type: 'enum', values: ['user', 'admin', 'moderator'], default: 'user' },
+    created_at: { type: 'datetime', default: () => new Date() },
+    updated_at: { type: 'datetime', default: () => new Date() },
   };
 
-  get name() { return `${this.firstname} ${this.lastname}`; }
+  get name() {
+    return `${this.firstname} ${this.lastname}`;
+  }
 }
 ```
 
@@ -63,6 +66,7 @@ Primitive and special types supported by the schema builder and runtime:
   - Adds an index on the column (where supported for the type).
 
 Per-type extras:
+
 - string: `size`
 - integer/float: `unsigned`, and for float: `precision`, `scale`
 - enum: `values`
@@ -70,7 +74,7 @@ Per-type extras:
 
 ## Relations
 
-1) Many-to-one (scalar FK on this table)
+1. Many-to-one (scalar FK on this table)
 
 ```js
 // Post belongs to a User; cascade controls ON DELETE behavior
@@ -79,7 +83,7 @@ author: { type: "many-to-one", model: "Users", cascade: true }
 
 This creates an integer `author` column referencing `users.id`. When `cascade: true`, foreign deletes cascade; when `false`, they set NULL.
 
-2) One-to-many (parent has a collection of child rows)
+2. One-to-many (parent has a collection of child rows)
 
 ```js
 // User has many Posts via Posts.author
@@ -88,7 +92,7 @@ posts: { type: "one-to-many", foreign: "Posts.author" }
 
 Use the pattern `ChildModel.fkFieldName`, where `fkFieldName` is the ManyToOne field name on the child model.
 
-3) Many-to-many (join table)
+3. Many-to-many (join table)
 
 ```js
 // Posts side

@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 // A shared block arena storing variable-length strings in fixed-size blocks.
 // Open-addressed dictionary maps key -> { keyHead, keyLen, valHead, valLen, expires }.
@@ -9,17 +9,19 @@ class BlockArena {
     this.blockSize = opts.blockSize || 1024; // bytes per block (>= 32)
     this.entryBytes = 40; // dictionary entry size (aligned)
     this.dictCapacity = this._nextPow2(opts.dictCapacity || 8192);
-    this.memoryBytes = opts.memoryBytes || (64 * 1024 * 1024);
+    this.memoryBytes = opts.memoryBytes || 64 * 1024 * 1024;
 
     this.headerBytes = 64;
     const dictBytes = this.dictCapacity * this.entryBytes;
     const blocksBytes = this.memoryBytes - this.headerBytes - dictBytes;
     if (blocksBytes < this.blockSize * 8) {
-      throw new Error("BlockArena: not enough memory for blocks region");
+      throw new Error('BlockArena: not enough memory for blocks region');
     }
 
     this.totalBlocks = Math.floor(blocksBytes / this.blockSize);
-    this.buffer = new SharedArrayBuffer(this.headerBytes + dictBytes + this.totalBlocks * this.blockSize);
+    this.buffer = new SharedArrayBuffer(
+      this.headerBytes + dictBytes + this.totalBlocks * this.blockSize
+    );
 
     this.header = new Int32Array(this.buffer, 0, 16);
     this.dictStart = this.headerBytes;
@@ -27,11 +29,15 @@ class BlockArena {
 
     // Views
     this.dictView = new DataView(this.buffer, this.dictStart, this.dictCapacity * this.entryBytes);
-    this.blocksView = new DataView(this.buffer, this.blocksStart, this.totalBlocks * this.blockSize);
+    this.blocksView = new DataView(
+      this.buffer,
+      this.blocksStart,
+      this.totalBlocks * this.blockSize
+    );
 
     // Initialize once
     if (Atomics.load(this.header, 0) === 0) {
-      Atomics.store(this.header, 0, 0x424C4B41); // 'BLKA'
+      Atomics.store(this.header, 0, 0x424c4b41); // 'BLKA'
       Atomics.store(this.header, 1, 1); // version
       Atomics.store(this.header, 2, this.blockSize);
       Atomics.store(this.header, 3, this.totalBlocks);
@@ -162,7 +168,11 @@ class BlockArena {
       const valBytes = this._readChain(vHead, vLen);
       const keyStr = keyBytes ? this._decode(keyBytes) : null;
       const valStr = valBytes ? this._decode(valBytes) : null;
-      const expiresMs = new Float64Array(this.dictView.buffer, this.dictView.byteOffset + off + 24, 1)[0];
+      const expiresMs = new Float64Array(
+        this.dictView.buffer,
+        this.dictView.byteOffset + off + 24,
+        1
+      )[0];
       callback({ key: keyStr, value: valStr, expiresMs });
       count++;
       if (count >= limit) break;
@@ -174,7 +184,8 @@ class BlockArena {
   sweep(maxChecks = 256) {
     const cap = this.dictCapacity;
     const start = (Atomics.add(this.header, 7, maxChecks) >>> 0) % cap; // use header[7] as scan cursor
-    let checked = 0, freed = 0;
+    let checked = 0,
+      freed = 0;
     for (let i = 0; i < maxChecks; i++) {
       const idx = (start + i) & (cap - 1);
       const off = idx * this.entryBytes;
@@ -203,9 +214,13 @@ class BlockArena {
     for (let i = 0; i < cap; i++) {
       const idx = (hash + i) & (cap - 1);
       const off = idx * this.entryBytes;
-      const state = Atomics.load(new Int32Array(this.dictView.buffer, this.dictView.byteOffset + off, 1), 0);
+      const state = Atomics.load(
+        new Int32Array(this.dictView.buffer, this.dictView.byteOffset + off, 1),
+        0
+      );
       if (state === 0) {
-        if (this._casState(off, 0, 1)) { // lock empty
+        if (this._casState(off, 0, 1)) {
+          // lock empty
           this._initEntry(off, hash);
           Atomics.add(this.header, 6, 1);
           return idx;
@@ -283,7 +298,9 @@ class BlockArena {
     return Atomics.compareExchange(view, 0, from, to) === from;
   }
 
-  _lock(off) { return this._casState(off, 2, 1); }
+  _lock(off) {
+    return this._casState(off, 2, 1);
+  }
 
   _keyEquals(kHead, kLen, keyStr) {
     const kb = this._readChain(kHead, kLen);
@@ -295,7 +312,9 @@ class BlockArena {
     const kb = this._readChain(kHead, kLen);
     if (!kb) return false;
     if (kb.length !== keyBytes.length) return false;
-    for (let i = 0; i < kb.length; i++) { if (kb[i] !== keyBytes[i]) return false; }
+    for (let i = 0; i < kb.length; i++) {
+      if (kb[i] !== keyBytes[i]) return false;
+    }
     return true;
   }
 
@@ -310,7 +329,8 @@ class BlockArena {
 
   _allocChain(len) {
     const n = Math.ceil(len / this.BDATA_BYTES);
-    let head = -1, prev = -1;
+    let head = -1,
+      prev = -1;
     for (let i = 0; i < n; i++) {
       const blk = this._popFree();
       if (blk < 0) {
@@ -327,7 +347,8 @@ class BlockArena {
   }
 
   _writeChain(head, bytes) {
-    let blk = head; let off = 0;
+    let blk = head;
+    let off = 0;
     while (blk >= 0) {
       const n = Math.min(this.BDATA_BYTES, bytes.length - off);
       this._blockWriteData(blk, bytes.subarray(off, off + n));
@@ -340,7 +361,8 @@ class BlockArena {
 
   _readChain(head, len) {
     const out = new Uint8Array(len);
-    let blk = head, off = 0;
+    let blk = head,
+      off = 0;
     while (blk >= 0 && off < len) {
       const used = this._blockUsed(blk);
       const n = Math.min(used, len - off);
@@ -377,7 +399,8 @@ class BlockArena {
     while (true) {
       const cur = Atomics.load(this.header, headIdx);
       if (cur === -1) return -1;
-      if (cur < 0 || cur >= this.totalBlocks) { // defensive guard
+      if (cur < 0 || cur >= this.totalBlocks) {
+        // defensive guard
         Atomics.store(this.header, headIdx, -1);
         return -1;
       }
@@ -386,11 +409,21 @@ class BlockArena {
     }
   }
 
-  _blockOff(i) { return i * this.blockSize; }
-  _blockNext(i) { return this.blocksView.getInt32(this._blockOff(i) + 0, true); }
-  _blockSetNext(i, v) { this.blocksView.setInt32(this._blockOff(i) + 0, v, true); }
-  _blockUsed(i) { return this.blocksView.getUint16(this._blockOff(i) + 4, true); }
-  _blockSetUsed(i, v) { this.blocksView.setUint16(this._blockOff(i) + 4, v, true); }
+  _blockOff(i) {
+    return i * this.blockSize;
+  }
+  _blockNext(i) {
+    return this.blocksView.getInt32(this._blockOff(i) + 0, true);
+  }
+  _blockSetNext(i, v) {
+    this.blocksView.setInt32(this._blockOff(i) + 0, v, true);
+  }
+  _blockUsed(i) {
+    return this.blocksView.getUint16(this._blockOff(i) + 4, true);
+  }
+  _blockSetUsed(i, v) {
+    this.blocksView.setUint16(this._blockOff(i) + 4, v, true);
+  }
   _blockWriteData(i, bytes) {
     const base = this._blockOff(i) + this.BDATA_OFF;
     new Uint8Array(this.blocksView.buffer, base, bytes.length).set(bytes);
@@ -409,16 +442,22 @@ class BlockArena {
   }
 
   // Utils
-  _encode(s) { return new TextEncoder().encode(s); }
-  _decode(b) { return new TextDecoder().decode(b); }
-  _nextPow2(n) { return 1 << (32 - Math.clz32(n - 1)); }
+  _encode(s) {
+    return new TextEncoder().encode(s);
+  }
+  _decode(b) {
+    return new TextDecoder().decode(b);
+  }
+  _nextPow2(n) {
+    return 1 << (32 - Math.clz32(n - 1));
+  }
   _fnv1a32(str) {
     let h = 0x811c9dc5 | 0;
     for (let i = 0; i < str.length; i++) {
       h ^= str.charCodeAt(i);
       h = Math.imul(h, 0x01000193);
     }
-    return (h >>> 0);
+    return h >>> 0;
   }
 }
 

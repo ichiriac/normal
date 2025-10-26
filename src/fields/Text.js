@@ -5,32 +5,32 @@ const { Field } = require('./Base');
  * @extends Field
  */
 class TextField extends Field {
-    write(record, value) {
-        return super.write(record, String(value));
+  write(record, value) {
+    return super.write(record, String(value));
+  }
+  read(record) {
+    const value = super.read(record);
+    if (value === null || value === undefined) {
+      return null;
     }
-    read(record) {
-        const value = super.read(record);
-        if (value === null || value === undefined) {
-            return null;
-        }
-        return String(value);
+    return String(value);
+  }
+  serialize(record) {
+    const value = this.read(record);
+    if (value === null || value === undefined) {
+      return null;
     }
-    serialize(record) {
-        const value = this.read(record);
-        if (value === null || value === undefined) {
-            return null;
-        }
-        return String(value);
-    }
-    getMetadata() {
-        const meta = super.getMetadata();
-        delete meta.index;
-        delete meta.unique;
-        return meta;
-    }
-    getColumnDefinition(table) {
-        return table.text(this.column);
-    }
+    return String(value);
+  }
+  getMetadata() {
+    const meta = super.getMetadata();
+    delete meta.index;
+    delete meta.unique;
+    return meta;
+  }
+  getColumnDefinition(table) {
+    return table.text(this.column);
+  }
 }
 
 Field.behaviors.text = TextField;
