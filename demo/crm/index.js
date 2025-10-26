@@ -1,11 +1,8 @@
 /**
  * Demo script for a blog application using Normal ORM
  */
-
-const { count } = require("console");
 const Normal = require("../../index");
 const fs = require("fs");
-const { emit } = require("process");
 const db = new Normal.Connection({
   client: "sqlite3",
   debug: false,
@@ -79,10 +76,19 @@ fs.readdirSync(__dirname + "/models").forEach((file) => {
                 { description: "SEO Services", quantity: 3, unit_price: 1500 },
             ],
         });
+
+        const QuotationLine = tx.get("QuotationLine");
+        await QuotationLine.create({ 
+          quotation_id: quote.id, 
+          description: "Maintenance Package", 
+          quantity: 12, 
+          unit_price: 200
+        });
+
         const quotation = quote.toJSON();
         quotation.total_amount = await quotation.total_amount;
         console.log("Created quotation:", quotation);
-        console.log('Requests : ', tx.queryCount)
+        console.log('Requests : ', tx.queryCount);
     });
     console.log("Demo completed successfully.");
     process.exit(0);

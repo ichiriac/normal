@@ -2,6 +2,7 @@ const { Request } = require("./Request.js");
 const { Record } = require("./Record.js");
 const { Field } = require("./Fields.js");
 const { extendModel } = require("./utils/extender");
+const EventEmitter = require('node:events');
 
 /**
  * The lookup batching helper.
@@ -114,6 +115,18 @@ class Model {
         this._lookup = new LookupIds(this);
         this.inheritField = null;
         this.columns = [];
+        this.events = new EventEmitter();
+    }
+
+    /**
+     * Hook to listen to model-level events.
+     * @param {*} event 
+     * @param {*} listener 
+     * @returns 
+     */
+    on(event, listener) {
+        this.events.on(event, listener);
+        return this;
     }
 
     /**
@@ -324,6 +337,7 @@ class Model {
                 field.post_attach();
             }
 
+            this.events.emit('init', this);
         }
     }
 
@@ -451,6 +465,7 @@ class Model {
         }
         await Promise.all(post_create);
 
+        this.events.emit('create', data);
         return data;
     }
 

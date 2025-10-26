@@ -144,7 +144,7 @@ class Field {
                             // local lookup
                             this.recompute(record);
                         }
-                    }.bind(this, path.join('.'))
+                    }.bind(this, path.join('.') + (field.refModel ? '.id' : ''))
                 );
                 if (field.refModel) {
                     model = field.refModel;
@@ -448,12 +448,12 @@ class Field {
         // Hook after record update
     }
 
-    async pre_delete(record) {
-        // Hook before record deletion
+    async pre_unlink(record) {
+        // Hook before record unlinking
     }
 
-    async post_delete(record) {
-        // Hook after record deletion
+    async post_unlink(record) {
+        // Hook after record unlinking 
     }
 
 

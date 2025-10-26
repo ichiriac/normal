@@ -23,6 +23,13 @@ class OneToMany extends Field {
         return this.model.repo.get(this.refModelName);
     }
 
+    onChange(listener) {
+        super.onChange(listener);
+        this.refModel.on('create', listener);
+        this.refModel.on('unlink', listener);
+        return this;
+    }
+
     getMetadata() {
         const meta = super.getMetadata();
         meta.foreign = this.definition.foreign;

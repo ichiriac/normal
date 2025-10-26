@@ -71,6 +71,7 @@ class Record {
     }
 
     unlink() {
+        this._model.events.emit('unlink', this);
         // @todo implement unlinking logic
         this._model = null;
     }
@@ -100,6 +101,7 @@ class Record {
             if (this._model.cache && !this._model.repo.connection.transactional) {
                 this._model.cache.set(this._model.name + ':' + this.id, this.toRawJSON(), this._model.cacheTTL);
             }
+            this._model.events.emit('update', this);
         }
         return this;
     }
