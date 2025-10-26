@@ -74,10 +74,19 @@ You can register multiple classes with the same `static name` to extend a model 
 
 ```js
 // Base
-class Users { static name = 'Users'; static fields = { id: 'primary' }; }
+class Users {
+  static name = 'Users';
+  static fields = { id: 'primary' };
+}
 
 // Extension (adds fields + methods)
-class UsersEx { static name = 'Users'; static fields = { picture: 'string' }; get profileUrl() { return `https://cdn/p/${this.picture}`; } }
+class UsersEx {
+  static name = 'Users';
+  static fields = { picture: 'string' };
+  get profileUrl() {
+    return `https://cdn/p/${this.picture}`;
+  }
+}
 
 repo.register(Users);
 repo.register(UsersEx); // merged into a single model
@@ -110,8 +119,18 @@ A child model can inherit from a parent using `static inherits = 'ParentModel'`.
 - The parent’s common fields live on the parent table; the child’s extra fields live on the child table.
 
 ```js
-class Documents { static name = 'Documents'; static fields = { id: 'primary', title: 'string' }; }
-class Invoices  { static name = 'Invoices';  static inherits = 'Documents'; static fields = { total: 'float' }; }
+class Documents {
+  static name = 'Documents';
+  static fields = {
+    id: 'primary',
+    title: 'string'
+  };
+}
+class Invoices  {
+  static name = 'Invoices';
+  static inherits = 'Documents';
+  static fields = { total: 'float' };
+}
 
 repo.register(Documents);
 repo.register(Invoices);
