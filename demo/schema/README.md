@@ -1,6 +1,6 @@
 # Schema Sync Demo
 
-This demo shows how Normal ORM synchronizes your database schema from model definitions. It illustrates:
+This demo shows how NormalJS ORM synchronizes your database schema from model definitions. It illustrates:
 
 - Fresh create with force (drop-and-recreate)
 - Adding a new field (column)

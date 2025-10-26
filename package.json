@@ -1,7 +1,7 @@
 {
   "name": "normaljs",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.0.1",
+  "description": "NormalJS : Node Object Relational Mapper Abstraction Layer",
   "main": "index.js",
   "scripts": {
     "test": "jest --detectOpenHandles",

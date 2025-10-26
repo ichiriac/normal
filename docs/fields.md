@@ -5,7 +5,7 @@ title: Fields Reference
 
 # Fields
 
-Normal ships a concise field type system: primary, string, number, boolean, date/datetime, enum, text, and relations.
+NormalJS ships a concise field type system: primary, string, number, boolean, date/datetime, enum, text, and relations.
 
 Models declare fields via a static `fields` object on the class. Each entry describes the column type, constraints, defaults, and (optionally) relations.
 

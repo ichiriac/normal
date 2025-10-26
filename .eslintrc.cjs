@@ -1,5 +1,5 @@
 /**
- * ESLint configuration for Normal ORM
+ * ESLint configuration for NormalJS ORM
  * - Node.js (CommonJS)
  * - Jest tests
  * - Prettier for formatting integration

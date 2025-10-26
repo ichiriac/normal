@@ -1,15 +1,15 @@
 <div align="center">
 <img src="docs/assets/normal-logo.svg" alt="Normal ORM" height="120" />
 
-# Normal
+# NormalJS
 
 The simple, straightforward, and most advanced Node.js ORM — without the bloat.
 
-Build data-rich apps with clean models, powerful relations, and first-class DX. Normal blends a tiny API with serious capabilities: schema sync, relations (1:n, n:m), transactions, model extension, and active-record-style instances. All in plain JavaScript.
+Build data-rich apps with clean models, powerful relations, and first-class DX. NormalJS blends a tiny API with serious capabilities: schema sync, relations (1:n, n:m), transactions, model extension, and active-record-style instances. All in plain JavaScript.
 
 </div>
 
-## Why Normal?
+## Why NormalJS ?
 
 - Simple: minimal surface area. Define models with a static `fields` object and go.
 - Powerful: many-to-many via join tables, transactions, model mixins/extension, relation proxies.
@@ -19,12 +19,12 @@ Build data-rich apps with clean models, powerful relations, and first-class DX. 
 ## Install
 
 ```bash
-npm install normal pg sqlite3
+npm install normaljs pg -y
 ```
 
 ## Database engines
 
-Normal supports these SQL databases via Knex:
+NormalJS supports these SQL databases via Knex:
 
 <div align="center">
 
@@ -45,7 +45,7 @@ Note: You only need the driver for the database(s) you use (e.g., `pg` for Postg
 
 ```js
 // index.js
-const { Connection, Repository } = require('normal');
+const { Connection, Repository } = require('normaljs');
 
 // 1) Create a connection (SQLite in-memory shown; Postgres also supported)
 const db = new Connection({ client: 'sqlite3', connection: { filename: ':memory:' } });

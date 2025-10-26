@@ -1,5 +1,5 @@
 /**
- * Demo script for a blog application using Normal ORM
+ * Demo script for a blog application using NormalJS ORM
  */
 const Normal = require('../../index');
 const fs = require('fs');

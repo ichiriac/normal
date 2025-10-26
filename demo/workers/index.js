@@ -1,5 +1,5 @@
 /**
- * Demo script for a job queue system using Normal ORM
+ * Demo script for a job queue system using NormalJS ORM
  * Creates queues, jobs, and forks 4 workers to process them
  */
 

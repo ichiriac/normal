@@ -5,7 +5,7 @@ title: Filtering (criteria DSL)
 
 # Filtering and criteria syntax
 
-This document explains all supported ways to filter records with Normal, from simple object filters to a JSON‑serializable criteria DSL with logic gates and operators that maps cleanly to SQL (via Knex).
+This document explains all supported ways to filter records with NormalJS, from simple object filters to a JSON‑serializable criteria DSL with logic gates and operators that maps cleanly to SQL (via Knex).
 
 The goals of the filtering DSL are:
 
@@ -161,7 +161,7 @@ When filtering joined queries (e.g., inherited models or manual joins), qualify 
 }
 ```
 
-Normal’s inherited models may auto‑join parent tables on reads; qualifying avoids ambiguous column errors when names overlap.
+NormalJS’s inherited models may auto‑join parent tables on reads; qualifying avoids ambiguous column errors when names overlap.
 
 ## Dialect notes
 

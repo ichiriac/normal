@@ -1,7 +1,7 @@
 // @ts-check
 
 const config = {
-    title: 'Normal ORM',
+    title: 'NormalJS ORM',
     tagline: 'Lightweight Node.js ORM with active records on Knex',
     url: 'https://ichiriac.github.io',
     baseUrl: '/normal/',
@@ -29,7 +29,7 @@ const config = {
     themeConfig: /** @type {import('@docusaurus/preset-classic').ThemeConfig} */ ({
         image: 'img/social-card.png',
         navbar: {
-            title: 'Normal ORM',
+            title: 'NormalJS ORM',
             items: [
                 { to: '/', label: 'Docs', position: 'left' },
                 { href: 'https://github.com/ichiriac/normal', label: 'GitHub', position: 'right' },

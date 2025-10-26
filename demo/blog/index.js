@@ -1,5 +1,5 @@
 /**
- * Demo script for a blog application using Normal ORM
+ * Demo script for a blog application using NormalJS ORM
  * Includes execution time and memory usage statistics
  */
 

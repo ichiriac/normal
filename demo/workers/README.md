@@ -1,10 +1,10 @@
 # Workers Demo - Job Queue System
 
-A comprehensive demonstration of a multi-process job queue system built with Normal ORM, showcasing distributed job processing, performance monitoring, and multi-worker coordination.
+A comprehensive demonstration of a multi-process job queue system built with NormalJS ORM, showcasing distributed job processing, performance monitoring, and multi-worker coordination.
 
 ## 🚀 Overview
 
-This demo implements a production-ready job queue system where a master process creates jobs and multiple worker processes compete to process them. It demonstrates Normal ORM's capabilities for building scalable, fault-tolerant background job systems.
+This demo implements a production-ready job queue system where a master process creates jobs and multiple worker processes compete to process them. It demonstrates NormalJS ORM's capabilities for building scalable, fault-tolerant background job systems.
 
 ## 🏗️ Architecture
 
@@ -270,4 +270,4 @@ This pattern is ideal for:
 - `demo/crm/` - Business workflow modeling
 - `demo/stocks/` - Inventory management patterns
 
-This workers demo showcases Normal ORM's ability to handle complex, distributed systems while maintaining clean, understandable code and excellent performance characteristics.
+This workers demo showcases NormalJS ORM's ability to handle complex, distributed systems while maintaining clean, understandable code and excellent performance characteristics.

@@ -1,6 +1,6 @@
 # Demo overview
 
-This folder contains small, focused demos that showcase Normal’s core features: simple models, relations, transactions, and model extension.
+This folder contains small, focused demos that showcase NormalJS’s core features: simple models, relations, transactions, and model extension.
 
 ## Blog
 

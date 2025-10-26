@@ -1,22 +1,23 @@
 ---
 id: index
-title: Normal ORM
+title: NormalJS ORM
 slug: /
 ---
 
-Normal is a lightweight Node.js ORM built on Knex.js with an active record pattern.
+NormalJS is a full-featured Node.js ORM built on Knex.js with an active record pattern.
 
 - Define models with a simple fields DSL
 - Query with a fluent API or JSON criteria
 - Lazy-loading with batched lookups and optional cache
 - Relations: one-to-many, many-to-one, many-to-many
 - Model extensions (mixins) and inheritance
+- Native cache support (support forks and clustering synchronisation)
 - Schema sync to create/update tables
 
 Quickstart
 
 ```js
-const { Connection, Repository } = require('normal');
+const { Connection, Repository } = require('normaljs');
 
 const conn = new Connection({ client: 'sqlite3', connection: { filename: ':memory:' } });
 await conn.connect();

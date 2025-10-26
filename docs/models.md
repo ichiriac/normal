@@ -5,7 +5,7 @@ title: Models Reference
 
 # Models
 
-Normal models are ES6 classes that declare metadata via static properties. They map to database tables, expose a fluent query API, and return active record instances (objects with getters/methods).
+NormalJS models are ES6 classes that declare metadata via static properties. They map to database tables, expose a fluent query API, and return active record instances (objects with getters/methods).
 
 See fields reference in `docs/FIELDS.md` for all column types and relation options.
 

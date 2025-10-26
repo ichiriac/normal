@@ -1,8 +1,8 @@
-# Normal ORM - AI Coding Agent Instructions
+# NormalJS ORM - AI Coding Agent Instructions
 
 ## Architecture Overview
 
-Normal is a lightweight Node.js ORM with active record patterns, built on Knex.js. Core components:
+NormalJS is a full-featured Node.js ORM with active record patterns, built on Knex.js. Core components:
 
 - **Repository**: Model registry and transaction coordinator (`src/Repository.js`)
 - **Model**: Query builder and schema management (`src/Model.js`)

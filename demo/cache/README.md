@@ -1,6 +1,6 @@
 # Cache Showcase
 
-This demo showcases Normal ORM’s shared cache with multiple related models and a simulated visitor workload.
+This demo showcases NormalJS ORM’s shared cache with multiple related models and a simulated visitor workload.
 
 Models included:
 
