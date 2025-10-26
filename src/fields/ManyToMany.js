@@ -67,12 +67,12 @@ class CollectionWrapper {
      */
     async load() {
         // Select target rows joined through the join table
-        const rows = await this.field.relModel.query()
-          .join(this.field.joinTable, `${this.field.relModel.table}.id`, `${this.field.joinTable}.${this.field.right_col}`)
+        const rows = await this.field.refModel.query()
+          .join(this.field.joinTable, `${this.field.refModel.table}.id`, `${this.field.joinTable}.${this.field.right_col}`)
           .where(`${this.field.joinTable}.${this.field.left_col}`, this.record.id)
-          .select(`${this.field.relModel.table}.id`);
+          .select(`${this.field.refModel.table}.id`);
         this.cache = rows.map(r => r.id);
-        return await this.field.relModel.lookup(this.cache);
+        return await this.field.refModel.lookup(this.cache);
     }
     /**
      * Clear all relations in the collection.
@@ -94,17 +94,17 @@ class ManyToMany extends Field {
         if (!this.definition.model) {
             throw new Error(`ManyToMany field "${name}" requires a model in its definition`);
         }
-        this.relModel = this.model.repo.get(this.definition.model);
+        this.refModel = this.model.repo.get(this.definition.model);
         this.stored = false;
     }
 
     get joinTable() {
         let joinTable = this.definition.joinTable;
         if (!joinTable) {
-            if (this.model.table < this.relModel.table) {
-                joinTable = 'rel_' + this.model.table + '_' + this.relModel.table;
+            if (this.model.table < this.refModel.table) {
+                joinTable = 'rel_' + this.model.table + '_' + this.refModel.table;
             } else {
-                joinTable = 'rel_' + this.relModel.table + '_' + this.model.table;
+                joinTable = 'rel_' + this.refModel.table + '_' + this.model.table;
             }
         }    
         return joinTable;
@@ -119,7 +119,7 @@ class ManyToMany extends Field {
     }
 
     get right_col() {
-        return this.relModel.table + '_id';
+        return this.refModel.table + '_id';
     }
 
     write(record, value) {
@@ -172,7 +172,7 @@ class ManyToMany extends Field {
                     this.model.table
                 ).notNullable().onDelete('CASCADE');
                 const col2 = table.integer(this.right_col).unsigned().references('id').inTable(
-                    this.relModel.table
+                    this.refModel.table
                 ).notNullable().onDelete('CASCADE');
                 table.primary([this.left_col, this.right_col]);
             });

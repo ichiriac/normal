@@ -35,9 +35,9 @@ class Reference extends Field {
          // inject creation behavior
         this.getColumnDefinition = (table) => {
             if (this.models.length > 0) {
-                return table.enum(this.name, this.models);
+                return table.enum(this.column, this.models);
             } else {
-                return table.string(this.name);
+                return table.string(this.column);
             }
         };
         let changed = false;

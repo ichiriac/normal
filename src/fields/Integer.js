@@ -14,17 +14,14 @@ class IntegerField extends Field {
     }
     read(record) {
         const value = super.read(record);   
-        if (value === null || value === undefined) {
-            return null;
-        }   
-        return parseInt(value, 10);
-    }
-    serialize(record) {
-        const value = this.read(record);
-        if (value === null || value === undefined) {
-            return null;
-        }
-        return parseInt(value, 10);
+        const wrapper = function(v) {
+            if (v === null || v === undefined) {
+                return null;
+            }
+            return parseInt(v, 10);
+        };
+        if (value instanceof Promise) return value.then(wrapper);
+        return wrapper(value);
     }
 
     getMetadata() {

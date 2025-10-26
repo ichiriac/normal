@@ -38,18 +38,70 @@ class OneToMany extends Field {
     }
 
     read(record) {
-        let where = {};
-        if (this.refFieldName) {
-            where[this.refFieldName] = record.id;
-        }
-        if (this.definition.domain) {
-            if (typeof this.definition.domain === 'function') {
-                where = this.definition.domain(record, this);
-            } else {
-                where = { ...where, ...this.definition.domain };
+        const result = super.read(record);
+        if (!result) {
+            let where = {};
+            if (this.refFieldName) {
+                where[this.refFieldName] = record.id;
             }
+            if (this.definition.domain) {
+                if (typeof this.definition.domain === 'function') {
+                    where = this.definition.domain(record, this);
+                } else {
+                    where = { ...where, ...this.definition.domain };
+                }
+            }
+            const relatedRecords = this.refModel.where(where);
+            relatedRecords.then(records => {
+                delete record._changes[this.name];
+                record._data[this.name] = records;
+            });
+            return relatedRecords;
         }
-        return this.refModel.where(where);
+        return Promise.resolve(result);
+    }
+
+    /**
+     * Deserialize records for one-to-many fields
+     * @param {*} record 
+     * @param {*} value 
+     * @returns 
+     */
+    deserialize(record, value) {
+        if (!Array.isArray(value)) {
+            value = [value];
+        }
+        return value.map(v => {
+            v[this.refFieldName] = record;
+            return this.refModel.allocate(v);
+        });
+    }
+
+    /**
+     * Handling writes to one-to-many fields (to pre-compute related records)
+     * @param {*} record 
+     * @param {*} value 
+     */
+    write(record, value) {
+        return super.write(record, this.deserialize(record, value));
+    }
+
+    /**
+     * Automatically create related records after creating the main record
+     * @param {*} record 
+     */
+    async post_create(record) {
+        await super.post_create(record);
+        const relatedRecords = record._changes[this.name] || record._data[this.name];
+        if (relatedRecords && Array.isArray(relatedRecords)) {
+            const batchInsert = [];
+            for (const relatedRecord of relatedRecords) {
+                relatedRecord[this.refFieldName] = record.id;
+                const newRelatedRecord = this.refModel.create(relatedRecord);
+                batchInsert.push(newRelatedRecord);
+            }
+            await Promise.all(batchInsert);
+        }
     }
 
     serialize(record) {
@@ -64,7 +116,6 @@ class OneToMany extends Field {
         // no post index for one-to-many
         return false;
     }
-
 }
 
 ALIAS.forEach(alias => {

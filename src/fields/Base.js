@@ -1,5 +1,10 @@
 const EventEmitter = require('node:events');
+const { selectRootIdsByLeafRecord } = require('../utils/dependency');
 
+
+/**
+ * Base class for all field types.
+ */
 class Field {
 
     static behaviors = {};
@@ -97,32 +102,52 @@ class Field {
         model.fields[this.name] = this;
     }
 
-    postAttach(model, cls) {
+    /**
+     * Hook after initializing and attaching fields to the model
+     */
+    post_attach() {
         // Hook after attaching field to record prototype
         for(const dependency of this.depends) {
             if (typeof dependency !== 'string') {
                 throw new Error(
-                    `Depends entries must be strings for field '${name}' in model '${model.name}'`
+                    `Depends entries must be strings for field '${this.name}' in model '${this.model.name}'`
                 );
             }
             const parts = dependency.split('.');
             let model = this.model;
+            let path = [];
             for(const part of parts) {
-                if (!model.fields.hasOwnProperty(part)) {
+                if (!model) {
                     throw new Error(
-                        `Depends entry '${dependency}' for field '${name}' in model '${model.name}' is invalid`
+                        `Depends entry '${dependency}' for field '${this.name}' in model '${this.model.name}' is invalid`
                     );
                 }
+                if (!model.fields.hasOwnProperty(part)) {
+                    throw new Error(
+                        `Field '${part}' for dependency '${dependency}' is not found in model '${model.name}'`
+                    );
+                }
+                if (!model.cls_init) {
+                    model._init();
+                }
+                path.push(part);
                 const field = model.fields[part];
-                field.onChange((record => {
-                    this.recompute(record);
-                }).bind(this)); 
+                field.onChange(
+                    async function(path, record) {
+                        if (path.indexOf('.') !== -1) {
+                            // lookup for related record
+                            const result = await selectRootIdsByLeafRecord(this.model, path, record);
+                            for(const rec of result) {
+                                this.recompute(rec);
+                            }
+                        } else {
+                            // local lookup
+                            this.recompute(record);
+                        }
+                    }.bind(this, path.join('.'))
+                );
                 if (field.refModel) {
                     model = field.refModel;
-                } else {
-                    throw new Error(
-                        `Depends entry '${dependency}' for field '${name}' in model '${model.name}' is invalid`
-                    );
                 }
             }
         }
@@ -163,6 +188,7 @@ class Field {
             } else {
                 record._data[this.column] = val;
             }
+            if (initialValue === undefined && !record.id) return val;
             if (initialValue !== val) {
                 this.events.emit('change', record, this);
             }
@@ -217,9 +243,11 @@ class Field {
 
         if (this.definition.default !== undefined) {
             if (typeof this.definition.default === 'function') {
-                return this.definition.default();
+                record._changes[this.column] = this.definition.default();
+            } else {
+                record._changes[this.column] = this.definition.default;
             }
-            return this.definition.default;
+            return record._changes[this.column];
         }
         return null;
     }
@@ -286,6 +314,7 @@ class Field {
      * @returns 
      */
     getBuilderColumn(table) {
+        if (!this.stored) return null;
         const column = this.getColumnDefinition(table);
         if (!column) return null;
         if (this.definition.required) {
@@ -374,6 +403,7 @@ class Field {
      * @param {*} table 
      */
     buildIndex(table, metadata) {
+        if (!this.stored) return null;
         const prevNotIndexed = !metadata || !metadata.index;
         if (this.definition.index) {
             if (prevNotIndexed) {
@@ -394,6 +424,7 @@ class Field {
      * @returns 
      */
     async buildPostIndex(metadata) {
+        if (!this.stored) return null;
         if (metadata && this.isDefChanged(metadata)) {
             await this.replaceColumn();
             return true;

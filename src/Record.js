@@ -20,12 +20,18 @@ class Record {
         if (this._parent) {
             this._parent.sync(data);
         }
-        for (let key in this._model.fields) {
-            if (!data.hasOwnProperty(key)) continue;
-            if (key === 'id' && this._data[key]) continue;
-            const field = this._model.fields[key];
-            this._data[key] = field.deserialize(this, data[key]);
-            delete this._changes[key];
+        for (let field of Object.values(this._model.fields)) {
+            let key = field.name;
+            if (!data.hasOwnProperty(key) ) {
+                if (data.hasOwnProperty(field.column)) {
+                    key = field.column;
+                } else {
+                    continue;
+                }
+            }
+            if (field.column === this._model.primaryField.column && this._data[field.column]) continue;
+            this._data[field.column] = field.deserialize(this, data[key]);
+            delete this._changes[field.column];
         }
         this._isReady = true;
         this._isDirty = Object.keys(this._changes).length > 0;

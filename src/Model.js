@@ -318,6 +318,12 @@ class Model {
 
             this.cls.model = this;
             this.cls_init = true;
+
+            // Call post_attach hooks
+            for (let field of Object.values(this.fields)) {
+                field.post_attach();
+            }
+
         }
     }
 
@@ -327,6 +333,10 @@ class Model {
      * @returns 
      */
     allocate(data, ignoreDiscriminator = false) {
+
+        if (data instanceof this.cls) {
+            return data;
+        }
 
         this.checkAbstract();
         if (!this.cls_init) this._init();
@@ -390,12 +400,15 @@ class Model {
         // prepare data to insert
         const toInsert = {};
         const pre_create = [];
-        for (const fieldName of Object.keys(this.fields)) {
-            const field = this.fields[fieldName];
+        for (const field of Object.values(this.fields)) {
             pre_create.push(field.pre_create(data));
+            if (field.stored === false) continue;
             const value = field.serialize(data);
             if (value !== undefined) {
                 toInsert[field.column] = value;
+                if (toInsert[field.column] instanceof Promise) {
+                    toInsert[field.column] = await toInsert[field.column];
+                }
             }
         }
         await Promise.all(pre_create);
@@ -424,8 +437,11 @@ class Model {
         if (this.cache && !this.repo.connection.transactional) {
             this.cache.set(this.name + ':' + data.id, data.toRawJSON(), this.cacheTTL);
         } else {
+            // indicate to cache the the record was flushed
             data._flushed = true;
         }
+        data._isDirty = false;
+        data._changes = {};
         
         // create relations
         const post_create = [];
