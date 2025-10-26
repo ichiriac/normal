@@ -68,6 +68,21 @@ fs.readdirSync(__dirname + "/models").forEach((file) => {
           'Alice activities:', (await alice.activities).map(a => a.toJSON())
         );
 
+        const Quotations = tx.get("Quotation");
+        const quote = await Quotations.create({
+            customer_id: acme.id,
+            quote_number: "Q-1001",
+            date: new Date(),
+            status: "draft",
+            lines: [
+                { description: "Website Development", quantity: 1, unit_price: 5000 },
+                { description: "SEO Services", quantity: 3, unit_price: 1500 },
+            ],
+        });
+        const quotation = quote.toJSON();
+        quotation.total_amount = await quotation.total_amount;
+        console.log("Created quotation:", quotation);
+        console.log('Requests : ', tx.queryCount)
     });
     console.log("Demo completed successfully.");
     process.exit(0);
