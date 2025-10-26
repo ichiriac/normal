@@ -9,7 +9,23 @@
     "test:coverage": "jest --coverage --detectOpenHandles",
     "bench": "node demo/cache/bench.js"
   },
-  "keywords": [],
+  "keywords": [
+    "orm",
+    "sql",
+    "query",
+    "postgresql",
+    "postgres",
+    "mysql",
+    "cockroachdb",
+    "sqlite3",
+    "oracle",
+    "mssql",
+    "builder",
+    "querybuilder",
+    "build",
+    "db",
+    "database"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
