@@ -1,3 +1,5 @@
+const EventEmitter = require('node:events');
+
 class Field {
 
     static behaviors = {};
@@ -37,7 +39,23 @@ class Field {
         this.definition = definition;
         this.type = definition.type;
         this.column = definition.column || name;
-        this.stored = definition.stored !== false;
+        this.events = new EventEmitter();
+        if (definition.compute) {
+            this.stored = definition.stored === true;
+        } else {
+            this.stored = definition.stored !== false;
+        }
+        this.compute = definition.compute || null;
+        this.depends = definition.depends || [];
+        this.triggers = false;
+        this.description = definition.description || null;
+        if (this.compute && typeof this.compute === 'string') {
+            if (typeof this.model.cls.prototype[this.compute] !== 'function') {
+                throw new Error(
+                    `Compute method '${this.compute}' for field '${name}' in model '${model.name}' is not defined`
+                );
+            }
+        }
         const allowed_keys = Object.keys(this.getMetadata());
         for (let key of Object.keys(definition)) {
             if (!allowed_keys.includes(key)) {
@@ -47,6 +65,16 @@ class Field {
             }
         }
         Object.freeze(this.definition);
+    }
+
+    /**
+     * Handle change events on the field.
+     * @param {*} listener 
+     */
+    onChange(listener) {
+        this.events.on('change', listener);
+        this.triggers = true;
+        return this;
     }
 
     /**
@@ -69,6 +97,37 @@ class Field {
         model.fields[this.name] = this;
     }
 
+    postAttach(model, cls) {
+        // Hook after attaching field to record prototype
+        for(const dependency of this.depends) {
+            if (typeof dependency !== 'string') {
+                throw new Error(
+                    `Depends entries must be strings for field '${name}' in model '${model.name}'`
+                );
+            }
+            const parts = dependency.split('.');
+            let model = this.model;
+            for(const part of parts) {
+                if (!model.fields.hasOwnProperty(part)) {
+                    throw new Error(
+                        `Depends entry '${dependency}' for field '${name}' in model '${model.name}' is invalid`
+                    );
+                }
+                const field = model.fields[part];
+                field.onChange((record => {
+                    this.recompute(record);
+                }).bind(this)); 
+                if (field.refModel) {
+                    model = field.refModel;
+                } else {
+                    throw new Error(
+                        `Depends entry '${dependency}' for field '${name}' in model '${model.name}' is invalid`
+                    );
+                }
+            }
+        }
+    }
+
     /**
      * Get the database connection.
      * @returns Knex instance
@@ -86,18 +145,53 @@ class Field {
     }
 
     /**
+     * Compute the field value.
+     * @param {Record} record
+     * @returns 
+     */
+    recompute(record) {
+        if (!this.compute) {
+            throw new Error(`Field ${this.name} is not computed.`);
+        }
+        const initialValue = record._changes.hasOwnProperty(this.column) ? record._changes[this.column] : record._data[this.column];
+        const computeMethod = typeof this.compute === 'string' ? record[this.compute].bind(record) : this.compute.bind(record);
+        const computedValue = computeMethod();
+
+        const wrapPromise = (val) => {
+            if (this.stored) {
+                record._changes[this.column] = val;
+            } else {
+                record._data[this.column] = val;
+            }
+            if (initialValue !== val) {
+                this.events.emit('change', record, this);
+            }
+            return val;
+        }
+
+        if (computedValue instanceof Promise) {
+            return computedValue.then(wrapPromise);
+        }
+        return wrapPromise(computedValue);
+    }
+
+    /**
      * Method used to write the field value to a record.
      * @param {Record} record 
      * @param {*} value 
      * @returns 
      */
     write(record, value) {
+        if (!this.stored) {
+            throw new Error(`Field ${this.name} is computed and cannot be set directly.`);
+        }
         if (record._data[this.column] === value) {
             delete record._changes[this.column];
             record._isDirty = Object.keys(record._changes).length > 0;
         } else {
             record._changes[this.column] = value;
             record._isDirty = true;
+            this.events.emit('change', record, this);
         }
         return record;
     }
@@ -108,6 +202,7 @@ class Field {
      * @returns 
      */
     read(record) {
+
         if (record._changes.hasOwnProperty(this.column)) {
             return record._changes[this.column];
         }
@@ -115,6 +210,11 @@ class Field {
         if (record._data.hasOwnProperty(this.column) && record._data[this.column] !== null) {
             return record._data[this.column];
         }
+
+        if (this.compute) {
+            return this.recompute(record);
+        }
+
         if (this.definition.default !== undefined) {
             if (typeof this.definition.default === 'function') {
                 return this.definition.default();
@@ -156,6 +256,9 @@ class Field {
             column: this.column,
             type: this.definition.type,
             stored: this.stored,
+            compute: this.compute,
+            depends: this.depends,
+            description: this.description,
             required: !!this.definition.required,
             unique: !!this.definition.unique,
             index: !!this.definition.index,
@@ -226,6 +329,9 @@ class Field {
             if (k === 'column') continue;
             if (k === 'default' && typeof definition[k] === 'function') continue;
             if (k === 'index') continue;
+            if (k === 'compute') continue;
+            if (k === 'depends') continue;
+            if (k === 'description') continue;
             if (definition[k] != metadata[k]) {
                 return true;
             }
