@@ -70,10 +70,60 @@ class Record {
     return this._isReady;
   }
 
-  unlink() {
-    this._model.events.emit('unlink', this);
-    // @todo implement unlinking logic
-    this._model = null;
+  /**
+   * Pre-validate the record and its parent records.
+   * @returns {Promise<Record>}
+   */
+  async pre_validate() {
+    return this;
+  }
+
+  /**
+   * Pre-create hook for the record.
+   * @returns {Promise<Record>}
+   */
+  async pre_create() {
+    return this;
+  }
+
+  /**
+   * Pre-update hook for the record.
+   * @returns {Promise<Record>}
+   */
+  async pre_update() {
+    return this;
+  }
+
+  /**
+   * Pre-unlink hook for the record.
+   * @returns {Promise<Record>}
+   */
+  async pre_unlink() {
+    return this;
+  }
+
+  /**
+   * Post-create hook for the record.
+   * @returns {Promise<Record>}
+   */
+  async post_create() {
+    return this;
+  }
+
+  /**
+   * Post-update hook for the record.
+   * @returns {Promise<Record>}
+   */
+  async post_update() {
+    return this;
+  }
+
+  /**
+   * Post-unlink hook for the record.
+   * @returns {Promise<Record>}
+   */
+  async post_unlink() {
+    return this;
   }
 
   /**
@@ -86,17 +136,39 @@ class Record {
     }
     if (this._isDirty) {
       this._isDirty = false;
-      const update = {};
-      for (let key in this._changes) {
-        update[key] = this._model.fields[key].serialize(this);
+
+      // run pre-update hooks
+      const pre_update = [];
+      await this.pre_update();
+      for(let field of Object.values(this._model.fields)) {
+        pre_update.push(field.pre_update(this));
       }
-      await this._model.query().where({ id: this.id }).update(update);
+      await Promise.all(pre_update);
+
+      // construct update object
+      const update = {};
+      for(let field of Object.values(this._model.fields)) {
+        if (field.stored === false) continue;
+        field.validate(this);
+        if (this._changes.hasOwnProperty(field.column)) {
+          update[field.column] = field.serialize(this);
+        }
+      }
+
+      
+      // perform update on database
+      if (Object.keys(update).length > 0) {
+        await this._model.query().where({ id: this.id }).update(update);
+      }
+
+      // flush changes to record
       this._isDirty = false;
       for (let key in this._changes) {
         this._data[key] = this._changes[key];
       }
       this._changes = {};
       this._flushed = true;
+
       // update cache
       if (this._model.cache && !this._model.repo.connection.transactional) {
         this._model.cache.set(
@@ -105,9 +177,28 @@ class Record {
           this._model.cacheTTL
         );
       }
+
+      // run post hooks
+      const post_update = [];      
+      for (let key in update) {
+        post_update.push(this._model.fields[key].post_update(this));
+      }
+      await Promise.all(post_update);
+      await this.post_update();
       this._model.events.emit('update', this);
+
     }
     return this;
+  }
+
+
+  /**
+   * Unlink (delete) the record from the database.
+   */
+  unlink() {
+    this._model.events.emit('unlink', this);
+    // @todo implement unlinking logic
+    this._model = null;
   }
 
   /**

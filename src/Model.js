@@ -513,9 +513,11 @@ class Model {
         // prepare data to insert
         const toInsert = {};
         const pre_create = [];
+        await data.pre_create();
         for (const field of Object.values(this.fields)) {
             pre_create.push(field.pre_create(data));
             if (field.stored === false) continue;
+            field.validate(data);
             const value = field.serialize(data);
             if (value !== undefined) {
                 toInsert[field.column] = value;
@@ -563,6 +565,7 @@ class Model {
             post_create.push(field.post_create(data));
         }
         await Promise.all(post_create);
+        await data.post_create();
 
         // Ensure parent model resolves to the final child instance
         if (this.super) {
