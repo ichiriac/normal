@@ -2,7 +2,7 @@
  * Model to track registered models and their schema
  */
 class Models {
-  static name = 'Models';
+  static name = '$Models';
   static table = 'sys_models';
   static fields = {
     name: { type: 'string', unique: true, required: true },
@@ -45,18 +45,18 @@ function inlineBindings(sql, bindings) {
  * @param {*} options
  */
 async function Synchronize(repository, options) {
-  if (!repository.has('Models')) {
+  if (!repository.has('$Models')) {
     repository.register(Models);
   }
   const cnx = repository.cnx;
-  const exists = await cnx.schema.hasTable(repository.get('Models').table);
+  const exists = await cnx.schema.hasTable(repository.get('$Models').table);
   const force = options?.force || false;
 
   // initialize the Models table if it doesn't exist
   if (!exists) {
-    repository.get('Models')._init();
-    const modelFields = repository.get('Models').fields;
-    await cnx.schema.createTable(repository.get('Models').table, (table) => {
+    repository.get('$Models')._init();
+    const modelFields = repository.get('$Models').fields;
+    await cnx.schema.createTable(repository.get('$Models').table, (table) => {
       for (const field of Object.values(modelFields)) {
         field.buildColumn(table);
         field.buildIndex(table);
@@ -71,7 +71,7 @@ async function Synchronize(repository, options) {
   // sync the Models table schema
   await repository.transaction(async (transaction) => {
     const models = {};
-    const schema = await transaction.get('Models').query().whereNull('dropped_at');
+    const schema = await transaction.get('$Models').query().whereNull('dropped_at');
 
     for (const s of schema) {
       models[s.name] = {
@@ -91,7 +91,7 @@ async function Synchronize(repository, options) {
 
     // initialize all models
     for (const name of Object.keys(transaction.models)) {
-      if (name == 'Models') continue;
+      if (name == '$Models') continue;
       const model = transaction.models[name];
       if (model.abstract) continue;
       model._init();
@@ -99,7 +99,7 @@ async function Synchronize(repository, options) {
 
     // synchronize each model
     for (const name of Object.keys(transaction.models)) {
-      if (name == 'Models') continue;
+      if (name == '$Models') continue;
       const model = transaction.models[name];
       if (model.abstract) continue;
 
@@ -164,7 +164,7 @@ async function Synchronize(repository, options) {
         if (schema) {
           await schema.write(data);
         } else {
-          await transaction.get('Models').create(data);
+          await transaction.get('$Models').create(data);
         }
       }
       if (models[name]) {
