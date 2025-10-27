@@ -596,6 +596,15 @@ class Model {
     }
 
     /**
+     * Find a record by its primary key.
+     * @param {*} pk
+     * @returns
+     */
+    async findByPk(pk) {
+        return await this.findById(pk);
+    }
+
+    /**
      * Create a new query request.
      * @param  {*} condition
      * @returns
@@ -608,9 +617,9 @@ class Model {
 
     /**
      * Find first record matching where clause.
- * @param {*} where
- * @returns
- */
+     * @param {*} where
+     * @returns
+     */
     firstWhere(where) {
         this.checkAbstract();
         return this.where(where).first();
