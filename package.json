@@ -37,7 +37,8 @@
   "author": "Ioan Chiriac",
   "license": "MIT",
   "dependencies": {
-    "knex": "^3.1.0"
+    "knex": "^3.1.0",
+    "validator": "^13.15.20"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.28.3",
