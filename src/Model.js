@@ -624,6 +624,15 @@ class Model {
         this.checkAbstract();
         return this.where(where).first();
     }
+
+    /**
+     * Find one record matching where clause.
+     * @param {*} where
+     * @returns
+     */
+    findOne(where) {
+        return this.firstWhere(where);
+    }
 }
 
 module.exports = { Model };
