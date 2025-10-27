@@ -207,6 +207,18 @@ class Field {
   }
 
   /**
+   * Validate the field value.
+   * @param {Record} record
+   */
+  validate(record) {
+    const value = this.read(record);
+    if (this.definition.required && (value === null || value === undefined)) {
+      throw new Error(`Field '${this.name}' is required in model '${this.model.name}'`);
+    }
+    return value;
+  }
+
+  /**
    * Method used to write the field value to a record.
    * @param {Record} record
    * @param {*} value
