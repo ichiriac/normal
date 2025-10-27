@@ -12,7 +12,12 @@ class ManyToOne extends Field {
     if (!definition.model) {
       throw new Error(`ManyToOne field '${name}' requires a 'model' definition`);
     }
-    this.refModel = model.repo.get(definition.model);
+    try {
+      this.refModel = model.repo.get(definition.model);
+    } catch (err) {
+      throw new Error(`ManyToOne field '${name}' from model '${model.name}' references unknown model '${definition.model}'`);
+    }
+    
   }
 
   write(record, value) {
