@@ -275,6 +275,15 @@ class Field {
   }
 
   /**
+   * Serialize value for JSON output.
+   * @param {*} value
+   * @returns
+   */
+  toJSON(record) {
+    return this.serialize(record);
+  }
+
+  /**
    * Deserialize value from storage.
    * @param {*} value
    * @returns

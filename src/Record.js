@@ -56,7 +56,7 @@ class Record {
     const json = {};
     for (let key in this._model.fields) {
       const field = this._model.fields[key];
-      const value = field.serialize(this);
+      const value = field.toJSON(this);
       if (value !== undefined) {
         json[key] = value;
       }
