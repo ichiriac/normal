@@ -140,14 +140,14 @@ class Record {
       // run pre-update hooks
       const pre_update = [];
       await this.pre_update();
-      for(let field of Object.values(this._model.fields)) {
+      for (let field of Object.values(this._model.fields)) {
         pre_update.push(field.pre_update(this));
       }
       await Promise.all(pre_update);
 
       // construct update object
       const update = {};
-      for(let field of Object.values(this._model.fields)) {
+      for (let field of Object.values(this._model.fields)) {
         if (field.stored === false) continue;
         field.validate(this);
         if (this._changes.hasOwnProperty(field.column)) {
@@ -155,7 +155,6 @@ class Record {
         }
       }
 
-      
       // perform update on database
       if (Object.keys(update).length > 0) {
         await this._model.query().where({ id: this.id }).update(update);
@@ -179,18 +178,16 @@ class Record {
       }
 
       // run post hooks
-      const post_update = [];      
+      const post_update = [];
       for (let key in update) {
         post_update.push(this._model.fields[key].post_update(this));
       }
       await Promise.all(post_update);
       await this.post_update();
       this._model.events.emit('update', this);
-
     }
     return this;
   }
-
 
   /**
    * Unlink (delete) the record from the database.

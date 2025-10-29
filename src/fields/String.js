@@ -5,16 +5,15 @@ const validator = require('validator');
  * @extends Field
  */
 class StringField extends Field {
-
   static validators = {
     isEmail: (value) => {
       return validator.isEmail(value);
     },
     isIP4: (value) => {
-      return validator.isIP(value, { version: 4 } );
+      return validator.isIP(value, { version: 4 });
     },
     isIP6: (value) => {
-      return validator.isIP(value, { version: 6 } );
+      return validator.isIP(value, { version: 6 });
     },
     isDataURI: (value) => {
       return validator.isDataURI(value);
@@ -22,7 +21,7 @@ class StringField extends Field {
     isSemVer: (value) => {
       return validator.isSemVer(value);
     },
-    isURL: (value) => { 
+    isURL: (value) => {
       return validator.isURL(value);
     },
     isHexColor: (value) => {
@@ -37,8 +36,7 @@ class StringField extends Field {
     not: (value, pattern) => {
       return !validator.matches(value, pattern);
     },
-  }
-
+  };
 
   constructor(model, name, definition) {
     super(model, name, definition);
@@ -47,7 +45,7 @@ class StringField extends Field {
   write(record, value) {
     return super.write(record, String(value));
   }
-  
+
   read(record) {
     const value = super.read(record);
     if (value === null || value === undefined) {
@@ -64,7 +62,9 @@ class StringField extends Field {
         if (validatorFn) {
           const isValid = param === true ? validatorFn(value) : validatorFn(value, param);
           if (!isValid) {
-            throw new Error(`Validation failed for field '${this.name}': rule '${rule}' with parameter '${param}'`);
+            throw new Error(
+              `Validation failed for field '${this.name}': rule '${rule}' with parameter '${param}'`
+            );
           }
         }
       }
