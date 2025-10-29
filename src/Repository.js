@@ -20,6 +20,19 @@ const { Synchronize } = require('./Schema.js');
 // - CACHE_LISTEN_PORT=1983
 // - CACHE_METRICS=1                  # enable/disable metrics (default enabled)
 // - CACHE_METRICS_LOG_INTERVAL_MS=5000  # periodically log metrics
+//
+// Discovery protocol environment variables (per-Connection):
+// - DISCOVERY_ENABLED=1              # enable UDP discovery (default: false)
+// - DISCOVERY_MULTICAST_GROUP=239.255.1.1  # multicast group address
+// - DISCOVERY_PORT=56789             # discovery UDP port
+// - DISCOVERY_TTL=30000              # member TTL in milliseconds
+// - DISCOVERY_ANNOUNCE_INTERVAL=10000  # keep-alive interval in ms
+// - DISCOVERY_BOOTSTRAP_RETRIES=10   # number of rapid announcements on startup
+// - DISCOVERY_PACKAGE_NAME=my-app    # override package name
+// - DISCOVERY_PACKAGE_VERSION=1.0.0  # override package version
+// - DISCOVERY_VERSION_POLICY=major,minor  # version compatibility policy
+// - DISCOVERY_FALLBACK_SEEDS=host1:port,host2:port  # static seed nodes
+// Note: Discovery is configured per Connection, not globally like cache
 /**
  * Parse a boolean-like env string ("1","true","yes" => true; "0","false","no" => false)
  * @param {any} v

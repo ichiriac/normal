@@ -103,6 +103,12 @@ console.log(u.name); // "Ada Lovelace"
 - Transactions: `repo.transaction(async (tx) => { /* ... */ })` with a tx‑bound repository.
 - Active records: reads wrap rows into instances (methods/getters work); default queries select only `id` for speed.
 - Model extension: register classes with the same `static name` to add fields and methods/getters.
+- **Discovery Protocol**: UDP-based automatic service discovery for cache cluster membership on local networks (L2).
+  - Nodes automatically find each other via multicast/broadcast
+  - Package name and version scoping ensures only compatible apps join
+  - HMAC authentication using connection config as secret
+  - Soft-state membership with keep-alive and TTL
+  - See `demo/discovery/` for examples
 
 See full field reference in `docs/fields.md`.
 
