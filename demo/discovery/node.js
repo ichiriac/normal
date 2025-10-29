@@ -37,10 +37,14 @@ async function main() {
     process.exit(0);
   }
 
-  // Create connection with discovery configuration
+  // Create connection with discovery and cache configuration
   const conn = new Connection({
     client: 'sqlite3',
     connection: { filename: ':memory:' },
+    cache: {
+      enabled: true, // Enable per-connection cache
+      maxEntries: 2048,
+    },
     discovery: {
       enabled: true,
       discoveryPort: discoveryPort,
@@ -51,11 +55,10 @@ async function main() {
       bootstrapRetries: parseInt(process.env.DISCOVERY_BOOTSTRAP_RETRIES || '10', 10),
       packageName: process.env.DISCOVERY_PACKAGE_NAME || 'normaljs-discovery-demo',
       packageVersion: process.env.DISCOVERY_PACKAGE_VERSION || '1.0.0',
-      versionPolicy:
-        process.env.DISCOVERY_VERSION_POLICY?.split(',').map((s) => s.trim()) || [
-          'major',
-          'minor',
-        ],
+      versionPolicy: process.env.DISCOVERY_VERSION_POLICY?.split(',').map((s) => s.trim()) || [
+        'major',
+        'minor',
+      ],
       fallbackSeeds: process.env.DISCOVERY_FALLBACK_SEEDS
         ? process.env.DISCOVERY_FALLBACK_SEEDS.split(',').map((s) => s.trim())
         : [],
@@ -70,6 +73,11 @@ async function main() {
         console.log(`   TTL: ${member.ttl}ms`);
         if (member.connections && member.connections.length > 0) {
           console.log(`   Connections: ${member.connections.join(', ')}`);
+        }
+        // Cache peers are automatically synced
+        const cache = conn.getCache();
+        if (cache) {
+          console.log(`   Cache Peers: ${cache.clusterPeers.length}`);
         }
         printMembershipSummary(conn.getDiscovery());
       },
@@ -86,6 +94,11 @@ async function main() {
         console.log(`   Node ID: ${member.nodeId}`);
         console.log(`   Address: ${member.addr}:${member.port}`);
         console.log(`   Package: ${member.package}@${member.version}`);
+        // Cache peers are automatically synced
+        const cache = conn.getCache();
+        if (cache) {
+          console.log(`   Cache Peers: ${cache.clusterPeers.length}`);
+        }
         printMembershipSummary(conn.getDiscovery());
       },
 
@@ -95,8 +108,9 @@ async function main() {
     },
   });
 
-  // Get discovery instance
+  // Get discovery and cache instances
   const discovery = conn.getDiscovery();
+  const cache = conn.getCache();
 
   console.log('Starting discovery service...');
   console.log(`  Node ID: ${discovery.nodeId}`);
@@ -104,7 +118,8 @@ async function main() {
   console.log(`  Multicast Group: ${discovery.multicastGroup}`);
   console.log(`  Discovery Port: ${discovery.discoveryPort}`);
   console.log(`  Cache Port: ${discovery.cachePort}`);
-  console.log(`  Connection Hash: ${conn.getConnectionHash()}\n`);
+  console.log(`  Connection Hash: ${conn.getConnectionHash()}`);
+  console.log(`  Cache Enabled: ${cache !== null}\n`);
 
   // Start discovery
   await conn.startDiscovery();
@@ -143,8 +158,11 @@ function printMembershipSummary(discovery) {
     console.log('   ┌─────────────────────────────────────────────────────────────┐');
     members.forEach((m, idx) => {
       const lastSeenAgo = Date.now() - m.lastSeen;
-      const lastSeenStr = lastSeenAgo < 1000 ? 'just now' : `${Math.floor(lastSeenAgo / 1000)}s ago`;
-      console.log(`   │ ${idx + 1}. ${m.addr}:${m.port} (${m.nodeId.substring(0, 8)}) - ${lastSeenStr}`);
+      const lastSeenStr =
+        lastSeenAgo < 1000 ? 'just now' : `${Math.floor(lastSeenAgo / 1000)}s ago`;
+      console.log(
+        `   │ ${idx + 1}. ${m.addr}:${m.port} (${m.nodeId.substring(0, 8)}) - ${lastSeenStr}`
+      );
     });
     console.log('   └─────────────────────────────────────────────────────────────┘');
   }

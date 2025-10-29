@@ -448,7 +448,7 @@ describe('Discovery event handlers', () => {
     expect(leaveHandler).toHaveBeenCalledWith(
       expect.objectContaining({
         nodeId: 'node-leave',
-      }),
+      })
     );
   });
 });

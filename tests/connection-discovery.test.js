@@ -77,7 +77,7 @@ describe('Connection with Discovery', () => {
     const discovery = conn.getDiscovery();
     const connHash = conn.getConnectionHash();
 
-    expect(discovery.connectionHashes).toContain(connHash);
+    expect(discovery.connectionHash).toBe(connHash);
   });
 
   test('getDiscovery respects custom discovery options', () => {

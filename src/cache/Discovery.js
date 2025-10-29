@@ -133,7 +133,7 @@ class Discovery {
     this.versionPolicy = options.versionPolicy || ['major', 'minor'];
     this.fallbackSeeds = options.fallbackSeeds || [];
     this.allowBroadcast = options.allowBroadcast !== false;
-    this.connectionHashes = options.connectionHashes || [];
+    this.connectionHash = options.connectionHash || '';
 
     // Event handlers
     this.onMemberJoin = options.onMemberJoin;
@@ -310,7 +310,7 @@ class Discovery {
       timestamp: timestamp,
       ttl: this.ttl,
       nonce: nonce,
-      connections: this.connectionHashes,
+      connections: this.connectionHash ? [this.connectionHash] : [],
       metadata: {},
     };
 

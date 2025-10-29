@@ -64,11 +64,15 @@ node demo/discovery/node.js
 ### Programmatic Configuration
 
 ```javascript
-const { Connection } = require('normaljs');
+const { Connection, Repository } = require('normaljs');
 
 const conn = new Connection({
   client: 'pg',
   connection: { host: 'localhost', database: 'mydb' },
+  cache: {
+    enabled: true, // Enable per-connection cache
+    maxEntries: 2048,
+  },
   discovery: {
     enabled: true,
     multicastGroup: '239.255.1.1',
@@ -82,14 +86,19 @@ const conn = new Connection({
     versionPolicy: ['major', 'minor'],
     onMemberJoin: (member) => {
       console.log('Member joined:', member);
+      // Cache peers are automatically synced
     },
     onMemberLeave: (member) => {
       console.log('Member left:', member);
+      // Cache peers are automatically synced
     }
   }
 });
 
 await conn.startDiscovery();
+
+// Create repository - it will use the connection's cache
+const repo = new Repository(conn);
 ```
 
 ## How It Works
@@ -100,6 +109,41 @@ await conn.startDiscovery();
 4. **Eviction**: Members not seen within TTL * 1.5 are automatically removed
 5. **Security**: All messages are signed with HMAC-SHA256 using connection config as secret
 6. **Replay Protection**: Messages include timestamp + nonce to prevent replay attacks
+7. **Cache Integration**: Discovered members with matching connection hash are automatically added as cache invalidation peers
+
+### Cache-Discovery Integration
+
+Each connection has its own cache instance and discovery engine. When members are discovered:
+
+- Only members with matching **connection hash** are added as cache peers
+- Connection hash is derived from the database configuration (client + connection details)
+- This ensures nodes connected to the same database can share cache invalidations
+- Nodes connected to different databases maintain separate cache clusters
+
+Example with 2 databases:
+
+```javascript
+// Connection 1: PostgreSQL database 'app1'
+const conn1 = new Connection({
+  client: 'pg',
+  connection: { host: 'localhost', database: 'app1' },
+  cache: { enabled: true },
+  discovery: { enabled: true }
+});
+
+// Connection 2: PostgreSQL database 'app2'
+const conn2 = new Connection({
+  client: 'pg',
+  connection: { host: 'localhost', database: 'app2' },
+  cache: { enabled: true },
+  discovery: { enabled: true }
+});
+
+// conn1 and conn2 will:
+// - Have different connection hashes
+// - Discover all nodes but only sync cache with matching hash
+// - Maintain separate cache clusters even on same network
+```
 
 ## Version Scoping
 

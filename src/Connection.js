@@ -1,6 +1,7 @@
 'use strict';
 const knex = require('knex');
 const { Discovery, hashString } = require('./cache/Discovery');
+const { Cache } = require('./Cache');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
@@ -21,12 +22,15 @@ class Connection {
    * @param {object} [opts.connection]
    * @param {object} [opts.pool]
    * @param {object} [opts.discovery] Discovery options
+   * @param {object} [opts.cache] Cache options
    */
   constructor(opts = {}) {
     this.config = this._buildConfig(opts);
     this._knex = null;
     this._discovery = null;
     this._discoveryOptions = opts.discovery || {};
+    this._cache = null;
+    this._cacheOptions = opts.cache || {};
   }
 
   _buildConfig(opts) {
@@ -102,6 +106,13 @@ class Connection {
       this._discovery.stop();
       this._discovery = null;
     }
+    if (this._cache) {
+      // Stop cache timers
+      if (this._cache._sweepTimer) clearInterval(this._cache._sweepTimer);
+      if (this._cache._metricsTimer) clearInterval(this._cache._metricsTimer);
+      if (this._cache._cluster) this._cache._cluster.stop();
+      this._cache = null;
+    }
     if (this._knex) {
       await this._knex.destroy();
       this._knex = null;
@@ -121,6 +132,30 @@ class Connection {
   }
 
   /**
+   * Get or create cache instance for this connection
+   * @returns {import('./Cache').Cache}
+   */
+  getCache() {
+    if (this._cache) return this._cache;
+
+    // Check if cache is disabled
+    const disabled =
+      this._cacheOptions.enabled === false ||
+      process.env.CACHE_DISABLED === '1' ||
+      process.env.CACHE_DISABLED === 'true';
+    if (disabled) return null;
+
+    // Create cache instance for this connection
+    const cacheOpts = {
+      ...this._cacheOptions,
+      // Discovery integration will be set up separately
+    };
+
+    this._cache = new Cache(cacheOpts);
+    return this._cache;
+  }
+
+  /**
    * Get or create discovery instance
    */
   getDiscovery() {
@@ -130,28 +165,31 @@ class Connection {
     let packageName = 'normaljs';
     let packageVersion = '1.0.0';
 
-    try {
-      // Try to find parent application package.json
-      let currentDir = process.cwd();
-      let found = false;
+    // Only scan filesystem if packageName is not provided in options
+    if (!this._discoveryOptions.packageName) {
+      try {
+        // Try to find parent application package.json
+        let currentDir = process.cwd();
+        let found = false;
 
-      // Search up to 5 levels
-      for (let i = 0; i < 5 && !found; i++) {
-        const pkgPath = path.join(currentDir, 'package.json');
-        if (fs.existsSync(pkgPath)) {
-          try {
-            const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-            // Use parent package if it's not normaljs itself
-            if (pkg.name && pkg.name !== 'normaljs') {
-              packageName = pkg.name;
-              packageVersion = pkg.version || '1.0.0';
-              found = true;
-            }
-          } catch {}
+        // Search up to 5 levels
+        for (let i = 0; i < 5 && !found; i++) {
+          const pkgPath = path.join(currentDir, 'package.json');
+          if (fs.existsSync(pkgPath)) {
+            try {
+              const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+              // Use parent package if it's not normaljs itself
+              if (pkg.name && pkg.name !== 'normaljs') {
+                packageName = pkg.name;
+                packageVersion = pkg.version || '1.0.0';
+                found = true;
+              }
+            } catch {}
+          }
+          currentDir = path.dirname(currentDir);
         }
-        currentDir = path.dirname(currentDir);
-      }
-    } catch {}
+      } catch {}
+    }
 
     // Create discovery secret from connection config
     const configCopy = {
@@ -165,12 +203,57 @@ class Connection {
       packageName: this._discoveryOptions.packageName || packageName,
       packageVersion: this._discoveryOptions.packageVersion || packageVersion,
       secret: secret,
-      connectionHashes: [this.getConnectionHash()],
+      connectionHash: this.getConnectionHash(),
       ...this._discoveryOptions,
+    };
+
+    // Set up event handlers to sync discovered members with cache peers
+    const originalOnMemberJoin = discoveryOpts.onMemberJoin;
+    const originalOnMemberLeave = discoveryOpts.onMemberLeave;
+    const originalOnMemberUpdate = discoveryOpts.onMemberUpdate;
+
+    discoveryOpts.onMemberJoin = (member) => {
+      this._syncCachePeersFromDiscovery();
+      if (originalOnMemberJoin) originalOnMemberJoin(member);
+    };
+
+    discoveryOpts.onMemberLeave = (member) => {
+      this._syncCachePeersFromDiscovery();
+      if (originalOnMemberLeave) originalOnMemberLeave(member);
+    };
+
+    discoveryOpts.onMemberUpdate = (member) => {
+      this._syncCachePeersFromDiscovery();
+      if (originalOnMemberUpdate) originalOnMemberUpdate(member);
     };
 
     this._discovery = new Discovery(discoveryOpts);
     return this._discovery;
+  }
+
+  /**
+   * Sync cache cluster peers from discovered members
+   * @private
+   */
+  _syncCachePeersFromDiscovery() {
+    if (!this._cache || !this._discovery) return;
+
+    const members = this._discovery.getMembers();
+    const peers = members
+      .filter((m) => {
+        // Only include members with matching connection hash
+        return m.connections && m.connections.includes(this.getConnectionHash());
+      })
+      .map((m) => ({
+        host: m.addr,
+        port: m.port,
+      }));
+
+    // Update cache cluster peers
+    this._cache.clusterPeers = peers;
+    if (this._cache._cluster) {
+      this._cache._cluster.peers = peers;
+    }
   }
 
   /**
@@ -180,6 +263,8 @@ class Connection {
     const discovery = this.getDiscovery();
     if (discovery.enabled) {
       await discovery.start();
+      // Initial sync of cache peers
+      this._syncCachePeersFromDiscovery();
     }
   }
 }
