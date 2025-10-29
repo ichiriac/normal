@@ -10,7 +10,7 @@ class CollectionWrapper {
   constructor(record, field) {
     this.record = record;
     this.field = field;
-    this.cache = record._data[field.name] || [];
+    this.cache = record._data[field.columns] || [];
   }
 
   /**
@@ -126,16 +126,16 @@ class ManyToMany extends Field {
     if (!record[CollectionSymbol]) {
       record[CollectionSymbol] = new Map();
     }
-    if (!record[CollectionSymbol].has(this.name)) {
-      record[CollectionSymbol].set(this.name, new CollectionWrapper(record, this));
+    if (!record[CollectionSymbol].has(this.column)) {
+      record[CollectionSymbol].set(this.column, new CollectionWrapper(record, this));
     }
-    return record[CollectionSymbol].get(this.name);
+    return record[CollectionSymbol].get(this.column);
   }
 
   async post_create(record) {
     await super.post_create(record);
-    const ids = record._data[this.name];
-    record._data[this.name] = [];
+    const ids = record._data[this.column];
+    record._data[this.column] = [];
     if (ids && Array.isArray(ids) && ids.length > 0) {
       const collection = this.read(record);
       await Promise.all(ids.map((id) => collection.add(id)));

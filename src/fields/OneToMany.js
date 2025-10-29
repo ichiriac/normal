@@ -57,8 +57,8 @@ class OneToMany extends Field {
       const relatedRecords = this.refModel.where(where);
 
       relatedRecords.then((records) => {
-        delete record._changes[this.name];
-        record._data[this.name] = records;
+        delete record._changes[this.column];
+        record._data[this.column] = records;
       });
       return relatedRecords;
     }
@@ -96,7 +96,7 @@ class OneToMany extends Field {
    */
   async post_create(record) {
     await super.post_create(record);
-    const relatedRecords = record._changes[this.name] || record._data[this.name];
+    const relatedRecords = record._changes[this.column] || record._data[this.column];
     if (relatedRecords && Array.isArray(relatedRecords)) {
       const batchInsert = [];
       for (const relatedRecord of relatedRecords) {
