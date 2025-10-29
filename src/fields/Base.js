@@ -344,6 +344,9 @@ class Field {
     if (!this.stored) return null;
     const column = this.getColumnDefinition(table);
     if (!column) return null;
+    if (this.definition.description) {
+      column.comment(this.definition.description);
+    }
     if (this.definition.required) {
       column.notNullable();
     } else {

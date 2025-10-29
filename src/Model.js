@@ -98,6 +98,7 @@ class Model {
     constructor(repo, name, table = null) {
         this.repo = repo;
         this.name = name;
+        this.description = '';
         this.table = table ? table : _inferTable(name);
         this.fields = {};
         this.cls_init = false;
@@ -157,6 +158,9 @@ class Model {
             } else {
                 this.cacheTTL = Number.parseInt(MixinClass.cache, 10);
             }
+        }
+        if (MixinClass.hasOwnProperty('description')) {
+            this.description = MixinClass.description;
         }
         if (MixinClass.inherits) {
             if (this.inherits && this.inherits !== MixinClass.inherits) {
