@@ -118,7 +118,7 @@ async function main() {
   const statusInterval = setInterval(() => {
     printMembershipSummary(discovery);
   }, 15000);
-  statusInterval.unref?.();
+  if (statusInterval.unref) statusInterval.unref();
 
   // Graceful shutdown
   process.on('SIGINT', async () => {
@@ -129,8 +129,11 @@ async function main() {
     process.exit(0);
   });
 
-  // Keep the process running
-  await new Promise(() => {});
+  // Keep the process running indefinitely
+  await new Promise(() => {
+    // This promise never resolves - keeps the process alive
+    // until SIGINT (Ctrl+C) is received
+  });
 }
 
 function printMembershipSummary(discovery) {
