@@ -144,6 +144,11 @@ class Repository {
       this.models[name] = new Model(this, name, ModelClass.table);
     }
     this.models[name].extends(ModelClass);
+    if (!this.hasOwnProperty(name)) {
+      Object.defineProperty(this, name, {
+        get: () => this.models[name],
+      });
+    }
     return this.models[name];
   }
 

@@ -39,6 +39,29 @@ class Record {
   }
 
   /**
+   * Gets a model instance by name.
+   * @param {string} name - The name of the model.
+   * @returns {Model} The model instance.
+   */
+  getModel(name) {
+    return this._model.repo.get(name);
+  }
+
+  /**
+   * Gets the definition of a field by name.
+   * @param {string} fieldName - The name of the field.
+   * @returns {Field} The field definition.
+   * @throws {Error} If the field does not exist.
+   */
+  getField(name) {
+    if (this._model.fields.hasOwnProperty(name)) {
+      const field = this._model.fields[name];
+      return field.get(this);
+    } else {
+      throw new Error(`Field ${name} does not exist on model ${this._model.name}`);
+    }
+  }
+  /**
    * Convert the record to a JSON object (including parent data if applicable).
    */
   toJSON() {

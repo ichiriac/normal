@@ -83,10 +83,10 @@ class Request {
 
   /**
    * Enables caching for this request with the specified TTL (in milliseconds).
-   * @param {number} ttl - Time to live in milliseconds.
+   * @param {number} ttl - Time to live in seconds.
    * @returns {Request} The current Request instance for chaining.
    */
-  cache(ttl) {
+  cache(ttl = 5) {
     this.queryBuilder._cacheTTL = ttl;
     return this;
   }
