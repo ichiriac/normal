@@ -81,8 +81,31 @@ class Request {
     return this.queryBuilder.toSQL(...args);
   }
 
+  /**
+   * Enables caching for this request with the specified TTL (in milliseconds).
+   * @param {number} ttl - Time to live in milliseconds.
+   * @returns {Request} The current Request instance for chaining.
+   */
   cache(ttl) {
     this.queryBuilder._cacheTTL = ttl;
+    return this;
+  }
+
+  /**
+   * Includes related models in the query results.
+   * @param {string|string[]} relations - The relation(s) to include.
+   * @returns {Request} The current Request instance for chaining.
+   */
+  include(relations) {
+    if (!this.queryBuilder._includeRelations) {
+      this.queryBuilder._includeRelations = new Set();
+    }
+    if (!Array.isArray(relations)) {
+      relations = [relations];
+    }
+    for(const rel of relations) {
+      this.queryBuilder._includeRelations.add(rel);
+    }
     return this;
   }
 
@@ -127,7 +150,8 @@ class Request {
     );
     if (hasColumns) return;
     if (this.model.cache) {
-      qb.select(this.model && this.model.table ? `${this.model.table}.id` : 'id');
+      const id = this.model.primaryField?.column || 'id';
+      qb.select(`${this.model.table}.${id}`);
     } else {
       qb.select(this.model.columns);
     }
@@ -146,6 +170,23 @@ class Request {
     };
 
     if (Array.isArray(value)) {
+      if (this.queryBuilder._includeRelations && this.queryBuilder._includeRelations.size > 0) {
+        const includeRelations = Array.from(this.queryBuilder._includeRelations);
+        const loadIncludes = async (rows, relations) => {
+          const loaders = [];
+          for (const relationName of relations) {
+            const relation = this.model.fields[relationName];
+            if (!relation) {
+              throw new Error(`Relation '${relationName}' not found on model '${this.model.name}'`);
+            }
+            loaders.push(relation.loadForRows(rows));
+          }
+          return await Promise.all(loaders);
+        };
+        return Promise.resolve(value.map(wrapRow)).then((wrappedRows) => {
+          return loadIncludes(wrappedRows, includeRelations).then(() => wrappedRows);
+        });
+      }
       return Promise.all(value.map(wrapRow));
     }
     return wrapRow(value);

@@ -12,16 +12,16 @@ class Primary extends Field {
    * @returns
    */
   write(record, value) {
-    if (record._data[this.name]) {
+    if (record._data[this.column]) {
       throw new Error(`Cannot modify primary key field ${this.name}`);
     }
-    record._data[this.name] = value;
+    record._data[this.column] = value;
     this.model.entities.set(value, record);
     return record;
   }
 
   read(record) {
-    return record._data[this.name];
+    return record._data[this.column];
   }
 
   getMetadata() {

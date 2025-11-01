@@ -88,64 +88,106 @@ function _inferTable(name) {
 }
 
 class Model {
-  /**
-   * A model representation.
-   * @param {*} repo
-   * @param {*} name
-   * @param {*} table
-   * @param {*} fields
-   */
-  constructor(repo, name, table = null) {
-    this.repo = repo;
-    this.name = name;
-    this.table = table ? table : _inferTable(name);
-    this.fields = {};
-    this.cls_init = false;
-    this.cls = class ActiveRecord extends Record {};
-    this.abstract = false;
-    this.inherited = [];
-    this.mixins = new Set();
-    this.inherits = null;
-    this.super = null;
-    this.refField = null;
-    this.primaryField = null;
-    this.cacheTTL = null;
-    this.indexes = [];
-    this.entities = new Map();
-    this._lookup = new LookupIds(this);
-    this.inheritField = null;
-    this.columns = [];
-    this.events = new EventEmitter();
-  }
-  /**
-   * Returns the discriminator field if configured on this model (parent in an inheritance tree).
-   */
-  _getDiscriminatorField() {
-    if (this.refField && this.refField.isDiscriminator) return this.refField;
-    const f = Object.values(this.fields).find((x) => x && x.isDiscriminator);
-    return f || null;
-  }
+    /**
+     * A model representation.
+     * @param {*} repo
+     * @param {*} name
+     * @param {*} table
+     * @param {*} fields
+     */
+    constructor(repo, name, table = null) {
+        this.repo = repo;
+        this.name = name;
+        this.description = '';
+        this.table = table ? table : _inferTable(name);
+        this.fields = {};
+        this.cls_init = false;
+        this.cls = class ActiveRecord extends Record { };
+        this.abstract = false;
+        this.inherited = [];
+        this.mixins = new Set();
+        this.inherits = null;
+        this.super = null;
+        this.refField = null;
+        this.primaryField = null;
+        this.cacheTTL = null;
+        this.indexes = [];
+        this.entities = new Map();
+        this._lookup = new LookupIds(this);
+        this.inheritField = null;
+        this.columns = [];
+        this.events = new EventEmitter();
+    }
+    /**
+     * Returns the discriminator field if configured on this model (parent in an inheritance tree).
+     */
+    _getDiscriminatorField() {
+        if (this.refField && this.refField.isDiscriminator) return this.refField;
+        const f = Object.values(this.fields).find((x) => x && x.isDiscriminator);
+        return f || null;
+    }
 
-  /**
-   * Hook to listen to model-level events.
-   * @param {*} event
-   * @param {*} listener
-   * @returns
-   */
-  on(event, listener) {
-    this.events.on(event, listener);
-    return this;
-  }
+    /**
+     * Hook to listen to model-level events.
+     * @param {*} event
+     * @param {*} listener
+     * @returns
+     */
+    on(event, listener) {
+        this.events.on(event, listener);
+        return this;
+    }
 
-  /**
-   * Extend this model with a mixin class and additional fields.
-   * @param {*} MixinClass
-   * @param {*} fields
-   */
-  extends(MixinClass) {
-    if (this.cls_init) {
-      this.cls_init = false; // re-initialize
-      this.entities.clear(); // clear existing entities
+    /**
+     * Extend this model with a mixin class and additional fields.
+     * @param {*} MixinClass
+     * @param {*} fields
+     */
+    extends(MixinClass) {
+        if (this.cls_init) {
+            this.cls_init = false; // re-initialize
+            this.entities.clear(); // clear existing entities
+        }
+        this.inherited.push(MixinClass);
+        if (MixinClass.fields) {
+            Object.assign(this.fields, MixinClass.fields);
+        }
+        if (MixinClass.hasOwnProperty('cache')) {
+            if (MixinClass.cache === true) {
+                this.cacheTTL = 300; // 5 minutes default
+            } else {
+                this.cacheTTL = Number.parseInt(MixinClass.cache, 10);
+            }
+        }
+        if (MixinClass.hasOwnProperty('description')) {
+            this.description = MixinClass.description;
+        }
+        if (MixinClass.inherits) {
+            if (this.inherits && this.inherits !== MixinClass.inherits) {
+                throw new Error(
+                    'Model already inherits from ' +
+                    this.inherits +
+                    ', cannot inherit from ' +
+                    MixinClass.inherits +
+                    ' as well.'
+                );
+            }
+            this.inherits = MixinClass.inherits;
+            if (MixinClass.inheritField) {
+                this.inheritField = MixinClass.inheritField;
+            }
+        }
+        if (MixinClass.abstract) {
+            this.abstract = true;
+        }
+        if (MixinClass.mixins) {
+            MixinClass.mixins.forEach((mix) => {
+                this.mixins.add(mix);
+            });
+        }
+        if (typeof MixinClass === 'function') {
+            extendModel(this, MixinClass);
+        }
     }
     this.inherited.push(MixinClass);
     if (MixinClass.fields) {

@@ -6,6 +6,7 @@ class Models {
   static table = 'sys_models';
   static fields = {
     name: { type: 'string', unique: true, required: true },
+    description: { type: 'string', required: false },
     table: { type: 'string', required: true, unique: true },
     fields: { type: 'json', required: true },
     inherits: { type: 'string', required: false },
@@ -126,6 +127,9 @@ async function Synchronize(repository, options) {
       const fields = {};
       // synchronize fields
       await transaction.cnx.schema[method](model.table, (table) => {
+        if (model.description) {
+          table.comment(model.description);
+        }
         for (const field of Object.values(model.fields)) {
           let colChange = field.buildColumn(
             table,
@@ -153,6 +157,7 @@ async function Synchronize(repository, options) {
       if (changed) {
         const data = {
           name: name,
+          description: model.description || '',
           table: model.table,
           fields: fields,
           inherits: model.inherits || null,
