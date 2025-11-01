@@ -11,10 +11,12 @@ Build data-rich apps with clean models, powerful relations, and first-class DX. 
 
 ## Why NormalJS ?
 
-- Simple: minimal surface area. Define models with a static `fields` object and go.
+- Simple: minimal surface area. Define models with a static `fields` object and go
+- Transaction first, fully isolated
+- Advanced caching, centralized memory accross child processes, with clusting support over UDP
 - Powerful: many-to-many via join tables, transactions, model mixins/extension, relation proxies.
 - Productive: active records you can call methods on; defaults and lightweight ID-first queries out of the box.
-- Portable: works with Postgres and SQLite (in-memory for tests). Uses Knex under the hood.
+- Portable: works with Postgres, SQLite. Uses Knex under the hood.
 
 ## Install
 
@@ -116,6 +118,7 @@ See full field reference in `docs/fields.md`.
 
 - `docs/requests.md` — Request API, criteria DSL, and request-level caching.
 - `docs/cache.md` — Cache architecture, connection options, discovery, and model cache options.
+ - `docs/custom-fields.md` — In-depth custom fields with hooks and a file-storage example.
 
 ## Demo
 
