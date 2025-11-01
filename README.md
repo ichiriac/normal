@@ -112,6 +112,11 @@ console.log(u.name); // "Ada Lovelace"
 
 See full field reference in `docs/fields.md`.
 
+### More docs
+
+- `docs/requests.md` — Request API, criteria DSL, and request-level caching.
+- `docs/cache.md` — Cache architecture, connection options, discovery, and model cache options.
+
 ## Demo
 
 Explore `demo/` for a working blog schema (Users, Posts, Tags, Comments) and a CRM and Stocks example.
