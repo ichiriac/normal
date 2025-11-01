@@ -1,9 +1,7 @@
 /**
  * Shared Memory Cache Implementation
  *
- * Uses either:
- * - FixedSlots: direct-mapped fixed-size entries stored in SharedArrayBuffer
- * - ArenaStore: variable-length storage with BlockArena
+ * Uses a variable-length ArenaStore for storage with BlockArena
  *
  * Cluster invalidation and metrics are delegated to dedicated modules.
  *
@@ -15,9 +13,7 @@
  */
 /**
  * @typedef {Object} CacheOptions
- * @property {number} [maxEntries=4096] Max hash slots for the FixedSlots engine (ignored in arena mode)
- * @property {number} [entrySize=512] Bytes per fixed-slot entry (including header+payload). Ignored in arena mode
- * @property {boolean} [variableArena=false] Use variable-length ArenaStore when true; otherwise FixedSlots
+ * @property {boolean} [variableArena] Deprecated, ignored. ArenaStore is always used.
  * @property {number} [memoryBytes=67108864] Arena: total bytes to allocate for the arena
  * @property {number} [blockSize=1024] Arena: block size in bytes used to chain variable-length values
  * @property {number} [dictCapacity=8192] Arena: initial dictionary capacity (number of keys)
@@ -30,7 +26,6 @@
  * @property {number} [metricsLogIntervalMs] If set, periodically logs metrics every N milliseconds
  */
 const { ArenaStore } = require('./cache/ArenaStore');
-const { FixedSlots } = require('./cache/FixedSlots');
 const { ClusterTransport, parsePeers } = require('./cache/Cluster');
 const { CacheMetrics } = require('./cache/Metrics');
 
@@ -46,11 +41,9 @@ class SharedMemoryCache {
    * @param {CacheOptions} [options]
    */
   constructor(options = {}) {
-    // Basic sizing
-    this.maxEntries = options.maxEntries || 4096;
-    this.entrySize = options.entrySize || 512;
-    this.headerSize = 64;
-
+    // Expose a compatibility property when provided by callers/tests
+    // Note: ArenaStore doesn't use fixed max entries; this is retained only for tests/options pass-through.
+    this.maxEntries = options.maxEntries;
     // Cluster config
     this.clusterPeers = parsePeers(options.cluster, options.port || options.listenPort || 1983);
     this.listenPort = options.port || options.listenPort || 1983;
@@ -59,21 +52,12 @@ class SharedMemoryCache {
     // Metrics
     this._metrics = new CacheMetrics(options.metrics !== false);
 
-    // Storage engine selection
-    this.arena = options.variableArena
-      ? new ArenaStore({
-          memoryBytes: options.memoryBytes || 64 * 1024 * 1024,
-          blockSize: options.blockSize || 1024,
-          dictCapacity: options.dictCapacity || 8192,
-        })
-      : null;
-    if (!this.arena) {
-      this.fixed = new FixedSlots({
-        maxEntries: this.maxEntries,
-        entrySize: this.entrySize,
-        headerSize: this.headerSize,
-      });
-    }
+    // Storage engine: always ArenaStore
+    this.arena = new ArenaStore({
+      memoryBytes: options.memoryBytes || 64 * 1024 * 1024,
+      blockSize: options.blockSize || 1024,
+      dictCapacity: options.dictCapacity || 8192,
+    });
 
     // Cluster transport (inbound + outbound batching)
     this._cluster = new ClusterTransport({
@@ -86,19 +70,17 @@ class SharedMemoryCache {
       onFlush: (count) => this._metrics.onUdpFlush(count),
     });
 
-    // Background sweeper (arena only)
+    // Background sweeper
     this._sweepTimer = null;
-    if (this.arena) {
-      const sweepEveryMs = options.sweepIntervalMs || 250;
-      const sweepChecks = options.sweepChecks || 512;
-      this._sweepTimer = setInterval(() => {
-        try {
-          const res = this.arena.sweep(sweepChecks);
-          this._metrics.onSweep(res);
-        } catch (_) {}
-      }, sweepEveryMs);
-      this._sweepTimer.unref?.();
-    }
+    const sweepEveryMs = options.sweepIntervalMs || 250;
+    const sweepChecks = options.sweepChecks || 512;
+    this._sweepTimer = setInterval(() => {
+      try {
+        const res = this.arena.sweep(sweepChecks);
+        this._metrics.onSweep(res);
+      } catch (_) { }
+    }, sweepEveryMs);
+    this._sweepTimer.unref?.();
 
     // Optional periodic metrics logging
     if (this._metrics.enabled && options.metricsLogIntervalMs) {
@@ -113,8 +95,7 @@ class SharedMemoryCache {
 
   /**
    * Store a value with a time-to-live.
-   * In arena mode, values can be arbitrary JSON-serializable objects.
-   * In fixed-slot mode, values are serialized to JSON under the hood.
+  * Values can be arbitrary JSON-serializable objects.
    *
    * On success, schedules an invalidation broadcast to cluster peers.
    *
@@ -126,16 +107,7 @@ class SharedMemoryCache {
   set(key, value, ttl = 300) {
     const m = this._metrics;
     const t0 = m.setStart();
-    if (this.arena) {
-      const ok = this.arena.put(String(key), value, Math.max(1, Math.floor(ttl)));
-      if (ok) this._cluster.queue(String(key));
-      m.setEnd(t0);
-      return ok;
-    }
-    const expires = Date.now() + ttl * 1000;
-    const entry = { key, value, expires };
-    const serialized = JSON.stringify(entry);
-    const ok = this.fixed.putSerialized(String(key), serialized);
+    const ok = this.arena.put(String(key), value, Math.max(1, Math.floor(ttl)));
     if (ok) this._cluster.queue(String(key));
     m.setEnd(t0);
     return ok;
@@ -149,31 +121,13 @@ class SharedMemoryCache {
   get(key) {
     const m = this._metrics;
     const t0 = m.getStart();
-    if (this.arena) {
-      const out = this.arena.get(String(key));
-      if (out == null) {
-        m.getMiss(t0);
-        return null;
-      }
-      m.getHit(t0);
-      return out;
-    }
-    const serialized = this.fixed.readSerialized(String(key));
-    if (serialized == null) {
+    const out = this.arena.get(String(key));
+    if (out == null) {
       m.getMiss(t0);
       return null;
     }
-    try {
-      const entry = JSON.parse(serialized);
-      if (entry.key === key && entry.expires > Date.now()) {
-        m.getHit(t0);
-        return entry.value;
-      }
-    } catch (_) {
-      /* ignore */
-    }
-    m.getMiss(t0);
-    return null;
+    m.getHit(t0);
+    return out;
   }
 
   /**
@@ -182,11 +136,7 @@ class SharedMemoryCache {
    * @returns {void}
    */
   clear() {
-    if (this.arena) {
-      this.arena.clear();
-    } else {
-      this.fixed.clear();
-    }
+    this.arena.clear();
   }
 
   /**
@@ -197,12 +147,7 @@ class SharedMemoryCache {
    */
   expire(key, broadcast = false) {
     this._metrics.incExpire();
-    if (this.arena) {
-      this.arena.delete(String(key));
-      if (broadcast) this._cluster.queue(String(key));
-      return;
-    }
-    this.fixed.expireKey(String(key));
+    this.arena.delete(String(key));
     if (broadcast) this._cluster.queue(String(key));
   }
 

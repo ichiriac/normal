@@ -221,6 +221,17 @@ class Model {
   }
 
   /**
+   * Updates the cache invalidation marker for this model.
+   * @returns 
+   */
+  invalidateCache() {
+    if (this.cache) {
+      this.cache.set('$' + this.name, Date.now(), 300);
+    }
+    return this;
+  }
+
+  /**
    * Create a new query request.
    * @returns Request
    */

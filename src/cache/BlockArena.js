@@ -54,6 +54,9 @@ class BlockArena {
     this.BHDR_BYTES = 8;
     this.BDATA_OFF = this.BHDR_BYTES;
     this.BDATA_BYTES = this.blockSize - this.BHDR_BYTES;
+    // Reusable text encoder/decoder to avoid reallocation per op
+    this._encoder = new TextEncoder();
+    this._decoder = new TextDecoder();
   }
 
   // Public API
@@ -413,22 +416,26 @@ class BlockArena {
     return i * this.blockSize;
   }
   _blockNext(i) {
+    if (i < 0 || i >= this.totalBlocks) return -1;
     return this.blocksView.getInt32(this._blockOff(i) + 0, true);
   }
   _blockSetNext(i, v) {
     this.blocksView.setInt32(this._blockOff(i) + 0, v, true);
   }
   _blockUsed(i) {
+    if (i < 0 || i >= this.totalBlocks) return 0;
     return this.blocksView.getUint16(this._blockOff(i) + 4, true);
   }
   _blockSetUsed(i, v) {
     this.blocksView.setUint16(this._blockOff(i) + 4, v, true);
   }
   _blockWriteData(i, bytes) {
+    if (i < 0 || i >= this.totalBlocks) return;
     const base = this._blockOff(i) + this.BDATA_OFF;
     new Uint8Array(this.blocksView.buffer, base, bytes.length).set(bytes);
   }
   _blockReadData(i, out, off, n) {
+    if (i < 0 || i >= this.totalBlocks) return;
     const base = this._blockOff(i) + this.BDATA_OFF;
     const src = new Uint8Array(this.blocksView.buffer, base, n);
     out.set(src, off);
@@ -443,10 +450,10 @@ class BlockArena {
 
   // Utils
   _encode(s) {
-    return new TextEncoder().encode(s);
+    return this._encoder.encode(s);
   }
   _decode(b) {
-    return new TextDecoder().decode(b);
+    return this._decoder.decode(b);
   }
   _nextPow2(n) {
     return 1 << (32 - Math.clz32(n - 1));

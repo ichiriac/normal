@@ -185,10 +185,22 @@ class Repository {
       }
     }
     const trx = await this.cnx.transaction(config);
+    const parentConnection = this.connection;
     const txRepo = new Repository({
       instance: trx,
       transactional: true,
       config: this.connection.config,
+      // Provide accessors to shared services like cache/discovery from parent connection
+      getCache() {
+        return typeof parentConnection.getCache === 'function'
+          ? parentConnection.getCache()
+          : null;
+      },
+      getDiscovery() {
+        return typeof parentConnection.getDiscovery === 'function'
+          ? parentConnection.getDiscovery()
+          : null;
+      },
     });
     let result;
     // Re-register models with the same metadata
