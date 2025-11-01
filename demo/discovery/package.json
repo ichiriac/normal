@@ -1,0 +1,11 @@
+{
+  "name": "normaljs-discovery-demo",
+  "version": "1.0.0",
+  "description": "Demo of NormalJS UDP-based discovery protocol",
+  "private": true,
+  "main": "node.js",
+  "scripts": {
+    "start": "DISCOVERY_ENABLED=1 node node.js",
+    "start:debug": "DISCOVERY_ENABLED=1 NORMAL_DISCOVERY_DEBUG=1 node node.js"
+  }
+}
