@@ -172,6 +172,7 @@ See full field reference in `docs/fields.md`.
 - `docs/requests.md` — Request API, criteria DSL, and request-level caching.
 - `docs/cache.md` — Cache architecture, connection options, discovery, and model cache options.
 - `docs/custom-fields.md` — In-depth custom fields with hooks and a file-storage example.
+- `docs/adoption-sequelize.md` — Step-by-step migration guide from Sequelize.
 
 ## Demo
 
