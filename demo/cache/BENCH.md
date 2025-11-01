@@ -1,15 +1,10 @@
-# Cache Benchmark (demo/cache-bench)
+# Cache Benchmark (demo/cache)
 
-This micro-benchmark evaluates the in-process shared cache in two modes:
-
-- Fixed-slot mode: direct-mapped slots of fixed size per entry
-- Arena mode: variable-length string store (BlockArena) with an open-addressed dictionary and fixed-size blocks
-
-It uses the cache’s built-in metrics to report throughput, latency, counts, and memory deltas.
+This micro-benchmark evaluates the in-process shared cache in Arena mode (BlockArena-backed, variable-length store) and reports throughput, latency, counts, and memory deltas. Fixed-slot mode has been removed from the project.
 
 ## What it measures
 
-For each scenario (mode + parameters):
+For each Arena scenario (parameters):
 
 - Warm-up: Pre-fills the cache with N keys
 - Timed workload:
@@ -23,6 +18,8 @@ For each scenario (mode + parameters):
 
 No network invalidation is used (no peers), so UDP metrics remain zero.
 
+For a broader comparison of “No Cache” vs “With Cache (Arena)”, use the interactive demo in `demo/cache/index.js`, which runs two child processes: one with caching disabled and one with the Arena cache enabled, and summarizes elapsed time and query counts.
+
 ## Scenarios and tunables
 
 Environment variables (with defaults):
@@ -32,10 +29,9 @@ Environment variables (with defaults):
 - BENCH_GET_OPS: number of get operations (default: 100000)
 - BENCH_PAYLOADS: comma-separated payload sizes in bytes (default: `64,512,1024,4096`)
 
-Each payload size runs three scenarios:
+Each payload size runs two scenarios:
 
-- Fixed-slot mode: `maxEntries = BENCH_ENTRIES`, `entrySize` ≈ `payload * 2 + 256`
-- Arena mode (1KB blocks): `variableArena = true`, `memoryBytes = 64MB`, `blockSize = 1024`, `dictCapacity ≈ nextPow2(entries * 2)`
+- Arena mode (1KB blocks): `memoryBytes = 64MB`, `blockSize = 1024`, `dictCapacity ≈ nextPow2(entries * 2)`
 - Arena mode (512B blocks): same as above, but `blockSize = 512`
 
 You can tweak `memoryBytes`, `blockSize`, `dictCapacity`, `sweepIntervalMs`, and `sweepChecks` in `bench.js` or by forking the scenarios.
@@ -52,14 +48,6 @@ You can tweak `memoryBytes`, `blockSize`, `dictCapacity`, `sweepIntervalMs`, and
 Example collected on the dev container (Linux, Node.js) with:
 
 - `BENCH_ENTRIES=2000 BENCH_SET_OPS=2000 BENCH_GET_OPS=4000 BENCH_PAYLOADS=64`
-
-Fixed-slot (entrySize=512):
-
-- elapsed: ~0.029 s
-- throughput: ~209k ops/s (set ~70k/s, get ~139k/s)
-- latency (us): avgSet ~4, avgGet ~4, maxSet ~2104, maxGet ~1342
-- counts: set 2000, get 4000, hit 1970, miss 2030
-- memory Δ: rss ~10.6–11.1 MB, small heap change
 
 Arena (block=1024B, dict=4096):
 
@@ -79,16 +67,11 @@ Arena (block=512B, dict=4096):
 
 ## Interpreting the results
 
-- Throughput and latency: Both modes exhibit very low per-op latency (single-digit microseconds on these runs) and high throughput.
-- Fixed-slot misses: The fixed-slot mode is a direct-mapped cache (one slot per hash index). With many keys and no collision resolution, misses can be high due to collisions, as reflected in the sample hit/miss counts.
+- Throughput and latency: Arena exhibits very low per-op latency (single-digit microseconds on these runs) and high throughput.
 - Arena memory usage: Arena reserves `memoryBytes` in a SharedArrayBuffer; RSS delta roughly reflects this reservation.
 - Arena hit rate: The arena store now automatically rehashes (doubles dictionary capacity) on insertion failures, which restores a high hit-rate under load. You can still start with a larger `dictCapacity` (e.g., ≥ 2–4× entries) to avoid rehash pauses. Ensure `memoryBytes` is large enough to accommodate both the dictionary and data blocks.
 
 ## Tuning tips
-
-- Fixed-slot mode:
-  - Increase `entrySize` if JSON entries approach the limit; entries that don’t fit return false on set.
-  - Expect higher collision rates at larger `maxEntries` without an associativity strategy.
 
 - Arena mode:
   - Prefer `dictCapacity >= 2×` to `4×` the number of live keys to reduce probe chains and insertion failures; auto-rehash will kick in if it’s too small.
@@ -99,7 +82,6 @@ Arena (block=512B, dict=4096):
 
 ## Known limitations (prototype)
 
-- Fixed-slot mode is direct-mapped (no LRU/associativity), so it’s sensitive to hash collisions.
 - Arena mode dictionary behavior under high load still needs tuning. If you observe low hit rates:
   - Raise `dictCapacity` (≥ 4× entries)
   - Verify keys/values fit: extremely large values require more blocks and can exhaust the free list

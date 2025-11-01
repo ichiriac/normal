@@ -1,7 +1,7 @@
 'use strict';
 
-// Micro-benchmark for SharedMemoryCache using built-in metrics
-// Scenarios compare fixed-slot mode vs BlockArena variable-length mode across payload sizes.
+// Micro-benchmark for SharedMemoryCache (ArenaStore) using built-in metrics
+// Compares Arena configurations across payload sizes. Fixed-slot mode has been removed.
 
 const { Cache } = require('../../src/Cache');
 
@@ -108,21 +108,10 @@ async function main() {
     .filter(Boolean);
 
   for (const payloadSize of payloads) {
-    // Fixed-slot mode: size big enough to hold JSON entry comfortably.
-    const entrySize = Math.max(512, payloadSize * 2 + 256);
-    await runScenario(`fixed-slot entrySize=${entrySize}`, {
-      cacheOptions: { maxEntries: entries, entrySize, metrics: true },
-      entries,
-      payloadSize,
-      setOps,
-      getOps,
-    });
-
     // Arena mode with 1KB blocks
     const dictCapacity = nextPow2(entries * 2);
     await runScenario(`arena block=1024B dict=${dictCapacity}`, {
       cacheOptions: {
-        variableArena: true,
         memoryBytes: 64 * 1024 * 1024,
         blockSize: 1024,
         dictCapacity,
@@ -139,7 +128,6 @@ async function main() {
     // Arena mode with 512B blocks (potentially denser for small payloads)
     await runScenario(`arena block=512B dict=${dictCapacity}`, {
       cacheOptions: {
-        variableArena: true,
         memoryBytes: 64 * 1024 * 1024,
         blockSize: 512,
         dictCapacity,

@@ -1,7 +1,5 @@
 'use strict';
 
-const RESULT_METHODS = new Set(['select']);
-
 class Request {
   constructor(model, queryBuilder) {
     this.model = model;
@@ -42,8 +40,10 @@ class Request {
 
   then(onFulfilled, onRejected) {
     const wrap = this._shouldWrapResults();
-    if (wrap && this.model.cache && this.queryBuilder._cacheTTL != null) {
-      const item = this.model.cache.get(this._getRequestKey());
+    const cache = this.model.cache;
+    if (wrap && cache && this.queryBuilder._cacheTTL != null) {
+      const modelEvictTs = cache.get('$' + this.model.name) || null;
+      const item = cache.get(this._getRequestKey(), modelEvictTs || undefined);
       if (item) {
         return this._wrapResult(item).then(onFulfilled, onRejected);
       }
@@ -53,8 +53,9 @@ class Request {
       if (!wrap) {
         return onFulfilled ? onFulfilled(value) : value;
       }
-      if (this.model.cache && this.queryBuilder._cacheTTL != null) {
-        this.model.cache.set(this._getRequestKey(), value, this.queryBuilder._cacheTTL);
+      if (cache && this.queryBuilder._cacheTTL != null) {
+        const ttlSec = Math.max(1, this.queryBuilder._cacheTTL);
+        cache.set(this._getRequestKey(), value, ttlSec);
       }
       return this._wrapResult(value).then((wrapped) => {
         if (onFulfilled) {
@@ -82,7 +83,7 @@ class Request {
   }
 
   /**
-   * Enables caching for this request with the specified TTL (in milliseconds).
+   * Enables caching for this request with the specified TTL (in seconds).
    * @param {number} ttl - Time to live in seconds.
    * @returns {Request} The current Request instance for chaining.
    */
@@ -103,7 +104,7 @@ class Request {
     if (!Array.isArray(relations)) {
       relations = [relations];
     }
-    for(const rel of relations) {
+    for (const rel of relations) {
       this.queryBuilder._includeRelations.add(rel);
     }
     return this;

@@ -163,14 +163,14 @@ class Record {
       // run pre-update hooks
       const pre_update = [];
       await this.pre_update();
-      for(let field of Object.values(this._model.fields)) {
+      for (let field of Object.values(this._model.fields)) {
         pre_update.push(field.pre_update(this));
       }
       await Promise.all(pre_update);
 
       // construct update object
       const update = {};
-      for(let field of Object.values(this._model.fields)) {
+      for (let field of Object.values(this._model.fields)) {
         if (field.stored === false) continue;
         field.validate(this);
         if (this._changes.hasOwnProperty(field.column)) {
@@ -178,7 +178,6 @@ class Record {
         }
       }
 
-      
       // perform update on database
       if (Object.keys(update).length > 0) {
         await this._model.query().where({ id: this.id }).update(update);
@@ -193,7 +192,7 @@ class Record {
       this._flushed = true;
 
       // update cache
-      if (this._model.cache && !this._model.repo.connection.transactional) {
+      if (this._model.cache) {
         this._model.cache.set(
           this._model.name + ':' + this.id,
           this.toRawJSON(),
@@ -202,26 +201,65 @@ class Record {
       }
 
       // run post hooks
-      const post_update = [];      
+      const post_update = [];
       for (let key in update) {
         post_update.push(this._model.fields[key].post_update(this));
       }
       await Promise.all(post_update);
       await this.post_update();
       this._model.events.emit('update', this);
-
+      if (this._model.cacheInvalidation) {
+        this._model.invalidateCache();
+      }
     }
     return this;
   }
 
-
   /**
    * Unlink (delete) the record from the database.
    */
-  unlink() {
-    this._model.events.emit('unlink', this);
-    // @todo implement unlinking logic
+  async unlink() {
+    // Capture current model and clear the instance reference immediately so callers
+    // observing this record right after calling unlink() see it as detached.
+    const model = this._model;
+    if (!model) {
+      return this;
+    }
     this._model = null;
+    await this.pre_unlink();
+    const pre_unlink = [];
+    for (let field of Object.values(model.fields)) {
+      pre_unlink.push(field.pre_unlink(this));
+    }
+    await Promise.all(pre_unlink);
+
+    // delete from database
+    await model.query().where({ id: this.id }).delete();
+    if (this._parent) {
+      await this._parent.unlink();
+    }
+
+    // run post hooks
+    await this.post_unlink();
+    const post_unlink = [];
+    for (let field of Object.values(model.fields)) {
+      post_unlink.push(field.post_unlink(this));
+    }
+    await Promise.all(post_unlink);
+    model.events.emit('unlink', this);
+
+    // flush cache invalidation
+    if (model.cache) {
+      model.cache.expire(model.name + ':' + this.id);
+    }
+    if (model.cacheInvalidation) {
+      model.invalidateCache();
+    }
+
+    // remove reference from model entities
+    model.entities.delete(this.id);
+
+    return this;
   }
 
   /**

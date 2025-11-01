@@ -54,10 +54,13 @@ class BlockArena {
     this.BHDR_BYTES = 8;
     this.BDATA_OFF = this.BHDR_BYTES;
     this.BDATA_BYTES = this.blockSize - this.BHDR_BYTES;
+    // Reusable text encoder/decoder to avoid reallocation per op
+    this._encoder = new TextEncoder();
+    this._decoder = new TextDecoder();
   }
 
   // Public API
-  put(key, strValue, ttlSec = 300) {
+  put(key, strValue, ttlSec = 300, createdMs = Date.now()) {
     const now = Date.now();
     const expires = now + ttlSec * 1000;
     const keyStr = String(key);
@@ -97,6 +100,7 @@ class BlockArena {
     this.dictView.setInt32(entryOff + 16, vHead, true);
     this.dictView.setUint32(entryOff + 20, valBytes.length, true);
     this._setExpires(entryOff, expires);
+    this._setCreated(entryOff, createdMs);
 
     // Publish ready
     this.dictView.setInt32(entryOff, 2, true);
@@ -104,7 +108,7 @@ class BlockArena {
     return true;
   }
 
-  get(key) {
+  get(key, minCreatedMs) {
     const keyStr = String(key);
     const hash = this._fnv1a32(keyStr);
     const idx = this._probe(hash, (off) => {
@@ -120,6 +124,14 @@ class BlockArena {
     if (this._isExpired(entryOff)) {
       this.delete(key);
       return null;
+    }
+    if (minCreatedMs != null) {
+      const created = this._getCreated(entryOff);
+      if (created > 0 && created < minCreatedMs) {
+        // treat as expired relative to invalidation marker
+        this.delete(key);
+        return null;
+      }
     }
     const vHead = this.dictView.getInt32(entryOff + 16, true);
     const vLen = this.dictView.getUint32(entryOff + 20, true);
@@ -173,7 +185,12 @@ class BlockArena {
         this.dictView.byteOffset + off + 24,
         1
       )[0];
-      callback({ key: keyStr, value: valStr, expiresMs });
+      const createdMs = new Float64Array(
+        this.dictView.buffer,
+        this.dictView.byteOffset + off + 32,
+        1
+      )[0];
+      callback({ key: keyStr, value: valStr, expiresMs, createdMs });
       count++;
       if (count >= limit) break;
     }
@@ -273,6 +290,7 @@ class BlockArena {
     this.dictView.setInt32(off + 16, -1, true);
     this.dictView.setUint32(off + 20, 0, true);
     this._setExpires(off, 0);
+    this._setCreated(off, 0);
   }
 
   _clearEntry(off) {
@@ -282,10 +300,17 @@ class BlockArena {
     this.dictView.setInt32(off + 16, -1, true);
     this.dictView.setUint32(off + 20, 0, true);
     this._setExpires(off, 0);
+    this._setCreated(off, 0);
   }
 
   _setExpires(off, ms) {
     new Float64Array(this.dictView.buffer, this.dictView.byteOffset + off + 24, 1)[0] = ms;
+  }
+  _setCreated(off, ms) {
+    new Float64Array(this.dictView.buffer, this.dictView.byteOffset + off + 32, 1)[0] = ms;
+  }
+  _getCreated(off) {
+    return new Float64Array(this.dictView.buffer, this.dictView.byteOffset + off + 32, 1)[0];
   }
 
   _isExpired(off) {
@@ -413,22 +438,26 @@ class BlockArena {
     return i * this.blockSize;
   }
   _blockNext(i) {
+    if (i < 0 || i >= this.totalBlocks) return -1;
     return this.blocksView.getInt32(this._blockOff(i) + 0, true);
   }
   _blockSetNext(i, v) {
     this.blocksView.setInt32(this._blockOff(i) + 0, v, true);
   }
   _blockUsed(i) {
+    if (i < 0 || i >= this.totalBlocks) return 0;
     return this.blocksView.getUint16(this._blockOff(i) + 4, true);
   }
   _blockSetUsed(i, v) {
     this.blocksView.setUint16(this._blockOff(i) + 4, v, true);
   }
   _blockWriteData(i, bytes) {
+    if (i < 0 || i >= this.totalBlocks) return;
     const base = this._blockOff(i) + this.BDATA_OFF;
     new Uint8Array(this.blocksView.buffer, base, bytes.length).set(bytes);
   }
   _blockReadData(i, out, off, n) {
+    if (i < 0 || i >= this.totalBlocks) return;
     const base = this._blockOff(i) + this.BDATA_OFF;
     const src = new Uint8Array(this.blocksView.buffer, base, n);
     out.set(src, off);
@@ -443,10 +472,10 @@ class BlockArena {
 
   // Utils
   _encode(s) {
-    return new TextEncoder().encode(s);
+    return this._encoder.encode(s);
   }
   _decode(b) {
-    return new TextDecoder().decode(b);
+    return this._decoder.decode(b);
   }
   _nextPow2(n) {
     return 1 << (32 - Math.clz32(n - 1));

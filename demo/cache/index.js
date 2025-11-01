@@ -196,7 +196,7 @@ async function childMain() {
   const metrics = repo.cache ? repo.cache.metrics() : null;
   const out = {
     cacheEnabled: !!repo.cache,
-    engine: process.env.CACHE_ENGINE || (process.env.CACHE_ARENA ? 'arena' : 'fixed'),
+    engine: repo.cache ? 'arena' : 'none',
     elapsedMs: hrMs(t0, t1),
     queries: repo.queryCount,
     totals,
@@ -241,12 +241,9 @@ async function parentMain() {
     });
 
   const noCache = await run('No Cache', { CACHE_DISABLED: '1' });
-  const withCache = await run('With Cache', {
-    CACHE_ENGINE: process.env.CACHE_ENGINE || 'arena',
+  const withCache = await run('With Cache (Arena)', {
     CACHE_METRICS: '1',
     CACHE_DICT_CAPACITY: process.env.CACHE_DICT_CAPACITY || '20000',
-    CACHE_MAX_ENTRIES: process.env.CACHE_MAX_ENTRIES || '12000',
-    CACHE_ENTRY_SIZE: process.env.CACHE_ENTRY_SIZE || '16384',
   });
 
   const fmt = (r) =>

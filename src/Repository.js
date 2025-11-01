@@ -20,6 +20,19 @@ const { Synchronize } = require('./Schema.js');
 // - CACHE_LISTEN_PORT=1983
 // - CACHE_METRICS=1                  # enable/disable metrics (default enabled)
 // - CACHE_METRICS_LOG_INTERVAL_MS=5000  # periodically log metrics
+//
+// Discovery protocol environment variables (per-Connection):
+// - DISCOVERY_ENABLED=1              # enable UDP discovery (default: false)
+// - DISCOVERY_MULTICAST_GROUP=239.255.1.1  # multicast group address
+// - DISCOVERY_PORT=56789             # discovery UDP port
+// - DISCOVERY_TTL=30000              # member TTL in milliseconds
+// - DISCOVERY_ANNOUNCE_INTERVAL=10000  # keep-alive interval in ms
+// - DISCOVERY_BOOTSTRAP_RETRIES=10   # number of rapid announcements on startup
+// - DISCOVERY_PACKAGE_NAME=my-app    # override package name
+// - DISCOVERY_PACKAGE_VERSION=1.0.0  # override package version
+// - DISCOVERY_VERSION_POLICY=major,minor  # version compatibility policy
+// - DISCOVERY_FALLBACK_SEEDS=host1:port,host2:port  # static seed nodes
+// Note: Discovery is configured per Connection, not globally like cache
 /**
  * Parse a boolean-like env string ("1","true","yes" => true; "0","false","no" => false)
  * @param {any} v
@@ -43,44 +56,9 @@ function envInt(v, dft) {
   return Number.isFinite(n) ? n : dft;
 }
 
-const CACHE_DISABLED = envBool(process.env.CACHE_DISABLED, false);
-let cache = null;
-if (!CACHE_DISABLED) {
-  const engine = (process.env.CACHE_ENGINE || '').toLowerCase();
-  const variableArena = engine ? engine === 'arena' : envBool(process.env.CACHE_ARENA, false);
-
-  /** @type {import('./Cache').CacheOptions} */
-  const cacheOptions = {};
-  if (variableArena) {
-    cacheOptions.variableArena = true;
-    cacheOptions.memoryBytes = envInt(process.env.CACHE_MEMORY_BYTES, 64 * 1024 * 1024);
-    cacheOptions.blockSize = envInt(process.env.CACHE_BLOCK_SIZE, 1024);
-    cacheOptions.dictCapacity = envInt(process.env.CACHE_DICT_CAPACITY, 8192);
-    cacheOptions.sweepIntervalMs = envInt(process.env.CACHE_SWEEP_INTERVAL_MS, 250);
-    cacheOptions.sweepChecks = envInt(process.env.CACHE_SWEEP_CHECKS, 512);
-  } else {
-    // Keep repo historical defaults when not provided
-    cacheOptions.entrySize = envInt(process.env.CACHE_ENTRY_SIZE, 1024);
-    cacheOptions.maxEntries = envInt(process.env.CACHE_MAX_ENTRIES, 2048);
-  }
-
-  // Common options
-  if (process.env.CACHE_CLUSTER) {
-    cacheOptions.cluster = String(process.env.CACHE_CLUSTER)
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
-  if (process.env.CACHE_PORT) cacheOptions.port = envInt(process.env.CACHE_PORT, 1983);
-  if (process.env.CACHE_LISTEN_PORT)
-    cacheOptions.listenPort = envInt(process.env.CACHE_LISTEN_PORT, 1983);
-  cacheOptions.metrics = envBool(process.env.CACHE_METRICS, true);
-  if (process.env.CACHE_METRICS_LOG_INTERVAL_MS) {
-    cacheOptions.metricsLogIntervalMs = envInt(process.env.CACHE_METRICS_LOG_INTERVAL_MS, 0);
-  }
-
-  cache = new Cache(cacheOptions);
-}
+// Note: Cache is now per-connection, not global. Each Connection instance
+// can have its own cache. Discovery integration automatically syncs discovered
+// members as cache invalidation peers.
 
 /**
  * Repository: registers model definitions and exposes CRUD and schema sync over a Knex connection.
@@ -92,7 +70,7 @@ if (!CACHE_DISABLED) {
  * - sync(options): create/drop tables from model fields (supports dry-run)
  * - transaction(fn): run work inside a knex transaction and commit+flush results
  * - flush(): persist pending changes for all models
- * - cache: shared cache instance (may be null if disabled)
+ * - cache: cache instance from the connection (may be null if disabled)
  *
  * Models can be registered multiple times (extensions) and are merged by static name.
  */
@@ -153,11 +131,15 @@ class Repository {
   }
 
   /**
-   * Get the shared cache instance
+   * Get the cache instance from the connection
    * @returns {import('./Cache').Cache|null}
    */
   get cache() {
-    return cache;
+    // Try to get cache from connection if it's a Connection instance
+    if (this.connection && typeof this.connection.getCache === 'function') {
+      return this.connection.getCache();
+    }
+    return null;
   }
 
   /**
@@ -208,10 +190,22 @@ class Repository {
       }
     }
     const trx = await this.cnx.transaction(config);
+    const parentConnection = this.connection;
     const txRepo = new Repository({
       instance: trx,
       transactional: true,
       config: this.connection.config,
+      // Provide accessors to shared services like cache/discovery from parent connection
+      getCache() {
+        return typeof parentConnection.getCache === 'function'
+          ? parentConnection.getCache()
+          : null;
+      },
+      getDiscovery() {
+        return typeof parentConnection.getDiscovery === 'function'
+          ? parentConnection.getDiscovery()
+          : null;
+      },
     });
     let result;
     // Re-register models with the same metadata

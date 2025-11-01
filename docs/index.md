@@ -38,3 +38,4 @@ What’s next
 - Explore [requests](requests), [mixins](mixins) and [inheritance](inheritance)
 - Implement [custom fields](custom-fields)
 - Use JSON [filtering](filtering)
+ - Migrate from Sequelize: [adoption guide](adoption-sequelize)
