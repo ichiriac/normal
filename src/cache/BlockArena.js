@@ -60,7 +60,7 @@ class BlockArena {
   }
 
   // Public API
-  put(key, strValue, ttlSec = 300) {
+  put(key, strValue, ttlSec = 300, createdMs = Date.now()) {
     const now = Date.now();
     const expires = now + ttlSec * 1000;
     const keyStr = String(key);
@@ -100,6 +100,7 @@ class BlockArena {
     this.dictView.setInt32(entryOff + 16, vHead, true);
     this.dictView.setUint32(entryOff + 20, valBytes.length, true);
     this._setExpires(entryOff, expires);
+    this._setCreated(entryOff, createdMs);
 
     // Publish ready
     this.dictView.setInt32(entryOff, 2, true);
@@ -107,7 +108,7 @@ class BlockArena {
     return true;
   }
 
-  get(key) {
+  get(key, minCreatedMs) {
     const keyStr = String(key);
     const hash = this._fnv1a32(keyStr);
     const idx = this._probe(hash, (off) => {
@@ -123,6 +124,14 @@ class BlockArena {
     if (this._isExpired(entryOff)) {
       this.delete(key);
       return null;
+    }
+    if (minCreatedMs != null) {
+      const created = this._getCreated(entryOff);
+      if (created > 0 && created < minCreatedMs) {
+        // treat as expired relative to invalidation marker
+        this.delete(key);
+        return null;
+      }
     }
     const vHead = this.dictView.getInt32(entryOff + 16, true);
     const vLen = this.dictView.getUint32(entryOff + 20, true);
@@ -176,7 +185,12 @@ class BlockArena {
         this.dictView.byteOffset + off + 24,
         1
       )[0];
-      callback({ key: keyStr, value: valStr, expiresMs });
+      const createdMs = new Float64Array(
+        this.dictView.buffer,
+        this.dictView.byteOffset + off + 32,
+        1
+      )[0];
+      callback({ key: keyStr, value: valStr, expiresMs, createdMs });
       count++;
       if (count >= limit) break;
     }
@@ -276,6 +290,7 @@ class BlockArena {
     this.dictView.setInt32(off + 16, -1, true);
     this.dictView.setUint32(off + 20, 0, true);
     this._setExpires(off, 0);
+    this._setCreated(off, 0);
   }
 
   _clearEntry(off) {
@@ -285,10 +300,17 @@ class BlockArena {
     this.dictView.setInt32(off + 16, -1, true);
     this.dictView.setUint32(off + 20, 0, true);
     this._setExpires(off, 0);
+    this._setCreated(off, 0);
   }
 
   _setExpires(off, ms) {
     new Float64Array(this.dictView.buffer, this.dictView.byteOffset + off + 24, 1)[0] = ms;
+  }
+  _setCreated(off, ms) {
+    new Float64Array(this.dictView.buffer, this.dictView.byteOffset + off + 32, 1)[0] = ms;
+  }
+  _getCreated(off) {
+    return new Float64Array(this.dictView.buffer, this.dictView.byteOffset + off + 32, 1)[0];
   }
 
   _isExpired(off) {

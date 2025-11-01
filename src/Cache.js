@@ -64,7 +64,21 @@ class SharedMemoryCache {
       listenPort: this.listenPort,
       peers: this.clusterPeers,
       onKeys: (keys) => {
-        for (const k of keys) this.expire(k, false);
+        for (const k of keys) {
+          if (k[0] === '$') {
+            // Special re-insert command: $key:ttl:json_value
+            const [key, ttl, valJson] = k.split(':');
+            try {
+              const val = JSON.parse(valJson);
+              this.set(key, val, Number(ttl), false);
+            } catch {
+              // Ignore malformed JSON
+            }
+            continue;
+          } else {
+            this.expire(k, false);
+          }
+        }
       },
       batchIntervalMs: this._batchIntervalMs,
       onFlush: (count) => this._metrics.onUdpFlush(count),
@@ -104,24 +118,33 @@ class SharedMemoryCache {
    * @param {number} [ttl=300] Time to live in seconds (minimum 1s)
    * @returns {boolean} true if stored, false otherwise
    */
-  set(key, value, ttl = 300) {
+  set(key, value, ttl = 300, broadcast = true) {
     const m = this._metrics;
     const t0 = m.setStart();
     const ok = this.arena.put(String(key), value, Math.max(1, Math.floor(ttl)));
-    if (ok) this._cluster.queue(String(key));
+    if (broadcast && ok) {
+      if (key[0] === '$') {
+        // Special re-insert command: $key:ttl:json_value
+        key += ':' + ttl + ':' + JSON.stringify(value);
+      }
+      this._cluster.queue(String(key));
+    }
     m.setEnd(t0);
     return ok;
   }
 
   /**
    * Retrieve a value by key if present and not expired.
+   * Optionally pass a minimum creation timestamp; entries created before this
+   * timestamp are treated as expired even if TTL has not elapsed.
    * @param {string|number} key Cache key
+   * @param {number} [minCreatedMs] Minimum creation timestamp (ms since epoch)
    * @returns {any|null} Previously stored value or null when missing/expired
    */
-  get(key) {
+  get(key, minCreatedMs) {
     const m = this._metrics;
     const t0 = m.getStart();
-    const out = this.arena.get(String(key));
+    const out = this.arena.get(String(key), minCreatedMs);
     if (out == null) {
       m.getMiss(t0);
       return null;

@@ -19,13 +19,13 @@ class ArenaStore {
   put(key, value, ttlSec = 300) {
     try {
       const payload = JSON.stringify(value);
-      const ok = this._arena.put(String(key), payload, Math.max(1, ttlSec | 0));
+      const ok = this._arena.put(String(key), payload, Math.max(1, ttlSec | 0), Date.now());
       if (ok) return true;
       // If insertion fails (likely high load factor), attempt a rehash and retry once
       if (this._rehashAttempts < 2) {
         this._rehashAttempts++;
         if (this._rehash()) {
-          const ok2 = this._arena.put(String(key), payload, Math.max(1, ttlSec | 0));
+          const ok2 = this._arena.put(String(key), payload, Math.max(1, ttlSec | 0), Date.now());
           this._rehashAttempts = 0;
           return !!ok2;
         }
@@ -37,8 +37,8 @@ class ArenaStore {
     }
   }
 
-  get(key) {
-    const s = this._arena.get(String(key));
+  get(key, minCreatedMs) {
+    const s = this._arena.get(String(key), minCreatedMs);
     if (s == null) return null;
     try {
       return JSON.parse(s);
@@ -67,11 +67,11 @@ class ArenaStore {
       const neo = new BlockArena(nextOpts);
       const now = Date.now();
       old.forEach(
-        ({ key, value, expiresMs }) => {
+        ({ key, value, expiresMs, createdMs }) => {
           if (!key || value == null) return;
           const ttlSec = expiresMs > 0 ? Math.max(1, Math.floor((expiresMs - now) / 1000)) : 300;
           // Insert value string directly into low-level arena
-          neo.put(String(key), String(value), ttlSec);
+          neo.put(String(key), String(value), ttlSec, createdMs > 0 ? createdMs : now);
         },
         { includeExpired: false }
       );

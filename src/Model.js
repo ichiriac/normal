@@ -18,7 +18,7 @@ class LookupIds {
 
   lookup(ids) {
     const results = [];
-    const cache = this.model.cache;
+    const cache = this.model.cache || (this.model.repo && this.model.repo.cache);
     for (const id of ids) {
       const entry = cache && cache.get(this.model.name + ':' + id);
       if (entry) {
@@ -111,6 +111,9 @@ class Model {
     this.refField = null;
     this.primaryField = null;
     this.cacheTTL = null;
+    // Cache invalidation flag used to mark models whose cache should be invalidated
+    // from record changes
+    this.cacheInvalidation = false;
     this.indexes = [];
     this.entities = new Map();
     this._lookup = new LookupIds(this);
@@ -177,6 +180,9 @@ class Model {
         this.inheritField = MixinClass.inheritField;
       }
     }
+    if (MixinClass.cacheInvalidation) {
+      this.cacheInvalidation = true;
+    }
     if (MixinClass.abstract) {
       this.abstract = true;
     }
@@ -214,8 +220,20 @@ class Model {
    * @returns
    */
   async flush() {
+    let pendingInvalidation = false;  
+    const pendingInvalidations = [];
     for (const entity of this.entities.values()) {
       if (entity._isDirty) await entity.flush();
+      if (!entity._model) {
+        pendingInvalidation = true;
+        pendingInvalidations.push(
+          this._model.name + ':' + this.id
+        );
+        this.invalidateCache();
+      }
+    }
+    if (pendingInvalidation && this.cacheInvalidation) {
+      this.invalidateCache();
     }
     return this;
   }
@@ -226,7 +244,7 @@ class Model {
    */
   invalidateCache() {
     if (this.cache) {
-      this.cache.set('$' + this.name, Date.now(), 300);
+      this.cache.set('$' + this.name, Date.now(), 31_536_000);
     }
     return this;
   }
@@ -591,6 +609,9 @@ class Model {
     }
 
     this.events.emit('create', data);
+    if (this.cacheInvalidation) {
+      this.invalidateCache();
+    }
     return data;
   }
 
