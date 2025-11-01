@@ -9,14 +9,22 @@ Build data-rich apps with clean models, powerful relations, and first-class DX. 
 
 </div>
 
-## Why NormalJS ?
+## Why NormalJS
 
-- Simple: minimal surface area. Define models with a static `fields` object and go
-- Transaction first, fully isolated
-- Advanced caching, centralized memory accross child processes, with clusting support over UDP
-- Powerful: many-to-many via join tables, transactions, model mixins/extension, relation proxies.
-- Productive: active records you can call methods on; defaults and lightweight ID-first queries out of the box.
-- Portable: works with Postgres, SQLite. Uses Knex under the hood.
+- Simple: minimal surface area. Define models with a static `fields` object and go.
+- Transaction-first: fully isolated repos inside transactions without leaking state.
+- Advanced caching: centralized in-memory cache shared across child processes, with UDP-based clustering for peer invalidation.
+- Powerful: relations (1:n, n:m), transactions, model mixins/extension, inheritance with discriminators, relation proxies.
+- Productive: active records you can call methods on; lazy, ID-first reads that auto-hydrate fields; request-level caching with invalidation markers.
+- Portable: works with Postgres and SQLite. Uses Knex under the hood.
+
+### What makes NormalJS different for complex domains
+
+- Extensible field system: add custom field types that control serialization, JSON output, schema, and lifecycle hooks.
+- Model extension and overwrite: register multiple classes with the same `static name` to merge fields and attach static/instance behavior over time.
+- Inheritance with discriminators: share a base model schema and behavior; allocate correct child records automatically.
+- Schema sync (base synchronization): generate and evolve tables from model fields with migration-safe helpers.
+- Clear split of responsibilities: simple static APIs for model-level operations, and instance methods/getters for active records.
 
 ## Install
 
@@ -94,31 +102,76 @@ const p = await repo.get('Posts').create({ title: 'Hello', content: 'World', aut
 console.log(u.name); // "Ada Lovelace"
 ```
 
+### Modeling big domains, simply
+
+Static methods live on models; instance methods live on records. You can extend models incrementally or inherit from a base model.
+
+```js
+// Extension: register the same model name again to add fields + behavior
+class Users {
+  static name = 'Users';
+  static fields = { id: 'primary' };
+}
+
+// Extend Users with fields and static/instance APIs
+class UsersExt {
+  static name = 'Users';
+  static fields = { email: 'string' };
+  static byEmail(email) {
+    return this.where({ email }).first(); // simple, model-scoped static API
+  }
+  get domain() {
+    return this.email?.split('@')[1] || null; // instance API on active record
+  }
+}
+
+// Inheritance: child model shares base structure and behavior
+class Payment { static name = 'Payment'; static fields = { id: 'primary', amount: 'float' }; }
+class CardPayment { static name = 'CardPayment'; static inherits = 'Payment'; static fields = { pan: 'string' }; }
+
+repo.register(Users);
+repo.register(UsersExt);       // extension merged
+repo.register({ Payment, CardPayment });
+```
+
 ## Features at a glance
 
-- Models: simple class with `static name`, `static table`, `static fields`.
-- Fields: number, string, boolean, datetime, plus `default`, `required`, `unique`, `index`.
-- Relations:
-  - 1:n via `one-to-many` fields (e.g., `comments: { type: 'one-to-many', foreign: 'Comments.post_id' }`).
-  - n:m via paired `many-to-many` fields referencing a join table name (created automatically).
+- Models
+  - Simple class with `static name`, `static table`, `static fields`.
+  - Extension system: register multiple times with same `static name` to add/override fields and behavior.
+  - Inheritance with discriminators for polymorphic models.
+- Fields
+  - Built-ins: primary, integer/float, string/text, boolean, date/datetime, enum, json, reference.
+  - Constraints: `default`, `required`, `unique`, `index`.
+  - Custom fields: implement serialization, JSON, schema, and lifecycle hooks.
+- Relations
+  - 1:n via `one-to-many` (e.g., `comments: { type: 'one-to-many', foreign: 'Comments.post_id' }`).
+  - n:m via paired `many-to-many` (auto-join table).
   - Relation proxies on instances: `add`, `remove`, `load`.
-- Transactions: `repo.transaction(async (tx) => { /* ... */ })` with a tx‑bound repository.
-- Active records: reads wrap rows into instances (methods/getters work); default queries select only `id` for speed.
-- Model extension: register classes with the same `static name` to add fields and methods/getters.
-- **Discovery Protocol**: UDP-based automatic service discovery for cache cluster membership on local networks (L2).
-  - Nodes automatically find each other via multicast/broadcast
-  - Package name and version scoping ensures only compatible apps join
-  - HMAC authentication using connection config as secret
-  - Soft-state membership with keep-alive and TTL
-  - See `demo/discovery/` for examples
+- Transactions
+  - `repo.transaction(async (tx) => { /* ... */ })` gives an isolated tx-bound repository.
+  - Post-commit cache flush of changed records.
+- Active records
+  - Rows are wrapped into instances; instance methods and getters work naturally.
+  - Default reads select only `id` (fast), with lazy hydration from cache/DB.
+- Cache and discovery
+  - Request-level caching via `.cache(ttl)` and entry cache per `Model:ID`.
+  - Per-model invalidation markers (`$Model`) to evict request caches without dropping entry caches.
+  - Centralized in-memory cache across processes with UDP-based clustering.
+  - Discovery protocol auto-syncs peer list for invalidations.
+- Schema sync
+  - Create/update tables from model fields with `repo.sync()`.
+  - Migration-safe helpers for column replacement and index updates.
 
 See full field reference in `docs/fields.md`.
 
 ### More docs
 
+- `docs/models.md` — Model definitions, inheritance, and extension system.
+- `docs/fields.md` — Built-in field types and options.
 - `docs/requests.md` — Request API, criteria DSL, and request-level caching.
 - `docs/cache.md` — Cache architecture, connection options, discovery, and model cache options.
- - `docs/custom-fields.md` — In-depth custom fields with hooks and a file-storage example.
+- `docs/custom-fields.md` — In-depth custom fields with hooks and a file-storage example.
 
 ## Demo
 
