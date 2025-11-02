@@ -52,28 +52,33 @@ function buildJoinChain(rootModel, dependencyPath) {
         `Unknown relation segment '${seg}' on model '${currentModel.name}' for path '${dependencyPath}'`
       );
     }
-    if (!field.refModel) {
+    let nextModel = field.refModel;
+    if (!nextModel && field.definition && field.definition.model) {
+      // Resolve lazily from definition if refModel not hydrated
+      nextModel = currentModel.repo.get(field.definition.model);
+    }
+    if (!nextModel) {
       throw new Error(
         `Segment '${seg}' on model '${currentModel.name}' is not a reference/many-to-one field`
       );
     }
-    const nextModel = field.refModel;
     const nextAlias = `t${i + 1}`;
 
-    // Default FK join: currentAlias.field.column = nextAlias.id
-    const fkCol = field.refFieldName
-      ? nextModel.fields[field.refFieldName]?.column
-      : field.column || `${seg}_id`;
+    // Default FK join should link the FK on the current model to the PK on the next (referenced) model
+    // Example: Comments.post_id (FK on Comments) -> Posts.id (PK on Posts)
+    const currentFkCol = field.column || `${seg}_id`;
+  const nextPkCol = nextModel.primaryField?.column || 'id';
     joins.push({
       table: nextModel.table,
       alias: nextAlias,
-      left: `${currentAlias}.${field.model.primaryField?.column || 'id'}`,
-      right: `${nextAlias}.${fkCol}`,
+      left: `${currentAlias}.${currentFkCol}`,
+      right: `${nextAlias}.${nextPkCol}`,
     });
 
     currentModel = nextModel;
     currentAlias = nextAlias;
-    relations.push(field.refFieldName || fkCol);
+  // Track the relation field name used at each hop for in-memory traversal fallbacks
+  relations.push(field.refFieldName || currentFkCol);
     aliases.push(currentAlias);
     models.push(currentModel);
   }
@@ -90,7 +95,7 @@ function buildJoinChain(rootModel, dependencyPath) {
  * @returns {Promise<number[]>}
  */
 async function selectRootIdsByLeafRecord(rootModel, dependencyPath, leafRecord) {
-  const { joins, leafModel, relations } = buildJoinChain(rootModel, dependencyPath);
+  const { joins, relations } = buildJoinChain(rootModel, dependencyPath);
 
   if (!leafRecord.id) {
     // not yet saved, compute parents from in-memory only

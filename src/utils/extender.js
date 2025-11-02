@@ -19,6 +19,20 @@ function getBaseCache(baseProto) {
   return m;
 }
 
+// Remove Babel/Istanbul coverage tokens from a function's source string so that
+// eval/new Function won't reference out-of-scope cov_* variables under coverage.
+function stripCoverage(source) {
+  return (
+    source
+      // Sequence expressions like: (cov_xxx.s[0]++, expr)
+      .replace(/\(cov_[\w$]+\.[^)]*?\+\+,\s*/g, '(')
+      // Standalone counters like: cov_xxx.s[0]++; cov_xxx.f[1]++; cov_xxx.b[0][1]++;
+      .replace(/\bcov_[\w$]+\.[^;]+;?/g, '')
+      // Any lingering bare identifier occurrences, replace with 0 (neutral in seq expr)
+      .replace(/\bcov_[\w$]+\b/g, '0')
+  );
+}
+
 /**
  * Create a new class by extending a Base class with a mixin (class or plain object).
  * - Copies ONLY instance properties/methods from the mixin (no static members).
@@ -74,14 +88,17 @@ function extendWith(BaseClass, mixin) {
   // Helper: rebuild a method/getter/setter with proper [[HomeObject]] so `super` works
   // Cache rebuilt functions per Base prototype to avoid repeated eval for identical mixin fns
   const buildMethodWithSuper = (key, fn, kind) => {
+    // Helper: strip Babel/Istanbul coverage tokens injected in function.toString()
     // check the cache first
     const cache = getBaseCache(BaseClass.prototype);
     const cached = cache.get(fn);
     if (cached) return cached;
 
-    const src = Function.prototype.toString.call(fn).trim();
+    let src = Function.prototype.toString.call(fn).trim();
     // Only attempt rebuild when `super` is present; otherwise return original
     if (!/\bsuper\b/.test(src)) return fn;
+    // Remove any coverage instrumentation that may have been embedded
+    src = stripCoverage(src);
     // Construct an object literal with the method text
     let code;
     if (kind === 'get' || kind === 'set') {
@@ -115,7 +132,7 @@ function extendWith(BaseClass, mixin) {
     const cached = cache.get(fn);
     if (cached) return cached;
 
-    const src = Function.prototype.toString.call(fn).trim();
+    const src = stripCoverage(Function.prototype.toString.call(fn).trim());
     if (!/\bsuper\b/.test(src)) return fn;
 
     // Extract params and body to rebuild as a computed-name method
@@ -326,7 +343,7 @@ function extendModel(model, mixin) {
       if (cached) return cached;
 
       // Check for super usage
-      const src = Function.prototype.toString.call(fn).trim();
+      const src = stripCoverage(Function.prototype.toString.call(fn).trim());
       if (!/\bsuper\b/.test(src)) return fn;
 
       let code;
@@ -354,7 +371,7 @@ function extendModel(model, mixin) {
       if (cached) return cached;
 
       // Check for super usage
-      const src = Function.prototype.toString.call(fn).trim();
+      const src = stripCoverage(Function.prototype.toString.call(fn).trim());
       if (!/\bsuper\b/.test(src)) return fn;
 
       const extractSig = (s) => {
