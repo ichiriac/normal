@@ -155,6 +155,9 @@ class Model {
     if (MixinClass.fields) {
       Object.assign(this.fields, MixinClass.fields);
     }
+    if (MixinClass.indexes) {
+      this._mergeIndexes(MixinClass.indexes);
+    }
     if (MixinClass.hasOwnProperty('cache')) {
       if (MixinClass.cache === true) {
         this.cacheTTL = 300; // 5 minutes default
@@ -193,6 +196,44 @@ class Model {
     }
     if (typeof MixinClass === 'function') {
       extendModel(this, MixinClass);
+    }
+  }
+
+  /**
+   * Merge index definitions from a mixin class.
+   * @param {*} indexes
+   */
+  _mergeIndexes(indexes) {
+    if (Array.isArray(indexes)) {
+      // Simple array syntax: ['field1', 'field2']
+      indexes.forEach((indexDef) => {
+        if (typeof indexDef === 'string') {
+          this.indexes.push({
+            name: `idx_${this.table}_${indexDef}`,
+            fields: [indexDef],
+          });
+        } else if (Array.isArray(indexDef)) {
+          this.indexes.push({
+            name: `idx_${this.table}_${indexDef.join('_')}`,
+            fields: indexDef,
+          });
+        }
+      });
+    } else if (typeof indexes === 'object') {
+      // Object syntax: { idx_name: { fields: [...], unique: true } }
+      for (const [name, definition] of Object.entries(indexes)) {
+        const indexConfig = {
+          name,
+          fields: definition.fields || [],
+          unique: definition.unique || false,
+          type: definition.type || null,
+          storage: definition.storage || null,
+          predicate: definition.predicate || null,
+          deferrable: definition.deferrable || null,
+          useConstraint: definition.useConstraint || false,
+        };
+        this.indexes.push(indexConfig);
+      }
     }
   }
 
@@ -394,12 +435,62 @@ class Model {
       this.cls.model = this;
       this.cls_init = true;
 
+      // Validate and normalize index definitions
+      this._validateIndexes();
+
       // Call post_attach hooks
       for (let field of Object.values(this.fields)) {
         field.post_attach();
       }
 
       this.events.emit('init', this);
+    }
+  }
+
+  /**
+   * Validate index definitions and resolve field names to column names.
+   */
+  _validateIndexes() {
+    for (const index of this.indexes) {
+      if (!index.fields || index.fields.length === 0) {
+        throw new Error(
+          `Index '${index.name}' in model '${this.name}' must have at least one field`
+        );
+      }
+
+      // Validate and resolve field names to column names
+      index.columns = [];
+      for (const fieldName of index.fields) {
+        if (!this.fields[fieldName]) {
+          throw new Error(
+            `Index '${index.name}' in model '${this.name}' references non-existent field '${fieldName}'`
+          );
+        }
+        const field = this.fields[fieldName];
+        if (!field.stored) {
+          throw new Error(
+            `Index '${index.name}' in model '${this.name}' references non-stored (computed) field '${fieldName}'`
+          );
+        }
+        index.columns.push(field.column);
+      }
+
+      // Validate storage option (FULLTEXT) is only used without unique
+      if (index.storage === 'FULLTEXT' && index.unique) {
+        throw new Error(
+          `Index '${index.name}' in model '${this.name}' cannot use FULLTEXT storage with unique constraint`
+        );
+      }
+
+      // Normalize index name to fit database limits (usually 63 chars for PostgreSQL)
+      if (index.name.length > 60) {
+        const hash = require('crypto')
+          .createHash('md5')
+          .update(index.name)
+          .digest('hex')
+          .substring(0, 8);
+        index.name = index.name.substring(0, 51) + '_' + hash;
+      }
     }
   }
 
@@ -448,7 +539,7 @@ class Model {
     // Fallback: if discriminator not explicitly configured, infer from any field whose value
     // names a registered child model of this model
     if (!ignoreDiscriminator) {
-      for (const [k, v] of Object.entries(data || {})) {
+      for (const [_k, v] of Object.entries(data || {})) {
         if (typeof v === 'string' && this.repo.has(v)) {
           const maybeChild = this.repo.get(v);
           if (maybeChild && maybeChild.inherits === this.name) {

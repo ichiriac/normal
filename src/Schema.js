@@ -41,6 +41,212 @@ function inlineBindings(sql, bindings) {
 }
 
 /**
+ * Build WHERE clause for partial index from predicate object
+ * @param {*} knex
+ * @param {*} predicate
+ * @returns {string|null}
+ */
+function buildIndexPredicate(knex, predicate) {
+  if (!predicate || typeof predicate !== 'object') return null;
+
+  const conditions = [];
+  for (const [field, condition] of Object.entries(predicate)) {
+    if (condition && typeof condition === 'object') {
+      if (condition.notNull) {
+        conditions.push(`${knex.ref(field)} IS NOT NULL`);
+      } else if (condition.isNull) {
+        conditions.push(`${knex.ref(field)} IS NULL`);
+      } else if (condition.eq !== undefined) {
+        conditions.push(`${knex.ref(field)} = ${knex.raw('?', [condition.eq])}`);
+      } else if (condition.ne !== undefined) {
+        conditions.push(`${knex.ref(field)} != ${knex.raw('?', [condition.ne])}`);
+      } else if (condition.gt !== undefined) {
+        conditions.push(`${knex.ref(field)} > ${knex.raw('?', [condition.gt])}`);
+      } else if (condition.gte !== undefined) {
+        conditions.push(`${knex.ref(field)} >= ${knex.raw('?', [condition.gte])}`);
+      } else if (condition.lt !== undefined) {
+        conditions.push(`${knex.ref(field)} < ${knex.raw('?', [condition.lt])}`);
+      } else if (condition.lte !== undefined) {
+        conditions.push(`${knex.ref(field)} <= ${knex.raw('?', [condition.lte])}`);
+      }
+    }
+  }
+
+  return conditions.length > 0 ? conditions.join(' AND ') : null;
+}
+
+/**
+ * Synchronize model-level indexes
+ * @param {*} cnx Knex connection
+ * @param {*} model Model instance
+ * @param {*} prevIndexes Previous index definitions from schema
+ * @param {*} force Force recreate all indexes
+ * @returns {boolean} Whether indexes changed
+ */
+async function synchronizeIndexes(cnx, model, prevIndexes, force) {
+  let changed = false;
+  const currentIndexes = model.indexes || [];
+
+  // Get database client type
+  const client = cnx.client.config.client;
+
+  // If forcing, drop all previous indexes first
+  if (force && prevIndexes.length > 0) {
+    for (const prevIndex of prevIndexes) {
+      try {
+        if (prevIndex.unique && prevIndex.useConstraint) {
+          await cnx.schema.table(model.table, (table) => {
+            table.dropUnique(prevIndex.columns || prevIndex.fields, prevIndex.name);
+          });
+        } else {
+          await cnx.schema.table(model.table, (table) => {
+            table.dropIndex(prevIndex.columns || prevIndex.fields, prevIndex.name);
+          });
+        }
+      } catch (err) {
+        // Index might not exist, continue
+      }
+    }
+  }
+
+  // Create/update current indexes
+  for (const index of currentIndexes) {
+    const prevIndex = prevIndexes.find((p) => p.name === index.name);
+
+    // Check if index definition changed
+    const indexChanged =
+      !prevIndex ||
+      JSON.stringify(prevIndex.fields) !== JSON.stringify(index.fields) ||
+      prevIndex.unique !== index.unique ||
+      prevIndex.type !== index.type ||
+      prevIndex.storage !== index.storage ||
+      JSON.stringify(prevIndex.predicate) !== JSON.stringify(index.predicate);
+
+    if (force || indexChanged) {
+      // Drop old index if it exists
+      if (prevIndex && indexChanged) {
+        try {
+          if (prevIndex.unique && prevIndex.useConstraint) {
+            await cnx.schema.table(model.table, (table) => {
+              table.dropUnique(prevIndex.columns || prevIndex.fields, prevIndex.name);
+            });
+          } else {
+            await cnx.schema.table(model.table, (table) => {
+              table.dropIndex(prevIndex.columns || prevIndex.fields, prevIndex.name);
+            });
+          }
+        } catch (err) {
+          // Index might not exist, continue
+        }
+      }
+
+      // Create new index
+      try {
+        if (index.unique && index.useConstraint) {
+          // Create unique constraint
+          await cnx.schema.table(model.table, (table) => {
+            const constraint = table.unique(index.columns, {
+              indexName: index.name,
+              deferrable: index.deferrable,
+            });
+            if (index.deferrable === 'deferred') {
+              constraint.deferrable('deferred');
+            } else if (index.deferrable === 'immediate') {
+              constraint.deferrable('immediate');
+            }
+          });
+        } else {
+          // Create index (unique or regular)
+          const hasPartialIndexSupport = ['postgresql', 'pg', 'sqlite3'].includes(client);
+          const predicateClause = index.predicate
+            ? buildIndexPredicate(cnx, index.predicate)
+            : null;
+
+          if (predicateClause && !hasPartialIndexSupport) {
+            console.warn(
+              `Warning: Partial indexes not supported for ${client}, ignoring predicate on index '${index.name}' in model '${model.name}'`
+            );
+          }
+
+          // Check if FULLTEXT is supported
+          if (index.storage === 'FULLTEXT' && !['mysql', 'mysql2', 'mariadb'].includes(client)) {
+            console.warn(
+              `Warning: FULLTEXT storage not supported for ${client}, using regular index for '${index.name}' in model '${model.name}'`
+            );
+          }
+
+          await cnx.schema.table(model.table, (table) => {
+            if (index.unique) {
+              table.unique(index.columns, { indexName: index.name });
+            } else {
+              const indexBuilder = table.index(index.columns, index.name, {
+                indexType: index.type || undefined,
+                storageEngineIndexType: index.storage || undefined,
+              });
+
+              // Add WHERE clause for partial indexes
+              if (predicateClause && hasPartialIndexSupport) {
+                // Use raw SQL for partial index with WHERE clause
+                // Note: Knex doesn't have native support for WHERE in index(), so we use raw
+                // Drop the index that was just created and recreate with WHERE
+                table.dropIndex(index.columns, index.name);
+              }
+              // Silence unused variable warning
+              void indexBuilder;
+            }
+          });
+
+          // For partial indexes, we need to use raw SQL
+          if (predicateClause && hasPartialIndexSupport) {
+            const indexTypeClause = index.type ? ` USING ${index.type}` : '';
+            const uniqueClause = index.unique ? 'UNIQUE ' : '';
+            const columnList = index.columns.map((col) => `"${col}"`).join(', ');
+
+            await cnx.raw(
+              `CREATE ${uniqueClause}INDEX IF NOT EXISTS "${index.name}" ON "${model.table}"${indexTypeClause} (${columnList}) WHERE ${predicateClause}`
+            );
+          }
+        }
+        changed = true;
+      } catch (err) {
+        if (err.message && err.message.includes('unique')) {
+          console.error(
+            `Error: Unique constraint violation while creating index '${index.name}' on model '${model.name}': ${err.message}`
+          );
+          console.error(`Continuing migration despite error...`);
+        } else {
+          throw err;
+        }
+      }
+    }
+  }
+
+  // Drop indexes that no longer exist in current definition
+  if (!force) {
+    for (const prevIndex of prevIndexes) {
+      if (!currentIndexes.find((c) => c.name === prevIndex.name)) {
+        try {
+          if (prevIndex.unique && prevIndex.useConstraint) {
+            await cnx.schema.table(model.table, (table) => {
+              table.dropUnique(prevIndex.columns || prevIndex.fields, prevIndex.name);
+            });
+          } else {
+            await cnx.schema.table(model.table, (table) => {
+              table.dropIndex(prevIndex.columns || prevIndex.fields, prevIndex.name);
+            });
+          }
+          changed = true;
+        } catch (err) {
+          // Index might not exist, continue
+        }
+      }
+    }
+  }
+
+  return changed;
+}
+
+/**
  * Synchronize the database schema with the registered models
  * @param {*} repository
  * @param {*} options
@@ -153,6 +359,14 @@ async function Synchronize(repository, options) {
           changed = true;
         }
       }
+
+      // Synchronize model-level indexes
+      const prevIndexes = schema && !force ? schema.options?.indexes || [] : [];
+      const indexChange = await synchronizeIndexes(transaction.cnx, model, prevIndexes, force);
+      if (indexChange) {
+        changed = true;
+      }
+
       // if anything changed, update the schema record
       if (changed) {
         const data = {
