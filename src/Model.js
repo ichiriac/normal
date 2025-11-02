@@ -3,6 +3,7 @@ const { Record } = require('./Record.js');
 const { Field } = require('./Fields.js');
 const { extendModel } = require('./utils/extender');
 const { applyCriteria } = require('./utils/criteria');
+const { IndexManager } = require('./IndexManager.js');
 
 const EventEmitter = require('node:events');
 
@@ -114,7 +115,7 @@ class Model {
     // Cache invalidation flag used to mark models whose cache should be invalidated
     // from record changes
     this.cacheInvalidation = false;
-    this.indexes = [];
+    this.indexManager = new IndexManager(this);
     this.entities = new Map();
     this._lookup = new LookupIds(this);
     this.inheritField = null;
@@ -128,6 +129,13 @@ class Model {
     if (this.refField && this.refField.isDiscriminator) return this.refField;
     const f = Object.values(this.fields).find((x) => x && x.isDiscriminator);
     return f || null;
+  }
+
+  /**
+   * Get indexes from the IndexManager (for backward compatibility)
+   */
+  get indexes() {
+    return this.indexManager.getIndexes();
   }
 
   /**
@@ -154,6 +162,9 @@ class Model {
     this.inherited.push(MixinClass);
     if (MixinClass.fields) {
       Object.assign(this.fields, MixinClass.fields);
+    }
+    if (MixinClass.indexes) {
+      this.indexManager.merge(MixinClass.indexes);
     }
     if (MixinClass.hasOwnProperty('cache')) {
       if (MixinClass.cache === true) {
@@ -394,6 +405,9 @@ class Model {
       this.cls.model = this;
       this.cls_init = true;
 
+      // Validate and normalize index definitions
+      this.indexManager.validate();
+
       // Call post_attach hooks
       for (let field of Object.values(this.fields)) {
         field.post_attach();
@@ -448,7 +462,7 @@ class Model {
     // Fallback: if discriminator not explicitly configured, infer from any field whose value
     // names a registered child model of this model
     if (!ignoreDiscriminator) {
-      for (const [k, v] of Object.entries(data || {})) {
+      for (const [_k, v] of Object.entries(data || {})) {
         if (typeof v === 'string' && this.repo.has(v)) {
           const maybeChild = this.repo.get(v);
           if (maybeChild && maybeChild.inherits === this.name) {

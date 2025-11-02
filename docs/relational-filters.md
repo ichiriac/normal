@@ -18,12 +18,13 @@ NormalJS now supports filtering by relational field names using dot-notation. Th
 Filter posts by their author's firstname:
 
 ```javascript
-const posts = await Posts.where({ 
-  'author_id.firstname': 'Alice' 
+const posts = await Posts.where({
+  'author_id.firstname': 'Alice',
 });
 ```
 
 Generates SQL:
+
 ```sql
 SELECT * FROM posts
 INNER JOIN users ON posts.author_id = users.id
@@ -35,12 +36,13 @@ WHERE users.firstname = 'Alice'
 Filter posts by their author's organization:
 
 ```javascript
-const posts = await Posts.where({ 
-  'author_id.organization_id.name': 'ACME Corp' 
+const posts = await Posts.where({
+  'author_id.organization_id.name': 'ACME Corp',
 });
 ```
 
 Generates SQL:
+
 ```sql
 SELECT * FROM posts
 INNER JOIN users ON posts.author_id = users.id
@@ -53,12 +55,13 @@ WHERE organizations.name = 'ACME Corp'
 Filter users by their posts' titles:
 
 ```javascript
-const users = await Users.where({ 
-  'posts.title': 'My First Post' 
+const users = await Users.where({
+  'posts.title': 'My First Post',
 });
 ```
 
 Generates SQL:
+
 ```sql
 SELECT * FROM users
 INNER JOIN posts ON users.id = posts.author_id
@@ -74,7 +77,7 @@ const posts = await Posts.where({
   'author_id.organization_id.name': 'ACME Corp',
   'author_id.firstname': 'Alice',
   title: { like: '%Update%' },
-  created_at: { gte: '2024-01-01' }
+  created_at: { gte: '2024-01-01' },
 });
 ```
 
@@ -85,17 +88,17 @@ All standard operators work with relational paths:
 ```javascript
 // LIKE operator
 const posts = await Posts.where({
-  'author_id.lastname': { like: 'Sm%' }
+  'author_id.lastname': { like: 'Sm%' },
 });
 
 // IN operator
 const posts = await Posts.where({
-  'author_id.organization_id.country': { in: ['USA', 'UK', 'Canada'] }
+  'author_id.organization_id.country': { in: ['USA', 'UK', 'Canada'] },
 });
 
 // Comparison operators
 const posts = await Posts.where({
-  'author_id.organization_id.id': { gt: 10 }
+  'author_id.organization_id.id': { gt: 10 },
 });
 ```
 
@@ -105,8 +108,8 @@ const posts = await Posts.where({
 const posts = await Posts.where({
   or: [
     { 'author_id.organization_id.name': 'ACME Corp' },
-    { 'author_id.organization_id.name': 'Tech Inc' }
-  ]
+    { 'author_id.organization_id.name': 'Tech Inc' },
+  ],
 });
 ```
 
@@ -116,23 +119,21 @@ const posts = await Posts.where({
 const posts = await Posts.where({
   and: [
     { 'author_id.organization_id.name': 'ACME Corp' },
-    { 
-      or: [
-        { 'author_id.firstname': 'Alice' },
-        { 'author_id.firstname': 'Charlie' }
-      ] 
-    }
-  ]
+    {
+      or: [{ 'author_id.firstname': 'Alice' }, { 'author_id.firstname': 'Charlie' }],
+    },
+  ],
 });
 ```
 
 Generates SQL:
+
 ```sql
 SELECT * FROM posts
 INNER JOIN users ON posts.author_id = users.id
 INNER JOIN organizations ON users.organization_id = organizations.id
 WHERE (
-  organizations.name = 'ACME Corp' 
+  organizations.name = 'ACME Corp'
   AND (users.firstname = 'Alice' OR users.firstname = 'Charlie')
 )
 ```
@@ -146,8 +147,8 @@ The feature works with these relationship types:
 ```javascript
 class Posts {
   static fields = {
-    author_id: { type: 'many-to-one', model: 'Users' }
-  }
+    author_id: { type: 'many-to-one', model: 'Users' },
+  };
 }
 
 // Filter by related model's fields
@@ -159,8 +160,8 @@ await Posts.where({ 'author_id.email': 'alice@example.com' });
 ```javascript
 class Users {
   static fields = {
-    posts: { type: 'one-to-many', foreign: 'Posts.author_id' }
-  }
+    posts: { type: 'one-to-many', foreign: 'Posts.author_id' },
+  };
 }
 
 // Filter by related collection
@@ -175,6 +176,7 @@ await Users.where({ 'posts.title': 'My Post' });
 4. **Where Clauses**: Finally, WHERE conditions are applied with proper table.column qualification
 
 This two-pass approach ensures:
+
 - Joins are only applied once (no duplicates)
 - Joins work correctly with nested OR/AND logic
 - Column names are properly qualified to avoid ambiguity
@@ -188,10 +190,12 @@ When joins are present, all column names in the SELECT clause are automatically 
 ### Supported Relationships
 
 Currently supported:
+
 - ✅ Many-to-one (e.g., `post.author_id`)
 - ✅ One-to-many (e.g., `user.posts`)
 
 Not yet supported:
+
 - ❌ Many-to-many (coming soon)
 
 ### Error Handling
@@ -209,10 +213,12 @@ await Posts.where({ 'author_id.nonexistent': 'value' });
 ## Examples
 
 See the complete working examples in:
+
 - `demo/relational-filters-demo.js` - Interactive demonstration
 - `tests/relational-filters.test.js` - Comprehensive test suite
 
 Run the demo:
+
 ```bash
 node demo/relational-filters-demo.js
 ```
@@ -226,17 +232,20 @@ node demo/relational-filters-demo.js
 ## Migration from Manual Joins
 
 Before (manual joins):
+
 ```javascript
-const posts = await repo.cnx('posts')
+const posts = await repo
+  .cnx('posts')
   .join('users', 'posts.author_id', 'users.id')
   .join('organizations', 'users.organization_id', 'organizations.id')
   .where('organizations.name', 'ACME Corp');
 ```
 
 After (automatic joins):
+
 ```javascript
 const posts = await Posts.where({
-  'author_id.organization_id.name': 'ACME Corp'
+  'author_id.organization_id.name': 'ACME Corp',
 });
 ```
 

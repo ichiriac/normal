@@ -126,11 +126,18 @@ class UsersExt {
 }
 
 // Inheritance: child model shares base structure and behavior
-class Payment { static name = 'Payment'; static fields = { id: 'primary', amount: 'float' }; }
-class CardPayment { static name = 'CardPayment'; static inherits = 'Payment'; static fields = { pan: 'string' }; }
+class Payment {
+  static name = 'Payment';
+  static fields = { id: 'primary', amount: 'float' };
+}
+class CardPayment {
+  static name = 'CardPayment';
+  static inherits = 'Payment';
+  static fields = { pan: 'string' };
+}
 
 repo.register(Users);
-repo.register(UsersExt);       // extension merged
+repo.register(UsersExt); // extension merged
 repo.register({ Payment, CardPayment });
 ```
 
@@ -144,6 +151,7 @@ repo.register({ Payment, CardPayment });
   - Built-ins: primary, integer/float, string/text, boolean, date/datetime, enum, json, reference.
   - Constraints: `default`, `required`, `unique`, `index`.
   - Custom fields: implement serialization, JSON, schema, and lifecycle hooks.
+  - **NEW**: Model-level indexes for composite, unique, and partial indexes (e.g., `static indexes = { idx_name: { fields: ['email', 'company'], unique: true } }`).
 - Relations
   - 1:n via `one-to-many` (e.g., `comments: { type: 'one-to-many', foreign: 'Comments.post_id' }`).
   - n:m via paired `many-to-many` (auto-join table).

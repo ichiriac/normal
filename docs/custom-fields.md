@@ -3,10 +3,10 @@ id: custom-fields
 title: Custom fields
 ---
 
-
 You can add your own field types by subclassing the base `Fields` and registering it under a `type` name.
 
 This page shows:
+
 - the field definition shape
 - how to register your field
 - available hooks
@@ -38,7 +38,7 @@ const { Fields } = require('normaljs');
 
 class MyCoolField extends Fields {
   // ... extend base Field (see below)
-  
+
   getMetadata() {
     const meta = super.getMetadata();
     // define here allowed options
@@ -69,6 +69,7 @@ class Docs {
 ```
 
 Notes:
+
 - The `type` lookup is done by `Field.define` using `Fields.behaviors[type]`.
 - The exported `Fields` from the package is the base `Field` class; attaching to `Fields.behaviors` is the supported registration mechanism.
 
@@ -133,7 +134,7 @@ class FileHandle {
     this._nameRef.set(v);
   }
   async save(bufferOrString, name) {
-    const fname = name || this.filename || (Date.now() + '.bin');
+    const fname = name || this.filename || Date.now() + '.bin';
     await this._storage.save(fname, bufferOrString);
     this.filename = fname; // persists through record write/flush
     return fname;
@@ -161,7 +162,6 @@ class FileField extends Fields {
   getColumnDefinition(table) {
     return table.string(this.column, 255);
   }
-
 
   // From DB value (string) to a FileHandle facade
   deserialize(record, value) {
@@ -221,7 +221,9 @@ class FileField extends Fields {
   async post_unlink(record) {
     const name = record._data[this.column];
     if (!name) return;
-    try { await fs.unlink(path.join(this.storage.dir, name)); } catch {}
+    try {
+      await fs.unlink(path.join(this.storage.dir, name));
+    } catch {}
   }
 }
 ```

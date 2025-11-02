@@ -153,6 +153,14 @@ async function Synchronize(repository, options) {
           changed = true;
         }
       }
+
+      // Synchronize model-level indexes
+      const prevIndexes = schema && !force ? schema.options?.indexes || [] : [];
+      const indexChange = await model.indexManager.synchronize(transaction.cnx, prevIndexes, force);
+      if (indexChange) {
+        changed = true;
+      }
+
       // if anything changed, update the schema record
       if (changed) {
         const data = {

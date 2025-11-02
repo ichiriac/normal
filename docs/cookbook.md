@@ -16,7 +16,12 @@ const found = await Users.findById(u.id);
 - Simple filtering
 
 ```js
-const posts = await repo.get('Posts').where({ and: [ ['author_id','=',u.id], ['published','=',true] ] });
+const posts = await repo.get('Posts').where({
+  and: [
+    ['author_id', '=', u.id],
+    ['published', '=', true],
+  ],
+});
 ```
 
 - Relations
