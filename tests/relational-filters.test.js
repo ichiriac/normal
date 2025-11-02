@@ -256,4 +256,54 @@ describe('Relational Filters with Auto-Join', () => {
     expect(alice).toBeDefined();
     expect(alice.email).toBe('alice@acme.com');
   });
+
+  test('one-to-many join returns distinct parent rows (no duplicates)', async () => {
+    // This test verifies that when joining with one-to-many relationships,
+    // we don't get duplicate parent rows when multiple children match the filter.
+    // For example: if a post has 3 comments containing "great", we should get
+    // 1 post row, not 3 duplicate post rows.
+
+    // Create a post with multiple comments containing the same keyword
+    const testUser = await Users.create({
+      firstname: 'Test',
+      lastname: 'User',
+      email: 'test@test.com',
+      organization_id: null,
+    });
+
+    const testPost = await Posts.create({
+      title: 'Test Post with Comments',
+      content: 'Content',
+      author_id: testUser.id,
+    });
+
+    // Create 3 comments with the same keyword
+    await Comments.create({
+      content: 'This is great!',
+      post_id: testPost.id,
+      author_id: testUser.id,
+    });
+
+    await Comments.create({
+      content: 'Really great work!',
+      post_id: testPost.id,
+      author_id: testUser.id,
+    });
+
+    await Comments.create({
+      content: 'Great tutorial!',
+      post_id: testPost.id,
+      author_id: testUser.id,
+    });
+
+    // Query posts that have comments containing "great"
+    const results = await Posts.where({ 'comments.content': { like: '%great%' } });
+
+    // Find our test post in the results
+    const foundPosts = results.filter((p) => p.id === testPost.id);
+
+    // The post should appear only ONCE, even though it has 3 matching comments
+    // This is the expected behavior - we want distinct parent records
+    expect(foundPosts.length).toBe(1);
+  });
 });

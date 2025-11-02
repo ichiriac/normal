@@ -15,7 +15,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Advanced',
-      items: ['cache', 'custom-fields', 'filtering'],
+      items: ['cache', 'custom-fields', 'filtering', 'relational-filters'],
     },
   ],
 };

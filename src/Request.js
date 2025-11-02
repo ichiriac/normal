@@ -151,17 +151,21 @@ class Request {
     );
     if (hasColumns) return;
 
-    // Check if joins are present - if so, qualify all column names
+    // Check if joins are present - if so, qualify all column names and use distinct
     const hasJoins = stmts.some((s) => s && s.grouping === 'join');
 
     if (this.model.cache) {
       const id = this.model.primaryField?.column || 'id';
       qb.select(`${this.model.table}.${id}`);
+      // Use distinct when joins are present to avoid duplicate rows
+      if (hasJoins) {
+        qb.distinct();
+      }
     } else {
       // Qualify columns with table name if joins are present
       if (hasJoins) {
         const qualifiedColumns = this.model.columns.map((col) => `${this.model.table}.${col}`);
-        qb.select(qualifiedColumns);
+        qb.distinct().select(qualifiedColumns);
       } else {
         qb.select(this.model.columns);
       }
