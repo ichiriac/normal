@@ -1,4 +1,5 @@
 [![Coverage Status](https://coveralls.io/repos/github/ichiriac/normal/badge.svg?branch=master)](https://coveralls.io/github/ichiriac/normal?branch=master)
+[![license](https://img.shields.io/github/license/ichiriac/normal)](https://github.com/ichiriac/normal/blob/master/LICENSE)
 
 <div align="center">
 <img src="https://github.com/ichiriac/normal/raw/master/docs/assets/normal-logo.svg" alt="Normal ORM" height="120" />
