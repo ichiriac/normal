@@ -102,7 +102,7 @@ class Model {
     this.table = table ? table : _inferTable(name);
     this.fields = {};
     this.cls_init = false;
-    this.cls = class ActiveRecord extends Record { };
+    this.cls = class ActiveRecord extends Record {};
     this.abstract = false;
     this.inherited = [];
     this.mixins = new Set();
@@ -169,10 +169,10 @@ class Model {
       if (this.inherits && this.inherits !== MixinClass.inherits) {
         throw new Error(
           'Model already inherits from ' +
-          this.inherits +
-          ', cannot inherit from ' +
-          MixinClass.inherits +
-          ' as well.'
+            this.inherits +
+            ', cannot inherit from ' +
+            MixinClass.inherits +
+            ' as well.'
         );
       }
       this.inherits = MixinClass.inherits;
@@ -220,15 +220,13 @@ class Model {
    * @returns
    */
   async flush() {
-    let pendingInvalidation = false;  
+    let pendingInvalidation = false;
     const pendingInvalidations = [];
     for (const entity of this.entities.values()) {
       if (entity._isDirty) await entity.flush();
       if (!entity._model) {
         pendingInvalidation = true;
-        pendingInvalidations.push(
-          this._model.name + ':' + this.id
-        );
+        pendingInvalidations.push(this._model.name + ':' + this.id);
         this.invalidateCache();
       }
     }
@@ -240,7 +238,7 @@ class Model {
 
   /**
    * Updates the cache invalidation marker for this model.
-   * @returns 
+   * @returns
    */
   invalidateCache() {
     if (this.cache) {
@@ -652,7 +650,7 @@ class Model {
    */
   where(condition) {
     const request = this.query();
-    applyCriteria(request.queryBuilder, condition);
+    applyCriteria(request.queryBuilder, condition, 'and', this);
     return request;
   }
 

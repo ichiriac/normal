@@ -197,9 +197,7 @@ class Repository {
       config: this.connection.config,
       // Provide accessors to shared services like cache/discovery from parent connection
       getCache() {
-        return typeof parentConnection.getCache === 'function'
-          ? parentConnection.getCache()
-          : null;
+        return typeof parentConnection.getCache === 'function' ? parentConnection.getCache() : null;
       },
       getDiscovery() {
         return typeof parentConnection.getDiscovery === 'function'
