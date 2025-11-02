@@ -23,11 +23,11 @@ Use the JSON DSL to express filters; see [Filtering](filtering).
 
 ```js
 const Users = repo.get('Users');
-const rows = await Users.where({ 
-    email: 'a@example.com',
-    last_sent: {
-        "gt": (new Date('2025-01-01 00:00:00'))
-    }
+const rows = await Users.where({
+  email: 'a@example.com',
+  last_sent: {
+    gt: new Date('2025-01-01 00:00:00'),
+  },
 });
 ```
 
@@ -41,4 +41,4 @@ const popular = await Users.query().where('active', true).cache(60);
 
 In order to speed up the sql engine and keep cache lightweight only IDs are retrieved, records values are retrieved from the cache store or from the database.
 
- Creating, writing or unlinking a record may invalidates the cache consistency. In ordre to evict cache related to an model use `Model.invalidateCache()` or to automatically invalidate the cache from records actions use `static cacheInvalidation = true;` on the model.
+Creating, writing or unlinking a record may invalidates the cache consistency. In ordre to evict cache related to an model use `Model.invalidateCache()` or to automatically invalidate the cache from records actions use `static cacheInvalidation = true;` on the model.

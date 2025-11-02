@@ -126,11 +126,18 @@ class UsersExt {
 }
 
 // Inheritance: child model shares base structure and behavior
-class Payment { static name = 'Payment'; static fields = { id: 'primary', amount: 'float' }; }
-class CardPayment { static name = 'CardPayment'; static inherits = 'Payment'; static fields = { pan: 'string' }; }
+class Payment {
+  static name = 'Payment';
+  static fields = { id: 'primary', amount: 'float' };
+}
+class CardPayment {
+  static name = 'CardPayment';
+  static inherits = 'Payment';
+  static fields = { pan: 'string' };
+}
 
 repo.register(Users);
-repo.register(UsersExt);       // extension merged
+repo.register(UsersExt); // extension merged
 repo.register({ Payment, CardPayment });
 ```
 

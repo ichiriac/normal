@@ -92,7 +92,7 @@ class Articles {
     slug: { type: 'string', required: true },
     published: { type: 'boolean', default: false },
   };
-  
+
   // Create indexes on 'slug' and ['title', 'published']
   static indexes = ['slug', ['title', 'published']];
 }
@@ -112,22 +112,23 @@ class Users {
     status: { type: 'string', required: true },
     deleted_at: { type: 'datetime', required: false },
   };
-  
+
   static indexes = {
     idx_email_company: {
       fields: ['email', 'company'],
-      unique: true,                  // Enforce uniqueness
+      unique: true, // Enforce uniqueness
     },
     idx_active_users: {
       fields: ['status'],
-      predicate: {                   // Partial index (PostgreSQL/SQLite)
-        deleted_at: { isNull: true }
-      }
+      predicate: {
+        // Partial index (PostgreSQL/SQLite)
+        deleted_at: { isNull: true },
+      },
     },
     idx_hash_example: {
       fields: ['email'],
-      type: 'hash',                  // Index type (hash, btree)
-    }
+      type: 'hash', // Index type (hash, btree)
+    },
   };
 }
 ```

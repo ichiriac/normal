@@ -23,7 +23,10 @@ const conn = new Connection({ client: 'sqlite3', connection: { filename: ':memor
 await conn.connect();
 const repo = new Repository(conn);
 
-class Users { static name = 'Users'; static fields = { id: 'primary', email: 'string' } }
+class Users {
+  static name = 'Users';
+  static fields = { id: 'primary', email: 'string' };
+}
 repo.register(Users);
 await repo.sync({ force: true });
 
@@ -38,4 +41,4 @@ What’s next
 - Explore [requests](requests), [mixins](mixins) and [inheritance](inheritance)
 - Implement [custom fields](custom-fields)
 - Use JSON [filtering](filtering)
- - Migrate from Sequelize: [adoption guide](adoption-sequelize)
+- Migrate from Sequelize: [adoption guide](adoption-sequelize)

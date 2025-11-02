@@ -81,7 +81,10 @@ class Posts {
   };
 }
 
-class Tags { static name = 'Tags'; static fields = { id: 'primary' }; }
+class Tags {
+  static name = 'Tags';
+  static fields = { id: 'primary' };
+}
 ```
 
 On instances:
@@ -109,6 +112,7 @@ const u = await Users.where({ email }).include('posts').first();
 ```
 
 Notes:
+
 - `include()` accepts a string or array of relation names declared on the model.
 - NormalJS requests can be cached: `.cache(60)`.
 
@@ -157,8 +161,12 @@ On records (per instance):
 // In your mixin/extension class
 class Users {
   static name = 'Users';
-  async post_create() { /* ... */ }
-  async pre_update() { /* ... */ }
+  async post_create() {
+    /* ... */
+  }
+  async pre_update() {
+    /* ... */
+  }
 }
 ```
 
@@ -172,10 +180,14 @@ class Users {
   static fields = { id: 'primary', email: 'string' };
 
   // class (model) API
-  static byEmail(email) { return this.where({ email }).first(); }
+  static byEmail(email) {
+    return this.where({ email }).first();
+  }
 
   // instance API
-  get domain() { return this.email?.split('@')[1] || null; }
+  get domain() {
+    return this.email?.split('@')[1] || null;
+  }
 }
 ```
 
@@ -198,8 +210,12 @@ Sequelize scopes can be translated into helper statics on the model:
 
 ```js
 class Users {
-  static active() { return this.where({ active: true }); }
-  static byDomain(domain) { return this.where({ email: { like: `%@${domain}` } }); }
+  static active() {
+    return this.where({ active: true });
+  }
+  static byDomain(domain) {
+    return this.where({ email: { like: `%@${domain}` } });
+  }
 }
 ```
 
@@ -217,13 +233,13 @@ class Users {
 Enable cache on a model by setting `static cache`:
 
 ```js
-class Users { 
-    static name = 'Users'; 
-    static fields = { 
-        id: 'primary', 
-        email: 'string' 
-    }; 
-    static cache = 300 
+class Users {
+  static name = 'Users';
+  static fields = {
+    id: 'primary',
+    email: 'string',
+  };
+  static cache = 300;
 }
 ```
 

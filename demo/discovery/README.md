@@ -91,8 +91,8 @@ const conn = new Connection({
     onMemberLeave: (member) => {
       console.log('Member left:', member);
       // Cache peers are automatically synced
-    }
-  }
+    },
+  },
 });
 
 await conn.startDiscovery();
@@ -106,7 +106,7 @@ const repo = new Repository(conn);
 1. **Bootstrap**: When started, each node sends rapid announcements (1/sec for 10 sec) via multicast
 2. **Keep-alive**: After bootstrap, nodes send periodic announcements (every 10 sec)
 3. **Membership**: Nodes track other members and update their last-seen timestamp
-4. **Eviction**: Members not seen within TTL * 1.5 are automatically removed
+4. **Eviction**: Members not seen within TTL \* 1.5 are automatically removed
 5. **Security**: All messages are signed with HMAC-SHA256 using connection config as secret
 6. **Replay Protection**: Messages include timestamp + nonce to prevent replay attacks
 7. **Cache Integration**: Discovered members with matching connection hash are automatically added as cache invalidation peers
@@ -128,7 +128,7 @@ const conn1 = new Connection({
   client: 'pg',
   connection: { host: 'localhost', database: 'app1' },
   cache: { enabled: true },
-  discovery: { enabled: true }
+  discovery: { enabled: true },
 });
 
 // Connection 2: PostgreSQL database 'app2'
@@ -136,7 +136,7 @@ const conn2 = new Connection({
   client: 'pg',
   connection: { host: 'localhost', database: 'app2' },
   cache: { enabled: true },
-  discovery: { enabled: true }
+  discovery: { enabled: true },
 });
 
 // conn1 and conn2 will:

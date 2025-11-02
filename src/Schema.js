@@ -175,29 +175,11 @@ async function synchronizeIndexes(cnx, model, prevIndexes, force) {
             );
           }
 
-          await cnx.schema.table(model.table, (table) => {
-            if (index.unique) {
-              table.unique(index.columns, { indexName: index.name });
-            } else {
-              const indexBuilder = table.index(index.columns, index.name, {
-                indexType: index.type || undefined,
-                storageEngineIndexType: index.storage || undefined,
-              });
+          // For partial indexes, use raw SQL directly
+          const isPartialIndex = predicateClause && hasPartialIndexSupport;
 
-              // Add WHERE clause for partial indexes
-              if (predicateClause && hasPartialIndexSupport) {
-                // Use raw SQL for partial index with WHERE clause
-                // Note: Knex doesn't have native support for WHERE in index(), so we use raw
-                // Drop the index that was just created and recreate with WHERE
-                table.dropIndex(index.columns, index.name);
-              }
-              // Silence unused variable warning
-              void indexBuilder;
-            }
-          });
-
-          // For partial indexes, we need to use raw SQL
-          if (predicateClause && hasPartialIndexSupport) {
+          if (isPartialIndex) {
+            // Use raw SQL for partial indexes with WHERE clause
             const indexTypeClause = index.type ? ` USING ${index.type}` : '';
             const uniqueClause = index.unique ? 'UNIQUE ' : '';
             const columnList = index.columns.map((col) => `"${col}"`).join(', ');
@@ -205,6 +187,18 @@ async function synchronizeIndexes(cnx, model, prevIndexes, force) {
             await cnx.raw(
               `CREATE ${uniqueClause}INDEX IF NOT EXISTS "${index.name}" ON "${model.table}"${indexTypeClause} (${columnList}) WHERE ${predicateClause}`
             );
+          } else {
+            // Use standard Knex schema builder for non-partial indexes
+            await cnx.schema.table(model.table, (table) => {
+              if (index.unique) {
+                table.unique(index.columns, { indexName: index.name });
+              } else {
+                table.index(index.columns, index.name, {
+                  indexType: index.type || undefined,
+                  storageEngineIndexType: index.storage || undefined,
+                });
+              }
+            });
           }
         }
         changed = true;

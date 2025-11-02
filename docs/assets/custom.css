@@ -1,12 +1,12 @@
 :root {
-    --ifm-color-primary: #3f51b5;
+  --ifm-color-primary: #3f51b5;
 }
 
 .hero {
-    text-align: center;
-    padding: 3rem 0;
+  text-align: center;
+  padding: 3rem 0;
 }
 
 .hero__title {
-    font-size: 3rem;
+  font-size: 3rem;
 }
