@@ -259,15 +259,6 @@ class Model {
   }
 
   /**
-   * Create a new query request.
-   * @returns Request
-   */
-  query() {
-    this._init();
-    return new Request(this, this.repo.cnx(this.table).queryContext({ model: this }));
-  }
-
-  /**
    * Lookup a list of ids, batching missing ids into a single query.
    * @param {int|Array<int>} ids
    * @returns Promise<Array<Record>>
@@ -627,6 +618,16 @@ class Model {
     return data;
   }
 
+  /**
+   * Create a new query request.
+   * @returns Request
+   */
+  query() {
+    this._init();
+    // @fixme should flush any changes before : this.repo.flush();
+    return new Request(this, this.repo.cnx(this.table).queryContext({ model: this }));
+  }
+  
   /**
    * Find a record by its ID.
    * @param {*} id
