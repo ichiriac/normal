@@ -92,7 +92,7 @@ class SharedMemoryCache {
       try {
         const res = this.arena.sweep(sweepChecks);
         this._metrics.onSweep(res);
-      } catch (_) { }
+      } catch (_) {}
     }, sweepEveryMs);
     this._sweepTimer.unref?.();
 
@@ -109,7 +109,7 @@ class SharedMemoryCache {
 
   /**
    * Store a value with a time-to-live.
-  * Values can be arbitrary JSON-serializable objects.
+   * Values can be arbitrary JSON-serializable objects.
    *
    * On success, schedules an invalidation broadcast to cluster peers.
    *

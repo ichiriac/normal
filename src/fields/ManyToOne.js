@@ -70,7 +70,11 @@ class ManyToOne extends Field {
   async buildPostIndex(metadata) {
     // inject creation behavior
     this.getColumnDefinition = (table) => {
-      const col = table.integer(this.column).unsigned().references('id').inTable(this.refModel.table);
+      const col = table
+        .integer(this.column)
+        .unsigned()
+        .references('id')
+        .inTable(this.refModel.table);
       if (this.definition.cascade === true) {
         col.onDelete('CASCADE');
       } else if (this.definition.cascade === false) {

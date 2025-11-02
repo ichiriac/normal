@@ -150,11 +150,21 @@ class Request {
       (s) => s && s.grouping === 'columns' && Array.isArray(s.value) && s.value.length > 0
     );
     if (hasColumns) return;
+
+    // Check if joins are present - if so, qualify all column names
+    const hasJoins = stmts.some((s) => s && s.grouping === 'join');
+
     if (this.model.cache) {
       const id = this.model.primaryField?.column || 'id';
       qb.select(`${this.model.table}.${id}`);
     } else {
-      qb.select(this.model.columns);
+      // Qualify columns with table name if joins are present
+      if (hasJoins) {
+        const qualifiedColumns = this.model.columns.map((col) => `${this.model.table}.${col}`);
+        qb.select(qualifiedColumns);
+      } else {
+        qb.select(this.model.columns);
+      }
     }
   }
 

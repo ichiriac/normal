@@ -1,5 +1,49 @@
 'use strict';
 
+const { resolveRelationalPath, applyJoins } = require('./joins');
+
+/**
+ * Collect all joins needed for relational paths in criteria.
+ * This scans the criteria tree without applying any where clauses.
+ * @param {import('../Model').Model} model
+ * @param {object} criteria
+ * @param {Set<string>} joins - Accumulated set of joins
+ */
+function collectJoins(model, criteria, joins = new Set()) {
+  if (!criteria || typeof criteria !== 'object' || !model) return joins;
+
+  const keys = Object.keys(criteria);
+  const logicKeys = new Set(['and', 'or', 'not']);
+
+  for (const key of keys) {
+    if (logicKeys.has(key)) {
+      // Recursively collect joins from nested criteria
+      if (key === 'not') {
+        collectJoins(model, criteria[key], joins);
+      } else if (Array.isArray(criteria[key])) {
+        for (const sub of criteria[key]) {
+          collectJoins(model, sub, joins);
+        }
+      }
+    } else {
+      // This is a field - check if it's a relational path
+      if (key.includes('.') && !key.includes('::')) {
+        try {
+          const resolved = resolveRelationalPath(model, key);
+          // Add each join to the set
+          for (const join of resolved.joins) {
+            joins.add(JSON.stringify(join)); // Use JSON for unique key
+          }
+        } catch (err) {
+          // Not a relational path, ignore
+        }
+      }
+    }
+  }
+
+  return joins;
+}
+
 /**
  * Apply a JSON-serializable criteria object to a Knex query builder.
  * Supported:
@@ -7,11 +51,41 @@
  *  - Field ops: eq, ne, gt, gte, lt, lte, in, nin, between, nbetween, like, ilike, null, notNull
  *  - Shorthand: { field: value } => eq
  *  - Qualify columns: "table.column"
+ *  - Relational paths: "author.organization.name" (auto-joins)
  * @param {import('knex').Knex.QueryBuilder} qb
  * @param {object} criteria
  * @param {'and'|'or'} combine
+ * @param {import('../Model').Model} [model] - Optional model for resolving relational paths
  */
-function applyCriteria(qb, criteria, combine = 'and') {
+function applyCriteria(qb, criteria, combine = 'and', model = null) {
+  if (!criteria || typeof criteria !== 'object') return qb;
+
+  // Get model from query context if not provided
+  if (!model) {
+    const context =
+      qb.queryContext && typeof qb.queryContext === 'function' ? qb.queryContext() : null;
+    model = context?.model;
+  }
+
+  // First pass: collect all joins needed from the entire criteria tree
+  if (model) {
+    const joinsSet = collectJoins(model, criteria);
+    const joins = Array.from(joinsSet).map((j) => JSON.parse(j));
+    applyJoins(qb, joins);
+  }
+
+  // Second pass: apply where clauses
+  return applyCriteriaInternal(qb, criteria, combine, model);
+}
+
+/**
+ * Internal function that applies criteria without collecting joins.
+ * @param {import('knex').Knex.QueryBuilder} qb
+ * @param {object} criteria
+ * @param {'and'|'or'} combine
+ * @param {import('../Model').Model} [model]
+ */
+function applyCriteriaInternal(qb, criteria, combine = 'and', model = null) {
   if (!criteria || typeof criteria !== 'object') return qb;
 
   const keys = Object.keys(criteria);
@@ -24,7 +98,7 @@ function applyCriteria(qb, criteria, combine = 'and') {
   // Apply field predicates
   for (const field of fields) {
     const spec = criteria[field];
-    applyFieldPredicate(qb, combine, field, spec);
+    applyFieldPredicate(qb, combine, field, spec, model);
   }
 
   // Apply logical parts
@@ -37,14 +111,14 @@ function applyCriteria(qb, criteria, combine = 'and') {
         for (let i = 0; i < arr.length; i++) {
           const sub = arr[i];
           const subCombine = i === 0 ? 'and' : useOr ? 'or' : 'and';
-          applyCriteria(subQb, sub, subCombine);
+          applyCriteriaInternal(subQb, sub, subCombine, model);
         }
       };
       if (combine === 'or') qb.orWhere(wrap);
       else qb.where(wrap);
     } else if (k === 'not') {
       const sub = criteria[k];
-      const wrap = (subQb) => applyCriteria(subQb, sub, 'and');
+      const wrap = (subQb) => applyCriteriaInternal(subQb, sub, 'and', model);
       if (combine === 'or') qb.orWhereNot(wrap);
       else qb.whereNot(wrap);
     }
@@ -53,7 +127,21 @@ function applyCriteria(qb, criteria, combine = 'and') {
   return qb;
 }
 
-function applyFieldPredicate(qb, combine, col, spec) {
+function applyFieldPredicate(qb, combine, col, spec, model = null) {
+  // Check if this is a relational path (contains dots)
+  // Note: joins are already applied at the top level, we just need to resolve the column name
+  if (model && col.includes('.') && !col.includes('::')) {
+    // This might be a relational path, try to resolve it
+    try {
+      const resolved = resolveRelationalPath(model, col);
+      // Use the resolved target column (qualified with table name)
+      col = `${resolved.targetTable}.${resolved.targetColumn}`;
+    } catch (err) {
+      // If resolution fails, treat as a regular qualified column (e.g., "table.column")
+      // and let Knex handle it
+    }
+  }
+
   // Shorthand scalar => eq
   if (!spec || typeof spec !== 'object' || Array.isArray(spec)) {
     return addCmp(qb, combine, col, 'eq', spec);
