@@ -1,6 +1,6 @@
 {
   "name": "normaljs",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "NormalJS : Node Object Relational Mapper Abstraction Layer",
   "main": "index.js",
   "scripts": {
