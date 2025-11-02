@@ -74,7 +74,7 @@ class StringField extends Field {
 
   getMetadata() {
     const meta = super.getMetadata();
-    meta.size = this.definition.size;
+    meta.size = this.definition.size || 255;
     meta.validate = this.definition.validate || {};
     return meta;
   }

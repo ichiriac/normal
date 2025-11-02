@@ -352,9 +352,6 @@ class Field {
     } else {
       column.nullable();
     }
-    if (this.definition.unique) {
-      column.unique();
-    }
     if (this.definition.default !== undefined && typeof this.definition.default !== 'function') {
       column.defaultTo(this.definition.default);
     }
@@ -391,7 +388,8 @@ class Field {
       if (k === 'compute') continue;
       if (k === 'depends') continue;
       if (k === 'description') continue;
-      if (definition[k] != metadata[k]) {
+
+      if (JSON.stringify(definition[k]) != JSON.stringify(metadata[k])) {
         return true;
       }
     }
@@ -436,17 +434,36 @@ class Field {
    */
   buildIndex(table, metadata) {
     if (!this.stored) return null;
-    const prevNotIndexed = !metadata || !metadata.index;
-    if (this.definition.index) {
-      if (prevNotIndexed) {
-        table.index(this.column);
-        return true;
+
+    let changed = false;
+      const prevUnique = metadata && metadata.unique;
+      const prevIndexed = metadata && metadata.index;
+
+    if (this.definition.unique) {
+      // Flagged as unique, before was just indexed
+      if (prevIndexed && !prevUnique) {
+        table.dropIndex(this.column);
+        changed = true;
       }
-    } else if (prevNotIndexed === false) {
-      table.dropIndex(this.column);
-      return true;
+      // Add unique constraint
+      if (!prevUnique) {
+        table.unique(this.column);
+        changed = true;
+      }
+    } else if (prevUnique) {
+      // Was unique, now not unique
+      table.dropUnique(this.column);
+      changed = true;
     }
-    return false;
+
+    // add index if not already indexed by unique constraint
+    if (this.definition.index && !this.definition.unique) {
+      if (!prevIndexed) {
+        table.index(this.column);
+        changed = true;
+      }
+    }
+    return changed;
   }
 
   /**
