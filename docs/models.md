@@ -75,6 +75,124 @@ Results are wrapped into active record instances. With cache enabled, read queri
 - `await Model.create(data)` inserts a new record and returns an active record instance. Many-to-many collections can be pre-filled by setting the relation field to an array of ids (they are written after the main row is inserted).
 - `await repo.flush()` persists pending changes across all models. `await model.flush()` flushes one model.
 
+## Indexes and Unique Constraints
+
+You can define indexes and unique constraints at the model level using the `static indexes` property. This is useful for composite indexes, partial indexes, and fine-grained control over index behavior.
+
+### Simple syntax (array)
+
+For basic single-field or composite indexes, use an array:
+
+```js
+class Articles {
+  static name = 'Articles';
+  static fields = {
+    id: 'primary',
+    title: { type: 'string', required: true },
+    slug: { type: 'string', required: true },
+    published: { type: 'boolean', default: false },
+  };
+  
+  // Create indexes on 'slug' and ['title', 'published']
+  static indexes = ['slug', ['title', 'published']];
+}
+```
+
+### Advanced syntax (object)
+
+For full control, use an object where keys are index names and values are configuration objects:
+
+```js
+class Users {
+  static name = 'Users';
+  static fields = {
+    id: 'primary',
+    email: { type: 'string', required: true },
+    company: { type: 'string', required: true },
+    status: { type: 'string', required: true },
+    deleted_at: { type: 'datetime', required: false },
+  };
+  
+  static indexes = {
+    idx_email_company: {
+      fields: ['email', 'company'],
+      unique: true,                  // Enforce uniqueness
+    },
+    idx_active_users: {
+      fields: ['status'],
+      predicate: {                   // Partial index (PostgreSQL/SQLite)
+        deleted_at: { isNull: true }
+      }
+    },
+    idx_hash_example: {
+      fields: ['email'],
+      type: 'hash',                  // Index type (hash, btree)
+    }
+  };
+}
+```
+
+### Configuration options
+
+Each index definition supports the following options:
+
+- **`fields`** (required): Array of field names to include in the index
+- **`unique`**: Boolean, default `false`. Creates a unique index
+- **`type`**: Index type (`'hash'`, `'btree'`, etc.). Supported types vary by database
+- **`storage`**: Storage method (e.g., `'FULLTEXT'` for MySQL). Cannot be combined with `unique`
+- **`predicate`**: Filtering criteria for partial indexes (see below). Supported by PostgreSQL and SQLite
+- **`deferrable`**: Constraint deferrable mode: `'deferred'`, `'immediate'`, or `'not deferrable'`
+- **`useConstraint`**: Boolean, default `false`. When `true` with `unique`, creates a unique constraint instead of a unique index
+
+### Partial indexes
+
+Partial indexes include only rows matching a predicate. Use NormalJS filtering syntax:
+
+```js
+static indexes = {
+  idx_high_priority_tasks: {
+    fields: ['title'],
+    predicate: {
+      priority: { gte: 8 },
+      completed_at: { isNull: true }
+    }
+  }
+}
+```
+
+Supported predicate operators:
+
+- `{ isNull: true }` / `{ notNull: true }`
+- `{ eq: value }` / `{ ne: value }`
+- `{ gt: value }` / `{ gte: value }` / `{ lt: value }` / `{ lte: value }`
+
+**Note**: Partial indexes are only supported by PostgreSQL and SQLite. On other databases, a warning is logged and the predicate is ignored.
+
+### Field-level vs model-level indexes
+
+You can still use field-level `index: true` and `unique: true` for simple cases:
+
+```js
+static fields = {
+  email: { type: 'string', unique: true },  // Field-level unique
+}
+```
+
+Model-level indexes are recommended for:
+
+- Composite indexes (multiple fields)
+- Partial indexes with predicates
+- Custom index types or storage methods
+
+### Notes
+
+- Index names are auto-generated or taken from the object key
+- Very long index names are automatically truncated and hashed to fit database limits (typically 60-63 characters)
+- Field names are resolved to column names (respects `column` option)
+- Cannot index computed fields (fields with `stored: false`)
+- During schema sync, unique constraint violations are logged but don't stop migration
+- Indexes are created/updated/dropped automatically during `repo.sync()`
+
 ## Model extension (merging definitions)
 
 You can register multiple classes with the same `static name` to extend a model across files or modules. Field declarations are merged; methods/getters are added to the active record class.
