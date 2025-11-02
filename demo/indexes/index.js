@@ -1,6 +1,6 @@
 /**
  * Demo: Model-level Indexes and Unique Constraints
- * 
+ *
  * This demo showcases the new indexes feature in NormalJS:
  * - Composite indexes
  * - Unique constraints
@@ -14,9 +14,9 @@ async function demo() {
   console.log('=== NormalJS Indexes Demo ===\n');
 
   // Setup
-  const conn = new Connection({ 
-    client: 'sqlite3', 
-    connection: { filename: ':memory:' } 
+  const conn = new Connection({
+    client: 'sqlite3',
+    connection: { filename: ':memory:' },
   });
   await conn.connect();
   const repo = new Repository(conn);
@@ -133,7 +133,7 @@ async function demo() {
 
   repo.register(Orders);
   await repo.sync({ force: true });
-  
+
   const model = repo.get('Orders');
   model._init(); // Trigger initialization to see resolved columns
   console.log('  ✓ Field names: ', model.indexes[0].fields);

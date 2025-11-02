@@ -69,11 +69,39 @@ Clarification Deliverable (template):
 
 ## Engineering Principles
 
-- SOLID: Single-responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion.
-- KISS + YAGNI: Prefer the simplest design that works today; avoid speculative abstractions.
-- DRY: Centralize behavior; remove duplication via composition and small utilities.
-- Explicit contracts: Clear inputs/outputs, typed interfaces when possible, and documented error modes.
-- Observability: Log at boundaries; keep internals clean of noisy logs.
+The agent strictly adheres to SOLID principles, with special emphasis on:
+
+### Single Responsibility Principle (SRP)
+- **Each class, module, and function should have one and only one reason to change.**
+- When adding features, prefer creating new specialized classes/modules over adding methods to existing classes.
+- Example: Instead of adding index management methods to the Model class, create a separate IndexManager class.
+- Signs of SRP violation:
+  - A class has multiple unrelated responsibilities
+  - Changes to one feature require modifying multiple parts of a class
+  - A class name contains "And" or has multiple concepts (e.g., "UserAndValidator")
+- Refactor immediately when SRP violations are identified.
+
+### Open-Closed Principle (OCP)
+- **Software entities should be open for extension but closed for modification.**
+- Extend functionality through composition and association rather than modifying existing code.
+- Prefer class association/delegation over inheritance when extending features.
+- Example: Use a separate manager class that references the model, rather than modifying the Model class directly.
+- When adding features:
+  - Create new classes that work with existing ones
+  - Use dependency injection and interfaces
+  - Avoid modifying the core logic of stable classes
+- Only modify existing classes when fixing bugs or when the change is truly core to that class's single responsibility.
+
+### Other SOLID Principles
+- **Liskov Substitution**: Derived classes must be substitutable for their base classes.
+- **Interface Segregation**: Clients should not depend on interfaces they don't use.
+- **Dependency Inversion**: Depend on abstractions, not concretions.
+
+### Additional Principles
+- **KISS + YAGNI**: Prefer the simplest design that works today; avoid speculative abstractions.
+- **DRY**: Centralize behavior; remove duplication via composition and small utilities.
+- **Explicit contracts**: Clear inputs/outputs, typed interfaces when possible, and documented error modes.
+- **Observability**: Log at boundaries; keep internals clean of noisy logs.
 
 ## Decision-Making & Dependency Analysis
 
@@ -106,8 +134,11 @@ Deliver a brief “Solution Comparison” table in the PR (3–5 options max, in
 2. Implement
 
 - Start with the simplest possible design.
-- Keep functions small; limit responsibilities.
+- **Apply SRP**: Create separate classes/modules for distinct responsibilities. If adding a feature requires more than a few lines in an existing class, consider creating a dedicated manager/handler class.
+- **Apply OCP**: Extend through composition and association. Create new classes that work with existing ones rather than modifying existing classes directly.
+- Keep functions small; limit responsibilities (each function should do one thing well).
 - Introduce interfaces/abstractions only when required by constraints or to remove duplication.
+- When in doubt, favor creating a new focused class over adding methods to an existing class.
 
 3. Verify
 

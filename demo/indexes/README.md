@@ -11,18 +11,23 @@ node demo/indexes/index.js
 ## What's Demonstrated
 
 ### 1. Composite Unique Constraints
+
 Shows how to enforce uniqueness across multiple fields (username + domain).
 
 ### 2. Simple Array Syntax
+
 Demonstrates the shorthand array syntax for defining basic indexes.
 
 ### 3. Partial Indexes
+
 Examples of partial indexes with predicates (WHERE clauses) to index only rows matching certain conditions.
 
 ### 4. Field Name Resolution
+
 Shows how field names are automatically resolved to their corresponding database column names.
 
 ### 5. Field-level vs Model-level Indexes
+
 Compares field-level `unique: true` with model-level composite unique constraints.
 
 ## Key Features

@@ -3,6 +3,7 @@ const { Record } = require('./Record.js');
 const { Field } = require('./Fields.js');
 const { extendModel } = require('./utils/extender');
 const { applyCriteria } = require('./utils/criteria');
+const { IndexManager } = require('./IndexManager.js');
 
 const EventEmitter = require('node:events');
 
@@ -114,7 +115,7 @@ class Model {
     // Cache invalidation flag used to mark models whose cache should be invalidated
     // from record changes
     this.cacheInvalidation = false;
-    this.indexes = [];
+    this.indexManager = new IndexManager(this);
     this.entities = new Map();
     this._lookup = new LookupIds(this);
     this.inheritField = null;
@@ -128,6 +129,13 @@ class Model {
     if (this.refField && this.refField.isDiscriminator) return this.refField;
     const f = Object.values(this.fields).find((x) => x && x.isDiscriminator);
     return f || null;
+  }
+
+  /**
+   * Get indexes from the IndexManager (for backward compatibility)
+   */
+  get indexes() {
+    return this.indexManager.getIndexes();
   }
 
   /**
@@ -156,7 +164,7 @@ class Model {
       Object.assign(this.fields, MixinClass.fields);
     }
     if (MixinClass.indexes) {
-      this._mergeIndexes(MixinClass.indexes);
+      this.indexManager.merge(MixinClass.indexes);
     }
     if (MixinClass.hasOwnProperty('cache')) {
       if (MixinClass.cache === true) {
@@ -196,44 +204,6 @@ class Model {
     }
     if (typeof MixinClass === 'function') {
       extendModel(this, MixinClass);
-    }
-  }
-
-  /**
-   * Merge index definitions from a mixin class.
-   * @param {*} indexes
-   */
-  _mergeIndexes(indexes) {
-    if (Array.isArray(indexes)) {
-      // Simple array syntax: ['field1', 'field2']
-      indexes.forEach((indexDef) => {
-        if (typeof indexDef === 'string') {
-          this.indexes.push({
-            name: `idx_${this.table}_${indexDef}`,
-            fields: [indexDef],
-          });
-        } else if (Array.isArray(indexDef)) {
-          this.indexes.push({
-            name: `idx_${this.table}_${indexDef.join('_')}`,
-            fields: indexDef,
-          });
-        }
-      });
-    } else if (typeof indexes === 'object') {
-      // Object syntax: { idx_name: { fields: [...], unique: true } }
-      for (const [name, definition] of Object.entries(indexes)) {
-        const indexConfig = {
-          name,
-          fields: definition.fields || [],
-          unique: definition.unique || false,
-          type: definition.type || null,
-          storage: definition.storage || null,
-          predicate: definition.predicate || null,
-          deferrable: definition.deferrable || null,
-          useConstraint: definition.useConstraint || false,
-        };
-        this.indexes.push(indexConfig);
-      }
     }
   }
 
@@ -436,7 +406,7 @@ class Model {
       this.cls_init = true;
 
       // Validate and normalize index definitions
-      this._validateIndexes();
+      this.indexManager.validate();
 
       // Call post_attach hooks
       for (let field of Object.values(this.fields)) {
@@ -444,53 +414,6 @@ class Model {
       }
 
       this.events.emit('init', this);
-    }
-  }
-
-  /**
-   * Validate index definitions and resolve field names to column names.
-   */
-  _validateIndexes() {
-    for (const index of this.indexes) {
-      if (!index.fields || index.fields.length === 0) {
-        throw new Error(
-          `Index '${index.name}' in model '${this.name}' must have at least one field`
-        );
-      }
-
-      // Validate and resolve field names to column names
-      index.columns = [];
-      for (const fieldName of index.fields) {
-        if (!this.fields[fieldName]) {
-          throw new Error(
-            `Index '${index.name}' in model '${this.name}' references non-existent field '${fieldName}'`
-          );
-        }
-        const field = this.fields[fieldName];
-        if (!field.stored) {
-          throw new Error(
-            `Index '${index.name}' in model '${this.name}' references non-stored (computed) field '${fieldName}'`
-          );
-        }
-        index.columns.push(field.column);
-      }
-
-      // Validate storage option (FULLTEXT) is only used without unique
-      if (index.storage === 'FULLTEXT' && index.unique) {
-        throw new Error(
-          `Index '${index.name}' in model '${this.name}' cannot use FULLTEXT storage with unique constraint`
-        );
-      }
-
-      // Normalize index name to fit database limits (usually 63 chars for PostgreSQL)
-      if (index.name.length > 60) {
-        const hash = require('crypto')
-          .createHash('md5')
-          .update(index.name)
-          .digest('hex')
-          .substring(0, 8);
-        index.name = index.name.substring(0, 51) + '_' + hash;
-      }
     }
   }
 
