@@ -650,7 +650,7 @@ class Model {
    */
   where(condition) {
     const request = this.query();
-    applyCriteria(request.queryBuilder, condition);
+    applyCriteria(request.queryBuilder, condition, 'and', this);
     return request;
   }
 

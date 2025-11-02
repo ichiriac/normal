@@ -1,6 +1,11 @@
 'use strict';
 
 /**
+ * WeakMap to track joins per query builder to avoid modifying Knex internals
+ */
+const joinTracker = new WeakMap();
+
+/**
  * Parse a relational field path and resolve the necessary joins.
  * Example: "author.organization.name" =>
  *   - Join users table via author_id
@@ -119,21 +124,23 @@ function resolveRelationalPath(model, fieldPath) {
  */
 function applyJoins(qb, joins) {
   // Track which joins have been applied to avoid duplicates
-  if (!qb._normalJoins) {
-    qb._normalJoins = new Set();
+  if (!joinTracker.has(qb)) {
+    joinTracker.set(qb, new Set());
   }
+
+  const appliedJoins = joinTracker.get(qb);
 
   for (const join of joins) {
     // Create a unique key for this join
     const joinKey = `${join.fromTable}.${join.fromColumn}->${join.toTable}.${join.toColumn}`;
 
-    if (!qb._normalJoins.has(joinKey)) {
+    if (!appliedJoins.has(joinKey)) {
       qb.join(
         join.toTable,
         `${join.fromTable}.${join.fromColumn}`,
         `${join.toTable}.${join.toColumn}`
       );
-      qb._normalJoins.add(joinKey);
+      appliedJoins.add(joinKey);
     }
   }
 }

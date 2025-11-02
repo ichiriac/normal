@@ -7,7 +7,7 @@ const { resolveRelationalPath, applyJoins } = require('./joins');
  * This scans the criteria tree without applying any where clauses.
  * @param {import('../Model').Model} model
  * @param {object} criteria
- * @param {Set<string>} joins - Accumulated set of joins
+ * @param {Set<string>} joins - Accumulated set of join keys
  */
 function collectJoins(model, criteria, joins = new Set()) {
   if (!criteria || typeof criteria !== 'object' || !model) return joins;
@@ -30,9 +30,10 @@ function collectJoins(model, criteria, joins = new Set()) {
       if (key.includes('.') && !key.includes('::')) {
         try {
           const resolved = resolveRelationalPath(model, key);
-          // Add each join to the set
+          // Add each join to the set using a string key for uniqueness
           for (const join of resolved.joins) {
-            joins.add(JSON.stringify(join)); // Use JSON for unique key
+            const joinKey = `${join.fromTable}.${join.fromColumn}->${join.toTable}.${join.toColumn}`;
+            joins.add(joinKey);
           }
         } catch (err) {
           // Not a relational path, ignore
@@ -70,7 +71,14 @@ function applyCriteria(qb, criteria, combine = 'and', model = null) {
   // First pass: collect all joins needed from the entire criteria tree
   if (model) {
     const joinsSet = collectJoins(model, criteria);
-    const joins = Array.from(joinsSet).map((j) => JSON.parse(j));
+    // Reconstruct join objects from string keys
+    const joins = Array.from(joinsSet).map((joinKey) => {
+      // Parse key format: "fromTable.fromColumn->toTable.toColumn"
+      const [from, to] = joinKey.split('->');
+      const [fromTable, fromColumn] = from.split('.');
+      const [toTable, toColumn] = to.split('.');
+      return { fromTable, fromColumn, toTable, toColumn };
+    });
     applyJoins(qb, joins);
   }
 

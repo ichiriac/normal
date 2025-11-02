@@ -148,6 +148,7 @@ repo.register({ Payment, CardPayment });
   - 1:n via `one-to-many` (e.g., `comments: { type: 'one-to-many', foreign: 'Comments.post_id' }`).
   - n:m via paired `many-to-many` (auto-join table).
   - Relation proxies on instances: `add`, `remove`, `load`.
+  - **NEW**: Automatic join generation for relational filters (e.g., `where({ 'author.organization.name': 'ACME' })`).
 - Transactions
   - `repo.transaction(async (tx) => { /* ... */ })` gives an isolated tx-bound repository.
   - Post-commit cache flush of changed records.
@@ -170,6 +171,7 @@ See full field reference in `docs/fields.md`.
 - `docs/models.md` — Model definitions, inheritance, and extension system.
 - `docs/fields.md` — Built-in field types and options.
 - `docs/requests.md` — Request API, criteria DSL, and request-level caching.
+- `docs/relational-filters.md` — **NEW**: Automatic joins for relational field filters.
 - `docs/cache.md` — Cache architecture, connection options, discovery, and model cache options.
 - `docs/custom-fields.md` — In-depth custom fields with hooks and a file-storage example.
 - `docs/adoption-sequelize.md` — Step-by-step migration guide from Sequelize.
