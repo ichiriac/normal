@@ -56,7 +56,7 @@ class StringField extends Field {
 
   validate(record) {
     const value = super.validate(record);
-    if (this.definition.validate) {
+    if (this.definition.validate && value !== null && value !== undefined) {
       for (const [rule, param] of Object.entries(this.definition.validate)) {
         const validatorFn = StringField.validators[rule];
         if (validatorFn) {
