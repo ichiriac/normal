@@ -1,6 +1,3 @@
-[![Coverage Status](https://coveralls.io/repos/github/ichiriac/normal/badge.svg?branch=main)](https://coveralls.io/github/ichiriac/normal?branch=main)
-[![license](https://img.shields.io/github/license/ichiriac/normal)](https://github.com/ichiriac/normal/blob/main/LICENSE)
-
 <div align="center">
 <img src="https://github.com/ichiriac/normal/raw/main/docs/assets/normal-logo.svg" alt="Normal ORM" height="120" />
 
@@ -31,6 +28,10 @@ Build data-rich apps with clean models, powerful relations, and first-class DX. 
 
 ## Install
 
+[![Coverage Status](https://coveralls.io/repos/github/ichiriac/normal/badge.svg?branch=main)](https://coveralls.io/github/ichiriac/normal?branch=main)
+[![license](https://img.shields.io/github/license/ichiriac/normal)](https://github.com/ichiriac/normal/blob/main/LICENSE)
+[![NPM version](https://badge.fury.io/js/normaljs.svg)](http://badge.fury.io/js/normaljs)
+
 ```bash
 npm install normaljs pg -y
 ```
@@ -60,7 +61,7 @@ Note: You only need the driver for the database(s) you use (e.g., `pg` for Postg
 // index.js
 const { Connection, Repository } = require('normaljs');
 
-// 1) Create a connection (SQLite in-memory shown; Postgres also supported)
+// 1) Create a connection (SQLite in-memory shown; Postgres or MySQL also supported)
 const db = new Connection({ client: 'sqlite3', connection: { filename: ':memory:' } });
 
 // 2) Define models (CommonJS)
