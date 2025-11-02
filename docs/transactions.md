@@ -12,18 +12,21 @@ NormalJS wraps Knex transactions and coordinates record flushing and cache updat
 Use `Repository.transaction(work, { isolationLevel? })`. Inside, you receive a transaction-scoped repository (txRepo) that shares your model definitions and cache, but all DB operations run on the single transaction.
 
 ```js
-const result = await repo.transaction(async (tx) => {
-  const Users = tx.get('Users');
+const result = await repo.transaction(
+  async (tx) => {
+    const Users = tx.get('Users');
 
-  // Create/update/unlink rows as usual
-  const u = await Users.create({ email: 'a@example.com' });
-  u.firstname = 'Ada';
-  await u.flush();
+    // Create/update/unlink rows as usual
+    const u = await Users.create({ email: 'a@example.com' });
+    u.firstname = 'Ada';
+    await u.flush();
 
-  // Queries inside the same tx
-  const again = await Users.findById(u.id);
-  return again.id;
-}, { isolationLevel: 'read committed' });
+    // Queries inside the same tx
+    const again = await Users.findById(u.id);
+    return again.id;
+  },
+  { isolationLevel: 'read committed' }
+);
 ```
 
 Notes:
@@ -60,7 +63,7 @@ await repo.transaction(async (tx) => {
   const Users = tx.get('Users');
   const user = await Users.query()
     .where({ id: 123 })
-    .forUpdate()      // lock the row until commit
+    .forUpdate() // lock the row until commit
     .first();
 
   user.balance = user.balance - 10;
