@@ -127,3 +127,83 @@ posts: { type: "many-to-many", model: "Posts" }
   ```js
   created_at: { type: "datetime", default: () => new Date() }
   ```
+
+## Validation
+
+NormalJS enforces validation at two levels:
+
+- Database constraints, driven by field options
+  - required: adds NOT NULL on the column (throws on NULL during create/update)
+  - unique: creates a UNIQUE index on the column (enforced by the DB)
+- Application-level validators
+  - validate: rules evaluated in application code before insert/update
+
+Validation runs automatically during `Model.create()` and `record.flush()` for all stored fields.
+
+### Required (NOT NULL)
+
+```js
+email: { type: 'string', required: true }
+```
+
+- Adds a NOT NULL constraint to the column.
+- When the value is missing/null, an error is thrown during create/update.
+
+### Unique (database unique index)
+
+```js
+email: { type: 'string', unique: true }
+```
+
+- Creates a UNIQUE index at schema sync.
+- The database will reject duplicates; you’ll get a constraint error on insert/update if violated.
+
+### String validators (validate option)
+
+For `string` fields, you can attach validators via the `validate` option. These are checked in app code using the bundled validator library.
+
+Supported rules include:
+
+- isEmail
+- isIP4 / isIP6
+- isURL
+- isDataURI
+- isSemVer
+- isHexColor
+- isFQDN
+- is: regex pattern must match
+- not: regex pattern must NOT match
+
+Examples:
+
+```js
+class Users {
+  static name = 'Users';
+  static table = 'users';
+  static fields = {
+    id: 'primary',
+    // Required + unique + email validator
+    email: {
+      type: 'string',
+      required: true,
+      unique: true,
+      validate: { isEmail: true },
+    },
+
+    // Regex must match (starts with A followed by 2 digits)
+    code: { type: 'string', validate: { is: /^A\d{2}$/ } },
+
+    // Regex must NOT match (simple content filter)
+    bio: { type: 'string', validate: { not: /forbidden|banned/i } },
+
+    // IPv4 only
+    ip4: { type: 'string', validate: { isIP4: true } },
+  };
+}
+```
+
+Notes:
+
+- `validate` is evaluated in application code at create/update time; it does not add a database constraint.
+- `required` and `unique` translate to real database constraints via schema sync.
+- You can combine `required`, `unique`, and `validate` on the same field.

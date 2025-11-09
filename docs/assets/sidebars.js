@@ -10,12 +10,12 @@ const sidebars = {
     {
       type: 'category',
       label: 'Core Concepts',
-      items: ['models', 'fields', 'requests', 'mixins', 'inheritance'],
+      items: ['models', 'fields', 'requests', 'filtering', 'mixins', 'inheritance'],
     },
     {
       type: 'category',
       label: 'Advanced',
-      items: ['cache', 'custom-fields', 'filtering', 'relational-filters'],
+      items: ['cache', 'transactions', 'hooks', 'custom-fields', 'relational-filters'],
     },
   ],
 };

@@ -40,5 +40,7 @@ What’s next
 - Learn [model definitions](models) and [fields](fields)
 - Explore [requests](requests), [mixins](mixins) and [inheritance](inheritance)
 - Implement [custom fields](custom-fields)
+- Use [lifecycle hooks and events](hooks)
+- Manage [transactions and locking](transactions)
 - Use JSON [filtering](filtering)
 - Migrate from Sequelize: [adoption guide](adoption-sequelize)
