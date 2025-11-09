@@ -5,91 +5,11 @@ import { Field } from './Fields.js';
 import { extendModel } from './utils/extender';
 import { applyCriteria } from './utils/criteria';
 import { IndexManager } from './IndexManager.js';
+import { LookupIds } from './LookupIds.js';
 
 import { EventEmitter } from 'node:events';
 
 type AnyMap = Record<string, any>;
-
-/**
- * The lookup batching helper.
- */
-class LookupIds {
-  public model: Model;
-  public ids: AnyMap;
-  private _timeout: any;
-
-  constructor(model: Model) {
-    this.model = model;
-    this.ids = {};
-    this._timeout = null;
-  }
-
-  lookup(ids: Array<string | number>): Promise<any[]> {
-    const results = [];
-    const cache = this.model.cache || (this.model.repo && this.model.repo.cache);
-    for (const id of ids) {
-      const entry = cache && cache.get(this.model.name + ':' + id);
-      if (entry) {
-        results.push(Promise.resolve(this.model.allocate(entry)));
-        continue;
-      }
-      if (!this.ids.hasOwnProperty(id)) {
-        this.ids[id] = [];
-      }
-      let resolve: (v: any) => void, reject: (e: any) => void;
-      const found = new Promise<any>((res, rej) => {
-        resolve = res;
-        reject = rej;
-      });
-      this.ids[id].push([found, resolve, reject]);
-      results.push(found);
-    }
-    if (Object.keys(this.ids).length > 0) {
-      if (this._timeout) clearTimeout(this._timeout);
-      this._timeout = setTimeout(() => {
-        this.fetch();
-      }, 1);
-    }
-    return Promise.all(results);
-  }
-
-  async fetch(): Promise<any[]> {
-    if (this._timeout) clearTimeout(this._timeout);
-    this._timeout = null;
-    let promises = this.ids;
-    this.ids = {};
-    let ids = Object.keys(promises);
-    const rows = await this.model.query().column(this.model.columns).whereIn('id', ids);
-    const result = rows.map((row) => {
-      let instance = this.model.allocate(row);
-      if (this.model.cache && !this.model.repo.connection.transactional) {
-        this.model.cache.set(
-          this.model.name + ':' + instance.id,
-          instance.toRawJSON(),
-          this.model.cacheTTL
-        );
-      } else {
-        instance._flushed = true;
-      }
-      if (!promises[row.id]) {
-        console.error('Unexpected missing promise for id ', row);
-        return instance;
-      }
-      for (const [found, resolve, reject] of promises[row.id]) {
-        resolve(instance);
-      }
-      delete promises[row.id];
-      return instance;
-    });
-    // Handle not found
-    for (const id of Object.keys(promises)) {
-      for (const [found, resolve, reject] of promises[id]) {
-        resolve(null);
-      }
-    }
-    return result;
-  }
-}
 
 function _inferTable(name: string): string {
   return name.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
