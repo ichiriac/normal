@@ -55,12 +55,26 @@ class Record {
    */
   getField(name) {
     if (this._model.fields.hasOwnProperty(name)) {
-      const field = this._model.fields[name];
-      return field.get(this);
+      return this._model.fields[name];
     } else {
       throw new Error(`Field ${name} does not exist on model ${this._model.name}`);
     }
   }
+
+  /**
+   * Check if the field value has changed in the record.
+   * @param {string} field - The field name.
+   * @returns {boolean}
+   */
+  isChanged(field) {
+    // check if record is new : then all fields are considered changed
+    const id = this._model.primaryField.read(this);;
+    if (!id) return true;
+    // check if field is in changes
+    const f = this.getField(field);
+    return this._changes.hasOwnProperty(f.column);
+  }
+
   /**
    * Convert the record to a JSON object (including parent data if applicable).
    */
@@ -163,6 +177,7 @@ class Record {
       // run pre-update hooks
       const pre_update = [];
       await this.pre_update();
+      await this.pre_validate();
       for (let field of Object.values(this._model.fields)) {
         pre_update.push(field.pre_update(this));
       }
@@ -227,6 +242,7 @@ class Record {
     }
     this._model = null;
     await this.pre_unlink();
+    await this.pre_validate();
     const pre_unlink = [];
     for (let field of Object.values(model.fields)) {
       pre_unlink.push(field.pre_unlink(this));
