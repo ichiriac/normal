@@ -8,11 +8,18 @@ module.exports = {
     '^.+\\.tsx?$': ['ts-jest', {
       tsconfig: {
         module: 'commonjs',
-        target: 'ES2021',
+        target: 'ES2020',
+        useDefineForClassFields: false,
         esModuleInterop: true,
         allowSyntheticDefaultImports: true,
       },
     }],
+  },
+  transformIgnorePatterns: [
+    'node_modules/',
+  ],
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   collectCoverageFrom: ['src/**/*.ts', '!src/cache/**/*.ts', 'index.ts'],

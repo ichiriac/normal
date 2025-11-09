@@ -1,6 +1,30 @@
 import knex, { Knex } from 'knex';
-import { Discovery, hashString, DiscoveryOptions, DiscoveryMember } from './cache/Discovery';
-import { Cache, CacheOptions } from './Cache';
+import { Discovery, hashString } from './cache/Discovery';
+import { Cache } from './Cache';
+
+export interface DiscoveryOptions {
+  enabled?: boolean;
+  packageName?: string;
+  packageVersion?: string;
+  secret?: string;
+  connectionHash?: string;
+  onMemberJoin?: (member: any) => void;
+  onMemberLeave?: (member: any) => void;
+  onMemberUpdate?: (member: any) => void;
+  [key: string]: any;
+}
+
+export interface DiscoveryMember {
+  addr: string;
+  port: number;
+  connections?: string[];
+  [key: string]: any;
+}
+
+export interface CacheOptions {
+  enabled?: boolean;
+  [key: string]: any;
+}
 import * as crypto from 'crypto';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -118,11 +142,11 @@ export class Connection {
   }
 
   // Transaction helper
-  transaction<T>(
-    work: (trx: Knex.Transaction) => Promise<T> | T,
+  transaction<T = any>(
+    work: (trx: Knex.Transaction) => Promise<T>,
     config?: Knex.TransactionConfig
   ): Promise<T> {
-    return this.instance.transaction(work, config);
+    return this.instance.transaction(work, config) as Promise<T>;
   }
 
   // Close and cleanup
@@ -262,13 +286,13 @@ export class Connection {
   private _syncCachePeersFromDiscovery(): void {
     if (!this._cache || !this._discovery) return;
 
-    const members = this._discovery.getMembers();
+    const members = this._discovery.getMembers() as DiscoveryMember[];
     const peers = members
-      .filter((m: DiscoveryMember) => {
+      .filter((m) => {
         // Only include members with matching connection hash
         return m.connections && m.connections.includes(this.getConnectionHash());
       })
-      .map((m: DiscoveryMember) => ({
+      .map((m) => ({
         host: m.addr,
         port: m.port,
       }));
@@ -285,7 +309,7 @@ export class Connection {
    */
   async startDiscovery(): Promise<void> {
     const discovery = this.getDiscovery();
-    if (discovery.enabled) {
+    if ((discovery as any).enabled) {
       await discovery.start();
       // Initial sync of cache peers
       this._syncCachePeersFromDiscovery();
