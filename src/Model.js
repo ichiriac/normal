@@ -562,6 +562,7 @@ class Model {
     const toInsert = {};
     const pre_create = [];
     await data.pre_create();
+    await data.pre_validate();
     for (const field of Object.values(this.fields)) {
       pre_create.push(field.pre_create(data));
       if (field.stored === false) continue;
@@ -604,6 +605,9 @@ class Model {
       data._flushed = true;
     }
     data._isDirty = false;
+    for(let key in data._changes) {
+      data._data[key] = data._changes[key];
+    }
     data._changes = {};
 
     // create relations
