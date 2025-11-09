@@ -1,24 +1,47 @@
-// @ts-nocheck - TODO: Add proper type annotations
+import type { Model } from './Model.js';
+
+type AnyMap = Record<string, any>;
+
+type QueryStatement = { grouping?: string; value?: any } & AnyMap;
+
+interface QueryBuilderLike {
+  _method?: string;
+  _statements?: QueryStatement[];
+  _cacheTTL?: number | null;
+  _includeRelations?: Set<string>;
+  select?: (...args: any[]) => any;
+  distinct?: (...args: any[]) => any;
+  leftJoin?: (...args: any[]) => any;
+  where?: (...args: any[]) => any;
+  queryContext?: (ctx: AnyMap) => any;
+  then: (onFulfilled?: (value: any) => any, onRejected?: (reason: any) => any) => Promise<any>;
+  finally: (onFinally?: () => void) => any;
+  toString: () => string;
+  toSQL: (...args: any[]) => any;
+}
 
 class Request {
-  constructor(model, queryBuilder) {
+  public model: Model;
+  public queryBuilder: QueryBuilderLike;
+
+  constructor(model: Model, queryBuilder: QueryBuilderLike) {
     this.model = model;
     this.queryBuilder = queryBuilder;
 
     return new Proxy(this, {
-      get: (target, prop, receiver) => {
+      get: (target: Request, prop: PropertyKey, receiver: any) => {
         if (prop === 'model' || prop === 'queryBuilder') {
-          return target[prop];
+          return (target as any)[prop];
         }
 
-        if (prop in target) {
-          return Reflect.get(target, prop, receiver);
+        if (prop in (target as any)) {
+          return Reflect.get(target as any, prop, receiver);
         }
 
-        const value = target.queryBuilder[prop];
+        const value = (target.queryBuilder as any)[prop];
 
         if (typeof value === 'function') {
-          return (...args) => {
+          return (...args: any[]) => {
             const result = value.apply(target.queryBuilder, args);
             if (result === target.queryBuilder) {
               return receiver;
@@ -32,7 +55,7 @@ class Request {
     });
   }
 
-  then(onFulfilled, onRejected) {
+  then(onFulfilled?: (value: any) => any, onRejected?: (reason: any) => any): Promise<any> {
     const wrap = this._shouldWrapResults();
     const cache = this.model.cache;
     if (wrap && cache && this.queryBuilder._cacheTTL != null) {
@@ -43,7 +66,7 @@ class Request {
       }
     }
     this._ensureDefaultIdSelect();
-    return this.queryBuilder.then((value) => {
+  return this.queryBuilder.then((value: any) => {
       if (!wrap) {
         return onFulfilled ? onFulfilled(value) : value;
       }
@@ -51,7 +74,7 @@ class Request {
         const ttlSec = Math.max(1, this.queryBuilder._cacheTTL);
         cache.set(this._getRequestKey(), value, ttlSec);
       }
-      return this._wrapResult(value).then((wrapped) => {
+  return this._wrapResult(value).then((wrapped: any) => {
         if (onFulfilled) {
           return onFulfilled(wrapped);
         }
@@ -60,19 +83,19 @@ class Request {
     }, onRejected);
   }
 
-  catch(onRejected) {
-    return this.then(null, onRejected);
+  catch(onRejected?: (reason: any) => any): Promise<any> {
+    return this.then(undefined, onRejected);
   }
 
-  finally(onFinally) {
+  finally(onFinally?: () => void): any {
     return this.queryBuilder.finally(onFinally);
   }
 
-  toString() {
+  toString(): string {
     return this.queryBuilder.toString();
   }
 
-  toSQL(...args) {
+  toSQL(...args: any[]): any {
     return this.queryBuilder.toSQL(...args);
   }
 
@@ -81,7 +104,7 @@ class Request {
    * @param {number} ttl - Time to live in seconds.
    * @returns {Request} The current Request instance for chaining.
    */
-  cache(ttl = 5) {
+  cache(ttl: number = 5): this {
     this.queryBuilder._cacheTTL = ttl;
     return this;
   }
@@ -91,7 +114,7 @@ class Request {
    * @param {string|string[]} relations - The relation(s) to include.
    * @returns {Request} The current Request instance for chaining.
    */
-  include(relations) {
+  include(relations: string | string[]): this {
     if (!this.queryBuilder._includeRelations) {
       this.queryBuilder._includeRelations = new Set();
     }
@@ -104,7 +127,7 @@ class Request {
     return this;
   }
 
-  _shouldWrapResults() {
+  _shouldWrapResults(): boolean {
     const method = this.queryBuilder && this.queryBuilder._method;
     // Default to wrapping unless it's clearly a write operation
     if (!method) return true;
@@ -114,7 +137,7 @@ class Request {
     return true;
   }
 
-  _getRequestKey() {
+  _getRequestKey(): string | undefined {
     const qb = this.queryBuilder;
     if (!qb) return;
     const stmts = Array.isArray(qb._statements) ? qb._statements : [];
@@ -122,7 +145,7 @@ class Request {
     return this.model.name + ':' + key;
   }
 
-  _ensureDefaultIdSelect() {
+  _ensureDefaultIdSelect(): void {
     const qb = this.queryBuilder;
     if (!qb) return;
     const method = qb._method;
@@ -152,12 +175,12 @@ class Request {
       const id = this.model.primaryField?.column || 'id';
       qb.select(`${this.model.table}.${id}`);
       // Use distinct when joins are present to avoid duplicate rows
-      if (hasJoins) {
+      if (hasJoins && qb.distinct) {
         qb.distinct();
       }
     } else {
       // Qualify columns with table name if joins are present
-      if (hasJoins) {
+      if (hasJoins && qb.distinct) {
         const qualifiedColumns = this.model.columns.map((col) => `${this.model.table}.${col}`);
         qb.distinct().select(qualifiedColumns);
       } else {
@@ -166,8 +189,8 @@ class Request {
     }
   }
 
-  _wrapResult(value) {
-    const wrapRow = (row) => {
+  _wrapResult(value: any): Promise<any> {
+    const wrapRow = (row: any) => {
       if (!this._isWrappableRow(row)) {
         return Promise.resolve(row);
       }
@@ -181,10 +204,10 @@ class Request {
     if (Array.isArray(value)) {
       if (this.queryBuilder._includeRelations && this.queryBuilder._includeRelations.size > 0) {
         const includeRelations = Array.from(this.queryBuilder._includeRelations);
-        const loadIncludes = async (rows, relations) => {
+        const loadIncludes = async (rows: any[], relations: string[]) => {
           const loaders = [];
           for (const relationName of relations) {
-            const relation = this.model.fields[relationName];
+            const relation = (this.model as any).fields[relationName];
             if (!relation) {
               throw new Error(`Relation '${relationName}' not found on model '${this.model.name}'`);
             }
@@ -201,14 +224,14 @@ class Request {
     return wrapRow(value);
   }
 
-  _isWrappableRow(row) {
+  _isWrappableRow(row: any): boolean {
     if (!row || typeof row !== 'object' || Array.isArray(row)) {
       return false;
     }
-    if (this.model && this.model.cls && row instanceof this.model.cls) {
+    if (this.model && (this.model as any).cls && row instanceof (this.model as any).cls) {
       return false;
     }
-    const fields = Object.keys(this.model?.fields || {});
+    const fields = Object.keys(((this.model as any)?.fields) || {});
     if (fields.length === 0) {
       return true;
     }
