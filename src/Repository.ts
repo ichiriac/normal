@@ -1,7 +1,31 @@
-// @ts-nocheck - TODO: Add proper type annotations
-
+import type { Knex } from 'knex';
+import type { Connection } from './Connection';
 import { Model } from './Model';
 import { Synchronize } from './Schema.js';
+
+// Lightweight structural types for external / transactional wrapper usage
+export interface ExternalConnection {
+  instance: Knex;
+  transactional?: boolean;
+  config?: any;
+  getCache?(): any;
+  getDiscovery?(): any;
+  destroy?(): Promise<void>;
+}
+
+export type ConnectionLike = Connection | ExternalConnection;
+
+export interface SyncOptions {
+  dryRun?: boolean;
+  force?: boolean;
+}
+
+export interface TransactionConfig {
+  isolationLevel?: string;
+}
+
+// Shape of a plain object providing multiple model classes
+export type ModelModuleMap = Record<string, Function> & { default?: Function };
 
 // Initialize shared cache if enabled via environment variable
 // Supported env vars (examples):
@@ -52,22 +76,24 @@ import { Synchronize } from './Schema.js';
  * Models can be registered multiple times (extensions) and are merged by static _name.
  */
 class Repository {
+  public connection: ConnectionLike;
+  public models: Record<string, Model> = {};
+  /** Number of queries emitted on the underlying knex instance (best-effort). */
+  public queryCount = 0;
+
   /**
-   * @param {import('./Connection').Connection|{ instance: any, transactional?: boolean, config?: any }} connection Knex connection or a minimal wrapper
+   * @param connection Knex connection or a minimal wrapper
    */
-  constructor(connection) {
+  constructor(connection: ConnectionLike) {
     this.connection = connection;
-    /** @type {Record<string, import('./Model').Model>} */
-    this.models = {};
-    /** Number of queries emitted on the underlying knex instance (best-effort). */
-    this.queryCount = 0;
     // Track query count with a single listener; avoid duplicates across nested repos
-    if (!this.cnx.__normalQueryListenerAttached) {
+    const anyCnx = this.cnx as any;
+    if (!anyCnx.__normalQueryListenerAttached) {
       const inc = () => {
         this.queryCount++;
       };
-      this.cnx.on('query', inc);
-      Object.defineProperty(this.cnx, '__normalQueryListenerAttached', {
+      anyCnx.on('query', inc);
+      Object.defineProperty(anyCnx, '__normalQueryListenerAttached', {
         value: true,
         enumerable: false,
         configurable: false,
@@ -81,9 +107,9 @@ class Repository {
     this.queryCount = 0;
   }
 
-  /** @returns {any} Knex instance */
-  get cnx() {
-    return this.connection.instance;
+  /** @returns Knex instance */
+  get cnx(): Knex {
+    return (this.connection as any).instance as Knex;
   }
 
   /**
@@ -93,25 +119,29 @@ class Repository {
    * @param {Function|Record<string, Function>|{ default?: Function }} modelModule
    * @returns {import('./Model').Model | Record<string, import('./Model').Model>}
    */
-  register(modelModule, alias?: string) {
-    let ModelClass = modelModule?.default || modelModule;
+  register(
+    modelModule: Function | ModelModuleMap,
+    alias?: string
+  ): Model | Record<string, Model> {
+    let ModelClass: any = (modelModule as any)?.default || modelModule;
     if (typeof ModelClass !== 'function') {
-      const result = {};
+      const result: Record<string, Model> = {};
       for (let k of Object.keys(modelModule || {})) {
-        if (typeof modelModule[k] !== 'function') continue;
-        result[k] = this.register(modelModule[k], k);
+        const entry: any = (modelModule as any)[k];
+        if (typeof entry !== 'function') continue;
+        result[k] = this.register(entry, k) as Model;
       }
       return result;
     }
     // Prefer an explicit static `_name` (for TS compatibility), then common
     // alternates, then fallback to the constructor `name`.
-    const name = alias ?? ModelClass._name ?? ModelClass.name;
+    const name = alias ?? (ModelClass as any)._name ?? ModelClass.name;
     if (!name) throw new Error('Model class must expose a registry key (static _name or a class name)');
     if (!this.models[name]) {
-      this.models[name] = new Model(this, name, ModelClass.table);
+      this.models[name] = new (Model as any)(this, name, (ModelClass as any).table);
     }
-    this.models[name].extends(ModelClass);
-    if (!this.hasOwnProperty(name)) {
+    (this.models[name] as any).extends(ModelClass);
+    if (!Object.prototype.hasOwnProperty.call(this, name)) {
       Object.defineProperty(this, name, {
         get: () => this.models[name],
       });
@@ -123,10 +153,11 @@ class Repository {
    * Get the cache instance from the connection
    * @returns {import('./Cache').Cache|null}
    */
-  get cache() {
+  get cache(): any | null {
     // Try to get cache from connection if it's a Connection instance
-    if (this.connection && typeof this.connection.getCache === 'function') {
-      return this.connection.getCache();
+    const c: any = this.connection as any;
+    if (c && typeof c.getCache === 'function') {
+      return c.getCache();
     }
     return null;
   }
@@ -136,7 +167,7 @@ class Repository {
    * @param {string} name Model static _name
    * @returns {import('./Model').Model}
    */
-  get(name) {
+  get(name: string): Model {
     const m = this.models[name];
     if (!m) throw new Error(`Model not registered: ${name}`);
     return m;
@@ -147,7 +178,7 @@ class Repository {
    * @param {string} name
    * @returns {boolean}
    */
-  has(name) {
+  has(name: string): boolean {
     return !!this.models[name];
   }
 
@@ -157,8 +188,8 @@ class Repository {
    * @param {SyncOptions} [options] Control dry-run and force-drop behavior
    * @returns {Promise<string[]>} Executed SQL statements (or intended, if dryRun)
    */
-  async sync(options = { dryRun: false, force: false }) {
-    return await Synchronize(this, options);
+  async sync(options: SyncOptions = { dryRun: false, force: false }): Promise<string[]> {
+    return await (Synchronize as any)(this, options);
   }
 
   /**
@@ -171,19 +202,23 @@ class Repository {
    * @param {{ isolationLevel?: string }} [config]
    * @returns {Promise<T>}
    */
-  async transaction(work, config) {
+  async transaction<T>(
+    work: (repo: Repository) => Promise<T> | T,
+    config?: TransactionConfig
+  ): Promise<T> {
     if (!config) config = {};
     if (!config.isolationLevel) {
-      if (this.connection.config.client !== 'sqlite3') {
+      const rc: any = this.connection as any;
+      if (rc.config?.client !== 'sqlite3') {
         config.isolationLevel = 'read committed';
       }
     }
-    const trx = await this.cnx.transaction(config);
-    const parentConnection = this.connection;
+    const trx = await (this.cnx as any).transaction(config as any);
+    const parentConnection: any = this.connection as any;
     const txRepo = new Repository({
       instance: trx,
       transactional: true,
-      config: this.connection.config,
+      config: (this.connection as any).config,
       // Provide accessors to shared services like cache/discovery from parent connection
       getCache() {
         return typeof parentConnection.getCache === 'function' ? parentConnection.getCache() : null;
@@ -198,43 +233,47 @@ class Repository {
     // Re-register models with the same metadata
     for (const name of Object.keys(this.models)) {
       const model = this.models[name];
-      txRepo.models[name] = new Model(txRepo, name, model.table);
-      model.inherited.forEach((mix) => {
-        txRepo.models[name].extends(mix);
+      (txRepo.models as any)[name] = new (Model as any)(txRepo, name, (model as any).table);
+      (model as any).inherited.forEach((mix: any) => {
+        (txRepo.models as any)[name].extends(mix);
       });
     }
     try {
       result = await work(txRepo);
       await txRepo.flush();
-      await trx.commit();
+      await (trx as any).commit();
       // flushing to cache after commit
       for (const name of Object.keys(txRepo.models)) {
         const model = txRepo.models[name];
-        if (model.cache) {
-          for (const record of model.entities.values()) {
-            if (record._flushed) {
-              model.cache.set(model.name + ':' + record.id, record.toRawJSON(), model.cacheTTL);
+        if ((model as any).cache) {
+          for (const record of (model as any).entities.values()) {
+            if ((record as any)._flushed) {
+              (model as any).cache.set(
+                (model as any).name + ':' + (record as any).id,
+                (record as any).toRawJSON(),
+                (model as any).cacheTTL
+              );
             }
           }
         }
       }
     } catch (error) {
       // Handle error
-      await trx.rollback();
+      await (trx as any).rollback();
       throw error;
     }
-    return result;
+    return result as T;
   }
 
   /**
    * Flush all changes into the database for all non-abstract models.
    * @returns {Promise<this>}
    */
-  async flush() {
+  async flush(): Promise<this> {
     for (const name of Object.keys(this.models)) {
       const model = this.models[name];
-      if (model.abstract) continue;
-      await model.flush();
+      if ((model as any).abstract) continue;
+      await (model as any).flush();
     }
     return this;
   }
@@ -242,13 +281,14 @@ class Repository {
   /**
    * Destroy the repository, flushing pending changes and closing the connection.
    */
-  async destroy() {
+  async destroy(): Promise<void> {
     await this.flush();
     // Close connection if applicable
-    if (this.connection && typeof this.connection.destroy === 'function') {
-      await this.connection.destroy();
+    const conn: any = this.connection as any;
+    if (conn && typeof conn.destroy === 'function') {
+      await conn.destroy();
     }
-    this.connection = null;
+    this.connection = null as any;
     this.models = {};
   }
 }
