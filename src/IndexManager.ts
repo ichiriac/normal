@@ -1,5 +1,75 @@
-// @ts-nocheck - TODO: Add proper type annotations
 import * as crypto from 'crypto';
+
+/**
+ * Lightweight structural interface for a model used by IndexManager.
+ * Only the properties accessed here are required.
+ */
+interface ModelLike {
+  table: string;
+  name: string;
+  fields: Record<string, { stored: boolean; column: string }>;
+}
+
+/**
+ * Supported comparison / nullability operators for a single predicate field.
+ */
+interface PredicateCondition {
+  notNull?: boolean;
+  isNull?: boolean;
+  eq?: unknown;
+  ne?: unknown;
+  gt?: unknown;
+  gte?: unknown;
+  lt?: unknown;
+  lte?: unknown;
+}
+
+/**
+ * Predicate object: keys are field names; values define filtering conditions.
+ */
+type Predicate = Record<string, PredicateCondition>;
+
+/**
+ * Internal representation of an index definition after merge + validation.
+ */
+interface IndexDefinition {
+  name: string;
+  fields: string[]; // original field names prior to validation
+  unique?: boolean;
+  type?: string | null;
+  storage?: string | null;
+  predicate?: Predicate | null;
+  deferrable?: 'deferred' | 'immediate' | null;
+  useConstraint?: boolean; // whether to create as constraint for unique
+  columns?: string[]; // resolved column names (set in validate)
+}
+
+/**
+ * Shape of knex-like connection used. We keep it minimal / structural.
+ */
+interface KnexLike {
+  client: { config: { client: string } };
+  ref(col: string): unknown;
+  raw(sql: string, bindings?: unknown[]): unknown;
+  schema: {
+    table(name: string, cb: (table: any) => void): Promise<void> | void;
+  };
+}
+
+/**
+ * Narrow config object shape accepted when merging object-form indexes.
+ */
+interface MergeIndexConfig {
+  fields?: string[];
+  unique?: boolean;
+  type?: string;
+  storage?: string;
+  predicate?: Predicate;
+  deferrable?: 'deferred' | 'immediate';
+  useConstraint?: boolean;
+}
+
+type MergeInput = Array<string | string[]> | Record<string, MergeIndexConfig>;
 
 /**
  * IndexManager - Manages index definitions for models
@@ -15,10 +85,10 @@ import * as crypto from 'crypto';
  * IndexManager handles all index-related operations for a model
  */
 class IndexManager {
-  /**
-   * @param {import('./Model').Model} model - The model instance
-   */
-  constructor(model) {
+  model: ModelLike;
+  indexes: IndexDefinition[];
+
+  constructor(model: ModelLike) {
     this.model = model;
     this.indexes = [];
   }
@@ -27,7 +97,7 @@ class IndexManager {
    * Merge index definitions from a mixin class.
    * @param {Array|Object} indexes - Index definitions to merge
    */
-  merge(indexes) {
+  merge(indexes: MergeInput): void {
     if (Array.isArray(indexes)) {
       // Simple array syntax: ['field1', 'field2'] or [['field1', 'field2']]
       indexes.forEach((indexDef) => {
@@ -45,8 +115,8 @@ class IndexManager {
       });
     } else if (typeof indexes === 'object') {
       // Object syntax: { idx_name: { fields: [...], unique: true } }
-      for (const [name, definition] of Object.entries(indexes)) {
-        const indexConfig = {
+      for (const [name, definition] of Object.entries(indexes as Record<string, MergeIndexConfig>)) {
+        const indexConfig: IndexDefinition = {
           name,
           fields: definition.fields || [],
           unique: definition.unique || false,
@@ -65,7 +135,7 @@ class IndexManager {
    * Validate index definitions and resolve field names to column names.
    * Called after model fields are initialized.
    */
-  validate() {
+  validate(): void {
     for (const index of this.indexes) {
       if (!index.fields || index.fields.length === 0) {
         throw new Error(
@@ -109,7 +179,7 @@ class IndexManager {
    * Get all indexes for this model
    * @returns {Array} Array of index definitions
    */
-  getIndexes() {
+  getIndexes(): IndexDefinition[] {
     return this.indexes;
   }
 
@@ -119,7 +189,7 @@ class IndexManager {
    * @param {Object} predicate - Predicate object with filtering conditions
    * @returns {string|null} SQL WHERE clause or null
    */
-  static buildPredicate(knex, predicate) {
+  static buildPredicate(knex: KnexLike, predicate: Predicate | null): string | null {
     if (!predicate || typeof predicate !== 'object') return null;
 
     const conditions = [];
@@ -155,7 +225,11 @@ class IndexManager {
    * @param {boolean} force - Force recreate all indexes
    * @returns {Promise<boolean>} Whether indexes changed
    */
-  async synchronize(cnx, prevIndexes, force) {
+  async synchronize(
+    cnx: KnexLike,
+    prevIndexes: IndexDefinition[],
+    force: boolean
+  ): Promise<boolean> {
     let changed = false;
     const currentIndexes = this.indexes;
 
@@ -200,10 +274,11 @@ class IndexManager {
         try {
           await this._createIndex(cnx, index, client);
           changed = true;
-        } catch (err) {
-          if (err.message && err.message.includes('unique')) {
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : String(err);
+          if (message.includes('unique')) {
             console.error(
-              `Error: Unique constraint violation while creating index '${index.name}' on model '${this.model.name}': ${err.message}`
+              `Error: Unique constraint violation while creating index '${index.name}' on model '${this.model.name}': ${message}`
             );
             console.error(`Continuing migration despite error...`);
           } else {
@@ -236,7 +311,7 @@ class IndexManager {
    * @param {*} cnx - Knex connection
    * @param {Object} index - Index definition
    */
-  async _dropIndex(cnx, index) {
+  async _dropIndex(cnx: KnexLike, index: IndexDefinition): Promise<void> {
     if (index.unique && index.useConstraint) {
       await cnx.schema.table(this.model.table, (table) => {
         table.dropUnique(index.columns || index.fields, index.name);
@@ -255,7 +330,7 @@ class IndexManager {
    * @param {Object} index - Index definition
    * @param {string} client - Database client type
    */
-  async _createIndex(cnx, index, client) {
+  async _createIndex(cnx: KnexLike, index: IndexDefinition, client: string): Promise<void> {
     if (index.unique && index.useConstraint) {
       // Create unique constraint
       await cnx.schema.table(this.model.table, (table) => {
@@ -296,7 +371,7 @@ class IndexManager {
         // Use raw SQL for partial indexes with WHERE clause
         const indexTypeClause = index.type ? ` USING ${index.type}` : '';
         const uniqueClause = index.unique ? 'UNIQUE ' : '';
-        const columnList = index.columns.map((col) => `"${col}"`).join(', ');
+        const columnList = (index.columns || []).map((col) => `"${col}"`).join(', ');
 
         await cnx.raw(
           `CREATE ${uniqueClause}INDEX IF NOT EXISTS "${index.name}" ON "${this.model.table}"${indexTypeClause} (${columnList}) WHERE ${predicateClause}`
