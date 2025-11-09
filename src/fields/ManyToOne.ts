@@ -1,5 +1,6 @@
-// @ts-nocheck - TODO: Add proper type annotations
-import { Field } from './Base';
+import { Field, FieldDefinition } from './Base';
+import { Model } from '../Model';
+import { Record as ActiveRecord } from '../Record';
 
 const ALIAS = ['manytoone', 'many-to-one', 'many2one'];
 
@@ -8,21 +9,22 @@ const ALIAS = ['manytoone', 'many-to-one', 'many2one'];
  * @extends Field
  */
 class ManyToOne extends Field {
-  constructor(model, name, definition) {
+  refModel?: Model;
+  constructor(model: Model, name: string, definition: FieldDefinition) {
     super(model, name, definition);
-    if (!definition.model) {
+    if (!(definition as any).model) {
       throw new Error(`ManyToOne field '${name}' requires a 'model' definition`);
     }
     try {
-      this.refModel = model.repo.get(definition.model);
+      this.refModel = model.repo.get((definition as any).model);
     } catch (err) {
       throw new Error(
-        `ManyToOne field '${name}' from model '${model.name}' references unknown model '${definition.model}'`
+        `ManyToOne field '${name}' from model '${model.name}' references unknown model '${(definition as any).model}'`
       );
     }
   }
 
-  write(record, value) {
+  write(record: ActiveRecord, value: any): ActiveRecord {
     if (value && typeof value === 'object' && value.id !== undefined) {
       return super.write(record, value.id);
     } else {
@@ -30,35 +32,38 @@ class ManyToOne extends Field {
     }
   }
 
-  read(record) {
+  read(record: ActiveRecord): any {
     const value = super.read(record);
     if (value === null || value === undefined) {
       return null;
     }
     if (typeof value === 'object') {
-      return this.refModel.allocate(value);
+      return (this.refModel as Model).allocate(value);
     }
-    return this.refModel.allocate({ id: value });
+    return (this.refModel as Model).allocate({ id: value });
   }
 
-  serialize(record) {
+  serialize(record: ActiveRecord): any {
     return super.read(record);
   }
 
-  getMetadata() {
-    const meta = super.getMetadata();
-    meta.model = this.definition.model;
-    meta.cascade = this.definition.cascade;
-    meta.where = this.definition.where;
-    delete meta.index;
+  getMetadata(): any {
+    const meta: any = super.getMetadata();
+    meta.model = (this.definition as any).model;
+    meta.cascade = (this.definition as any).cascade;
+    meta.where = (this.definition as any).where;
+    // index flag irrelevant for relation fields
+    delete (meta as any).index;
     return meta;
   }
 
-  isSameType(type) {
+  isSameType(type: string): boolean {
     return ALIAS.indexOf(type) !== -1;
   }
 
-  getColumnDefinition() {
+  // Accept an optional table param for interface compatibility
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  getColumnDefinition(_table?: any): any {
     return null;
   }
 
@@ -68,28 +73,26 @@ class ManyToOne extends Field {
    * @param {*} metadata
    * @returns
    */
-  async buildPostIndex(metadata) {
+  async buildPostIndex(metadata: any): Promise<boolean> {
     // inject creation behavior
-    this.getColumnDefinition = (table) => {
+    (this as any).getColumnDefinition = (table: any): any => {
       const col = table
         .integer(this.column)
         .unsigned()
         .references('id')
-        .inTable(this.refModel.table);
-      if (this.definition.cascade === true) {
+        .inTable((this.refModel as Model).table);
+      if ((this.definition as any).cascade === true) {
         col.onDelete('CASCADE');
-      } else if (this.definition.cascade === false) {
+      } else if ((this.definition as any).cascade === false) {
         col.onDelete('SET NULL');
       }
       return col;
     };
     let changed = false;
-    await this.cnx.schema.table(this.model.table, (table) => {
+    await this.cnx.schema.table(this.model.table, (table: any) => {
       changed = this.buildColumn(table, metadata);
     });
-    this.getColumnDefinition = () => {
-      return null;
-    };
+    (this as any).getColumnDefinition = (): any => null;
     return changed;
   }
 }

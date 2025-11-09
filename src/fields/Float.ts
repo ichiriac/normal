@@ -1,26 +1,30 @@
-// @ts-nocheck - TODO: Add proper type annotations
-import { Field } from './Base';
+import { Field, FieldDefinition } from './Base';
+import { Record as ActiveRecord } from '../Record';
+import { Model } from '../Model';
 
 /**
  * Float field type.
  * @extends Field
  */
 class FloatField extends Field {
-  write(record, value) {
+  constructor(model: Model, name: string, definition: FieldDefinition) {
+    super(model, name, definition);
+  }
+  write(record: ActiveRecord, value: any): ActiveRecord {
     const floatValue = parseFloat(value);
     if (isNaN(floatValue)) {
       throw new Error(`Invalid float value for field ${this.name}: ${value}`);
     }
     return super.write(record, floatValue);
   }
-  read(record) {
+  read(record: ActiveRecord): any {
     const value = super.read(record);
     if (value === null || value === undefined) {
       return null;
     }
     return parseFloat(value);
   }
-  serialize(record) {
+  serialize(record: ActiveRecord): number | null {
     const value = this.read(record);
     if (value === null || value === undefined) {
       return null;
@@ -29,14 +33,14 @@ class FloatField extends Field {
   }
 
   getMetadata() {
-    const meta = super.getMetadata();
-    meta.unsigned = !!this.definition.unsigned;
-    meta.precision = this.definition.precision;
-    meta.scale = this.definition.scale;
+    const meta = super.getMetadata() as any;
+    (meta as any).unsigned = !!(this.definition as any).unsigned;
+    (meta as any).precision = (this.definition as any).precision;
+    (meta as any).scale = (this.definition as any).scale;
     return meta;
   }
 
-  getColumnDefinition(table) {
+  getColumnDefinition(table: any): any {
     const column = table.float(this.column);
     if (this.definition.unsigned) {
       column.unsigned();

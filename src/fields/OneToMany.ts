@@ -1,5 +1,6 @@
-// @ts-nocheck - TODO: Add proper type annotations
-import { Field } from './Base';
+import { Field, FieldDefinition } from './Base';
+import { Model } from '../Model';
+import { Record as ActiveRecord } from '../Record';
 
 const ALIAS = ['onetomany', 'one-to-many', 'one2many'];
 
@@ -7,57 +8,62 @@ const ALIAS = ['onetomany', 'one-to-many', 'one2many'];
  * One-to-many relationship field, exemple : comments in a Post model.
  */
 class OneToMany extends Field {
-  constructor(model, name, definition) {
+  refModelName!: string;
+  refFieldName!: string;
+
+  constructor(model: Model, name: string, definition: FieldDefinition) {
     super(model, name, definition);
-    if (!this.definition.foreign) {
+    if (!(this.definition as any).foreign) {
       throw new Error(`OneToMany field "${name}" requires a "foreign" definition`);
     }
-    [this.refModelName, this.refFieldName] = this.definition.foreign.split('.');
+    [this.refModelName, this.refFieldName] = String((this.definition as any).foreign).split('.');
+    // Expose related model via a lazy getter to avoid early lookup before registration
+    Object.defineProperty(this, 'refModel', {
+      get: () => this.model.repo.get(this.refModelName),
+      configurable: true,
+      enumerable: false,
+    });
     this.stored = false;
   }
 
-  get refModel() {
-    return this.model.repo.get(this.refModelName);
-  }
-
-  onChange(listener) {
+  onChange(listener: (...args: any[]) => void): this {
     super.onChange(listener);
-    this.refModel.on('create', listener);
-    this.refModel.on('unlink', listener);
+    (this.refModel as Model).on('create', listener);
+    (this.refModel as Model).on('unlink', listener);
     return this;
   }
 
   getMetadata() {
-    const meta = super.getMetadata();
-    meta.foreign = this.definition.foreign;
-    meta.where = this.definition.where;
+    const meta: any = super.getMetadata();
+    meta.foreign = (this.definition as any).foreign;
+    meta.where = (this.definition as any).where;
     delete meta.index;
     delete meta.unique;
     delete meta.required;
     return meta;
   }
 
-  isSameType(type) {
+  isSameType(type: string): boolean {
     return ALIAS.indexOf(type) !== -1;
   }
 
-  read(record) {
+  read(record: ActiveRecord): any {
     const result = super.read(record);
     if (!result) {
-      let where = {};
+      let where: any = {};
       if (this.refFieldName) {
-        where[this.refFieldName] = record.id;
+        where[this.refFieldName] = (record as any).id;
       }
-      if (this.definition.where) {
-        if (typeof this.definition.where === 'function') {
-          where = this.definition.where(record, this);
+      if ((this.definition as any).where) {
+        if (typeof (this.definition as any).where === 'function') {
+          where = (this.definition as any).where(record, this);
         } else {
-          where = { ...where, ...this.definition.where };
+          where = { ...where, ...(this.definition as any).where };
         }
       }
-      const relatedRecords = this.refModel.where(where);
+  const relatedRecords = (this.refModel as Model).where(where);
 
-      relatedRecords.then((records) => {
+      relatedRecords.then((records: any[]) => {
         delete record._changes[this.column];
         record._data[this.column] = records;
       });
@@ -72,13 +78,13 @@ class OneToMany extends Field {
    * @param {*} value
    * @returns
    */
-  deserialize(record, value) {
+  deserialize(record: ActiveRecord, value: any): any[] {
     if (!Array.isArray(value)) {
       value = [value];
     }
-    return value.map((v) => {
+    return value.map((v: any) => {
       v[this.refFieldName] = record;
-      return this.refModel.allocate(v);
+      return (this.refModel as Model).allocate(v);
     });
   }
 
@@ -87,7 +93,7 @@ class OneToMany extends Field {
    * @param {*} record
    * @param {*} value
    */
-  write(record, value) {
+  write(record: ActiveRecord, value: any): ActiveRecord {
     return super.write(record, this.deserialize(record, value));
   }
 
@@ -95,29 +101,29 @@ class OneToMany extends Field {
    * Automatically create related records after creating the main record
    * @param {*} record
    */
-  async post_create(record) {
+  async post_create(record: ActiveRecord): Promise<void> {
     await super.post_create(record);
     const relatedRecords = record._changes[this.column] || record._data[this.column];
     if (relatedRecords && Array.isArray(relatedRecords)) {
       const batchInsert = [];
       for (const relatedRecord of relatedRecords) {
-        relatedRecord[this.refFieldName] = record.id;
-        const newRelatedRecord = this.refModel.create(relatedRecord);
+        relatedRecord[this.refFieldName] = (record as any).id;
+        const newRelatedRecord = (this.refModel as Model).create(relatedRecord);
         batchInsert.push(newRelatedRecord);
       }
       await Promise.all(batchInsert);
     }
   }
 
-  serialize(record) {
+  serialize(_record: ActiveRecord): any {
     return undefined;
   }
 
-  getColumnDefinition() {
+  getColumnDefinition(_table: any): any {
     return null;
   }
 
-  async buildPostIndex(metadata) {
+  async buildPostIndex(_metadata: any): Promise<boolean> {
     // no post index for one-to-many
     return false;
   }

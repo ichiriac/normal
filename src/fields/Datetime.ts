@@ -1,13 +1,17 @@
-// @ts-nocheck - TODO: Add proper type annotations
-import { Field } from './Base';
-import knex from 'knex';
+import { Field, FieldDefinition } from './Base';
+import { Record as ActiveRecord } from '../Record';
+import { Model } from '../Model';
+import { DateFieldMetadata } from './Date';
 
 /**
  * Datetime field type.
  * @extends Field
  */
 class DateTimeField extends Field {
-  write(record, value) {
+  constructor(model: Model, name: string, definition: FieldDefinition) {
+    super(model, name, definition);
+  }
+  write(record: ActiveRecord, value: any): ActiveRecord {
     if (value instanceof Date) {
       return super.write(record, value);
     } else if (typeof value === 'string' || typeof value === 'number') {
@@ -22,20 +26,20 @@ class DateTimeField extends Field {
       throw new Error(`Invalid type for datetime field ${this.name}: ${typeof value}`);
     }
   }
-  getMetadata() {
-    const meta = super.getMetadata();
-    meta.defaultToNow = this.definition.defaultToNow;
+  getMetadata(): DateFieldMetadata {
+    const meta = super.getMetadata() as DateFieldMetadata;
+    meta.defaultToNow = (this.definition as any).defaultToNow;
     return meta;
   }
 
-  read(record) {
+  read(record: ActiveRecord): Date | null {
     const value = super.read(record);
     if (value === null || value === undefined) {
       return null;
     }
-    return new Date(value);
+    return value instanceof Date ? value : new Date(value);
   }
-  deserialize(record, value) {
+  deserialize(_record: ActiveRecord, value: any): Date | null {
     if (!value && value !== 0) return null;
     const result = new Date(value);
     if (isNaN(result.getTime())) {
@@ -43,14 +47,14 @@ class DateTimeField extends Field {
     }
     return result;
   }
-  serialize(record) {
+  serialize(record: ActiveRecord): number | null {
     const value = this.read(record);
     if (value instanceof Date) {
       return value.getTime();
     }
     return null;
   }
-  getColumnDefinition(table) {
+  getColumnDefinition(table: any): any {
     const column = table.timestamp(this.column, { useTz: false });
     if (this.definition.defaultToNow) {
       column.defaultTo(this.model.repo.cnx.fn.now());

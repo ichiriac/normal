@@ -1,13 +1,23 @@
-// @ts-nocheck - TODO: Add proper type annotations
-import { Field } from './Base';
-import knex from 'knex';
+import { Field, FieldDefinition, FieldMetadata } from './Base';
+import { Record as ActiveRecord } from '../Record';
+import { Model } from '../Model';
+
+export interface DateFieldMetadata extends FieldMetadata {
+  /**
+   * Indicates if the date field should default to the current date and time.
+   */
+  defaultToNow?: boolean;
+}
 
 /**
  * Date field type.
  * @extends Field
  */
 class DateField extends Field {
-  write(record, value) {
+  constructor(model: Model, name: string, definition: FieldDefinition) {
+    super(model, name, definition);
+  }
+  write(record: ActiveRecord, value: any): ActiveRecord {
     if (value instanceof Date) {
       return super.write(record, value);
     } else if (typeof value === 'string' || typeof value === 'number') {
@@ -23,21 +33,21 @@ class DateField extends Field {
     }
   }
 
-  getMetadata() {
-    const meta = super.getMetadata();
-    meta.defaultToNow = this.definition.defaultToNow;
+  getMetadata(): DateFieldMetadata {
+    const meta = super.getMetadata() as DateFieldMetadata;
+    meta.defaultToNow = (this.definition as any).defaultToNow;
     return meta;
   }
 
-  read(record) {
+  read(record: ActiveRecord): Date | null {
     const value = super.read(record);
     if (value === null || value === undefined) {
       return null;
     }
-    return new Date(value);
+    return value instanceof Date ? value : new Date(value);
   }
 
-  serialize(record) {
+  serialize(record: ActiveRecord): string | null {
     const value = this.read(record);
     if (value instanceof Date) {
       return value.toISOString();
@@ -45,7 +55,7 @@ class DateField extends Field {
     return null;
   }
 
-  getColumnDefinition(table) {
+  getColumnDefinition(table: any): any {
     const column = table.date(this.column);
     if (this.definition.defaultToNow) {
       column.defaultTo(this.model.repo.cnx.fn.now());
