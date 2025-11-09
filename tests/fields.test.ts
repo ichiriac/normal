@@ -12,7 +12,7 @@ describe('Field behaviors: Date, Float, Integer, Reference', () => {
     repo = new Repository(conn);
 
     class Sample {
-      static name = 'Sample';
+      static _name = 'Sample';
       static fields = {
         id: 'primary',
         d: { type: 'date', required: false, defaultToNow: false },
@@ -129,7 +129,7 @@ describe('Field behaviors: Date, Float, Integer, Reference', () => {
     const repo2 = new Repository(conn2);
 
     class RefModel {
-      static name = 'RefModel';
+      static _name = 'RefModel';
       static fields = {
         id: 'primary',
         kind: { type: 'reference', models: ['A', 'B'] },
@@ -155,7 +155,7 @@ describe('Field behaviors: Date, Float, Integer, Reference', () => {
   test('Datetime field: write/read/serialize/deserialize and metadata', () => {
     // Define a temp model with datetime
     class DModel {
-      static name = 'DModel';
+      static _name = 'DModel';
       static fields = { id: 'primary', ts: { type: 'datetime', defaultToNow: false } };
     }
     const M = repo.register(DModel);
@@ -192,7 +192,7 @@ describe('Field behaviors: Date, Float, Integer, Reference', () => {
 
   test('Enum field: constructor validation and read/write checks', () => {
     class EModel {
-      static name = 'EModel';
+      static _name = 'EModel';
       static fields = {
         id: 'primary',
         status: { type: 'enum', values: ['A', 'B'], required: true },
@@ -222,7 +222,7 @@ describe('Field behaviors: Date, Float, Integer, Reference', () => {
 
     // constructor validation (missing values)
     class BadEnum {
-      static name = 'BadEnum';
+      static _name = 'BadEnum';
       static fields = { x: { type: 'enum' } };
     }
     const badRepo = new Repository(conn); // reuse same connection

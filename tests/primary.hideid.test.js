@@ -21,7 +21,7 @@ describe('HiddenPrimary toJSON()', () => {
     await conn.connect();
     repo = new Repository(conn);
     class UsersBase {
-      static name = 'UsersHiddenId';
+      static _name = 'UsersHiddenId';
       static table = 'users_hidden_id';
       static fields = {
         id: { type: 'primary' },

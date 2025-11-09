@@ -30,7 +30,7 @@ NormalJS:
 
 ```js
 class Users {
-  static name = 'Users';
+  static _name = 'Users';
   static table = 'users';
   static fields = {
     id: 'primary',
@@ -65,7 +65,7 @@ NormalJS:
 
 ```js
 class Users {
-  static name = 'Users';
+  static _name = 'Users';
   static fields = {
     id: 'primary',
     posts: { type: 'one-to-many', foreign: 'Posts.author_id' },
@@ -73,7 +73,7 @@ class Users {
 }
 
 class Posts {
-  static name = 'Posts';
+  static _name = 'Posts';
   static fields = {
     id: 'primary',
     author_id: { type: 'many-to-one', model: 'Users' },
@@ -82,7 +82,7 @@ class Posts {
 }
 
 class Tags {
-  static name = 'Tags';
+  static _name = 'Tags';
   static fields = { id: 'primary' };
 }
 ```
@@ -144,7 +144,7 @@ On fields (per value):
 
 ```js
 class Users {
-  static name = 'Users';
+  static _name = 'Users';
   static fields = {
     id: 'primary',
     email: { type: 'string' },
@@ -160,7 +160,7 @@ On records (per instance):
 ```js
 // In your mixin/extension class
 class Users {
-  static name = 'Users';
+  static _name = 'Users';
   async post_create() {
     /* ... */
   }
@@ -176,7 +176,7 @@ Sequelize `classMethods` → NormalJS static methods on the model; Sequelize ins
 
 ```js
 class Users {
-  static name = 'Users';
+  static _name = 'Users';
   static fields = { id: 'primary', email: 'string' };
 
   // class (model) API
@@ -234,7 +234,7 @@ Enable cache on a model by setting `static cache`:
 
 ```js
 class Users {
-  static name = 'Users';
+  static _name = 'Users';
   static fields = {
     id: 'primary',
     email: 'string',
@@ -250,7 +250,7 @@ Sequelize: `sequelize.query(sql)` → NormalJS: `repo.cnx.raw(sql)` or `repo.cnx
 ## 12) Migration checklist
 
 1. Create a `Connection` and `Repository`; keep your database driver.
-2. Translate each Sequelize model to a NormalJS class with `static name`, `static table`, and `static fields`.
+2. Translate each Sequelize model to a NormalJS class with `static _name`, `static table`, and `static fields`.
 3. Convert associations to relation fields (`many-to-one`, `one-to-many`, `many-to-many`).
 4. Move class/instance methods to static methods and record methods/getters.
 5. Map validators (use field `validate`, `required`, or custom logic).

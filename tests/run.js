@@ -9,7 +9,7 @@ const db = new Normal.Connection({
 const repo = new Normal.Repository(db);
 repo.register(
   class Posts {
-    static name = 'Posts';
+    static _name = 'Posts';
     static table = 'posts';
     static cache = true;
     static fields = {

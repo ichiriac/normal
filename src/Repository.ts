@@ -49,7 +49,7 @@ import { Synchronize } from './Schema.js';
  * - flush(): persist pending changes for all models
  * - cache: cache instance from the connection (may be null if disabled)
  *
- * Models can be registered multiple times (extensions) and are merged by static name.
+ * Models can be registered multiple times (extensions) and are merged by static _name.
  */
 class Repository {
   /**
@@ -133,7 +133,7 @@ class Repository {
 
   /**
    * Get a registered model by name.
-   * @param {string} name Model static name
+   * @param {string} name Model static _name
    * @returns {import('./Model').Model}
    */
   get(name) {

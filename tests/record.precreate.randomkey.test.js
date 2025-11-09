@@ -15,7 +15,7 @@ describe('record pre_create generates random key', () => {
     repo = new Repository(conn);
 
     class ApiClientsBase {
-      static name = 'ApiClients';
+      static _name = 'ApiClients';
       static table = 'api_clients';
       static fields = {
         id: 'primary',

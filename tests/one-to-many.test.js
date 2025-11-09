@@ -22,7 +22,7 @@ describe('fields/OneToMany', () => {
 
   test('throws when missing foreign in definition', async () => {
     class BadModel {
-      static name = 'BadModel';
+      static _name = 'BadModel';
       static table = 'bad';
       static fields = {
         id: 'primary',

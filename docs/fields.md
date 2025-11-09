@@ -13,7 +13,7 @@ Quick example:
 
 ```js
 class Users {
-  static name = 'Users';
+  static _name = 'Users';
   static table = 'users';
 
   static fields = {
@@ -178,7 +178,7 @@ Examples:
 
 ```js
 class Users {
-  static name = 'Users';
+  static _name = 'Users';
   static table = 'users';
   static fields = {
     id: 'primary',

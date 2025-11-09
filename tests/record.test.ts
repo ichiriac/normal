@@ -11,7 +11,7 @@ describe('Record behaviors', () => {
     await conn.connect();
     repo = new Repository(conn);
     class Thing {
-      static name = 'Thing';
+      static _name = 'Thing';
       static fields = {
         id: 'primary',
         name: { type: 'string', required: true },

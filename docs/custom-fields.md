@@ -59,7 +59,7 @@ Now you can use it in any model:
 
 ```js
 class Docs {
-  static name = 'Docs';
+  static _name = 'Docs';
   static fields = {
     id: 'primary',
     title: 'string',
@@ -195,7 +195,7 @@ Fields.behaviors['file'] = FileField;
 
 // Usage in a model
 class Attachments {
-  static name = 'Attachments';
+  static _name = 'Attachments';
   static fields = {
     id: 'primary',
     title: 'string',

@@ -22,7 +22,7 @@ describe('Model-level indexes', () => {
   describe('Simple composite index', () => {
     test('should create composite index on multiple fields', async () => {
       class Users {
-        static name = 'Users';
+        static _name = 'Users';
         static fields = {
           id: 'primary',
           email: { type: 'string', required: true },
@@ -49,7 +49,7 @@ describe('Model-level indexes', () => {
 
     test('should create multiple indexes', async () => {
       class Products {
-        static name = 'Products';
+        static _name = 'Products';
         static fields = {
           id: 'primary',
           sku: { type: 'string', required: true },
@@ -80,7 +80,7 @@ describe('Model-level indexes', () => {
   describe('Unique constraints', () => {
     test('should create unique composite index', async () => {
       class Accounts {
-        static name = 'Accounts';
+        static _name = 'Accounts';
         static fields = {
           id: 'primary',
           username: { type: 'string', required: true },
@@ -113,7 +113,7 @@ describe('Model-level indexes', () => {
 
     test('should support useConstraint option', async () => {
       class Memberships {
-        static name = 'Memberships';
+        static _name = 'Memberships';
         static fields = {
           id: 'primary',
           user_id: { type: 'integer', required: true },
@@ -139,7 +139,7 @@ describe('Model-level indexes', () => {
   describe('Array syntax for indexes', () => {
     test('should support simple array of field names', async () => {
       class Articles {
-        static name = 'Articles';
+        static _name = 'Articles';
         static fields = {
           id: 'primary',
           title: { type: 'string', required: true },
@@ -162,7 +162,7 @@ describe('Model-level indexes', () => {
   describe('Index validation', () => {
     test('should throw error for non-existent field', async () => {
       class BadModel1 {
-        static name = 'BadModel1';
+        static _name = 'BadModel1';
         static fields = {
           id: 'primary',
           name: { type: 'string' },
@@ -180,7 +180,7 @@ describe('Model-level indexes', () => {
 
     test('should throw error for computed field in index', async () => {
       class BadModel2 {
-        static name = 'BadModel2';
+        static _name = 'BadModel2';
         static fields = {
           id: 'primary',
           firstname: { type: 'string' },
@@ -206,7 +206,7 @@ describe('Model-level indexes', () => {
 
     test('should throw error for FULLTEXT with unique', async () => {
       class BadModel3 {
-        static name = 'BadModel3';
+        static _name = 'BadModel3';
         static fields = {
           id: 'primary',
           content: { type: 'text' },
@@ -228,7 +228,7 @@ describe('Model-level indexes', () => {
 
     test('should throw error for empty fields array', async () => {
       class BadModel4 {
-        static name = 'BadModel4';
+        static _name = 'BadModel4';
         static fields = {
           id: 'primary',
           name: { type: 'string' },
@@ -248,7 +248,7 @@ describe('Model-level indexes', () => {
   describe('Field name to column name resolution', () => {
     test('should resolve field names to column names', async () => {
       class Orders {
-        static name = 'Orders';
+        static _name = 'Orders';
         static fields = {
           id: 'primary',
           customerEmail: { column: 'customer_email', type: 'string', required: true },
@@ -274,7 +274,7 @@ describe('Model-level indexes', () => {
   describe('Partial indexes with predicates', () => {
     test('should support predicate with notNull condition', async () => {
       class Tasks {
-        static name = 'Tasks';
+        static _name = 'Tasks';
         static fields = {
           id: 'primary',
           title: { type: 'string', required: true },
@@ -297,7 +297,7 @@ describe('Model-level indexes', () => {
 
     test('should support predicate with comparison operators', async () => {
       class Events {
-        static name = 'Events';
+        static _name = 'Events';
         static fields = {
           id: 'primary',
           name: { type: 'string', required: true },
@@ -323,7 +323,7 @@ describe('Model-level indexes', () => {
     test('should handle index changes on subsequent syncs', async () => {
       // First sync with one index
       class Widgets {
-        static name = 'Widgets';
+        static _name = 'Widgets';
         static fields = {
           id: 'primary',
           name: { type: 'string', required: true },
@@ -345,7 +345,7 @@ describe('Model-level indexes', () => {
       // Second sync with different index
       repo = new Repository(conn);
       class WidgetsV2 {
-        static name = 'Widgets';
+        static _name = 'Widgets';
         static fields = {
           id: 'primary',
           name: { type: 'string', required: true },
@@ -370,7 +370,7 @@ describe('Model-level indexes', () => {
   describe('Long index names', () => {
     test('should truncate and hash very long index names', async () => {
       class Items {
-        static name = 'Items';
+        static _name = 'Items';
         static fields = {
           id: 'primary',
           field1: { type: 'string' },
@@ -395,7 +395,7 @@ describe('Model-level indexes', () => {
   describe('Index type and storage options', () => {
     test('should support index type option', async () => {
       class Logs {
-        static name = 'Logs';
+        static _name = 'Logs';
         static fields = {
           id: 'primary',
           message: { type: 'string', required: true },
@@ -416,10 +416,10 @@ describe('Model-level indexes', () => {
     });
 
     test('should warn about FULLTEXT on unsupported databases', async () => {
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
 
       class Documents {
-        static name = 'Documents';
+        static _name = 'Documents';
         static fields = {
           id: 'primary',
           content: { type: 'text', required: true },

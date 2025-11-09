@@ -21,7 +21,7 @@ Build data-rich apps with clean models, powerful relations, and first-class DX. 
 ### What makes NormalJS different for complex domains
 
 - Extensible field system: add custom field types that control serialization, JSON output, schema, and lifecycle hooks.
-- Model extension and overwrite: register multiple classes with the same `static name` to merge fields and attach static/instance behavior over time.
+- Model extension and overwrite: register multiple classes with the same `static _name` to merge fields and attach static/instance behavior over time.
 - Inheritance with discriminators: share a base model schema and behavior; allocate correct child records automatically.
 - Schema sync (base synchronization): generate and evolve tables from model fields with migration-safe helpers.
 - Clear split of responsibilities: simple static APIs for model-level operations, and instance methods/getters for active records.
@@ -50,8 +50,6 @@ npm install normaljs pg
 # TypeScript types are included - no @types package needed
 ```
 
-**Note**: When defining models, use `Object.defineProperty` to set the `name` property (required by NormalJS) since `static name` conflicts with the built-in readonly `Function.name` property in modern JavaScript/TypeScript:
-
 ```typescript
 class MyModel {
   static table = 'my_table';
@@ -59,7 +57,6 @@ class MyModel {
     /* ... */
   };
 }
-Object.defineProperty(MyModel, 'name', { value: 'MyModel', configurable: true });
 ```
 
 ## Database engines
@@ -194,13 +191,13 @@ Static methods live on models; instance methods live on records. You can extend 
 ```js
 // Extension: register the same model name again to add fields + behavior
 class Users {
-  static name = 'Users';
+  static _name = 'Users';
   static fields = { id: 'primary' };
 }
 
 // Extend Users with fields and static/instance APIs
 class UsersExt {
-  static name = 'Users';
+  static _name = 'Users';
   static fields = { email: 'string' };
   static byEmail(email) {
     return this.where({ email }).first(); // simple, model-scoped static API
@@ -212,11 +209,11 @@ class UsersExt {
 
 // Inheritance: child model shares base structure and behavior
 class Payment {
-  static name = 'Payment';
+  static _name = 'Payment';
   static fields = { id: 'primary', amount: 'float' };
 }
 class CardPayment {
-  static name = 'CardPayment';
+  static _name = 'CardPayment';
   static inherits = 'Payment';
   static fields = { pan: 'string' };
 }
@@ -229,8 +226,8 @@ repo.register({ Payment, CardPayment });
 ## Features at a glance
 
 - Models
-  - Simple class with `static name`, `static table`, `static fields`.
-  - Extension system: register multiple times with same `static name` to add/override fields and behavior.
+  - Simple class with `static _name`, `static table`, `static fields`.
+  - Extension system: register multiple times with same `static _name` to add/override fields and behavior.
   - Inheritance with discriminators for polymorphic models.
 - Fields
   - Built-ins: primary, integer/float, string/text, boolean, date/datetime, enum, json, reference.

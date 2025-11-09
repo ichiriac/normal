@@ -19,7 +19,7 @@ describe('record pre_validate hashes password', () => {
     repo = new Repository(conn);
 
     class UsersBase {
-      static name = 'UsersPassword';
+      static _name = 'UsersPassword';
       static table = 'users_passwords';
       static fields = {
         id: 'primary',

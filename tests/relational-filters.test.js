@@ -15,7 +15,7 @@ describe('Relational Filters with Auto-Join', () => {
 
     // Define test models with relationships
     class OrganizationsModel {
-      static name = 'Organizations';
+      static _name = 'Organizations';
       static table = 'organizations';
       static fields = {
         id: 'primary',
@@ -25,7 +25,7 @@ describe('Relational Filters with Auto-Join', () => {
     }
 
     class UsersModel {
-      static name = 'Users';
+      static _name = 'Users';
       static table = 'users';
       static fields = {
         id: 'primary',
@@ -39,7 +39,7 @@ describe('Relational Filters with Auto-Join', () => {
     }
 
     class PostsModel {
-      static name = 'Posts';
+      static _name = 'Posts';
       static table = 'posts';
       static fields = {
         id: 'primary',
@@ -52,7 +52,7 @@ describe('Relational Filters with Auto-Join', () => {
     }
 
     class CommentsModel {
-      static name = 'Comments';
+      static _name = 'Comments';
       static table = 'comments';
       static fields = {
         id: 'primary',
@@ -63,7 +63,7 @@ describe('Relational Filters with Auto-Join', () => {
     }
 
     class TagsModel {
-      static name = 'Tags';
+      static _name = 'Tags';
       static table = 'tags';
       static fields = {
         id: 'primary',

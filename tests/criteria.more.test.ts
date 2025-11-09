@@ -16,7 +16,7 @@ describe('Criteria operators and logic (additional)', () => {
     repo = new Repository(conn);
 
     class UsersModel {
-      static name = 'Users';
+      static _name = 'Users';
       static table = 'users';
       static fields = {
         id: 'primary',
@@ -27,7 +27,7 @@ describe('Criteria operators and logic (additional)', () => {
     }
 
     class PostsModel {
-      static name = 'Posts';
+      static _name = 'Posts';
       static table = 'posts';
       static fields = {
         id: 'primary',
@@ -38,7 +38,7 @@ describe('Criteria operators and logic (additional)', () => {
     }
 
     class OrganizationsModel {
-      static name = 'Organizations';
+      static _name = 'Organizations';
       static table = 'organizations';
       static fields = { id: 'primary', name: 'string' };
     }
