@@ -1,7 +1,6 @@
 'use strict';
 
 const { Model } = require('./Model');
-const { Cache } = require('./Cache');
 const { Synchronize } = require('./Schema.js');
 
 // Initialize shared cache if enabled via environment variable
@@ -33,28 +32,6 @@ const { Synchronize } = require('./Schema.js');
 // - DISCOVERY_VERSION_POLICY=major,minor  # version compatibility policy
 // - DISCOVERY_FALLBACK_SEEDS=host1:port,host2:port  # static seed nodes
 // Note: Discovery is configured per Connection, not globally like cache
-/**
- * Parse a boolean-like env string ("1","true","yes" => true; "0","false","no" => false)
- * @param {any} v
- * @param {boolean} dft
- */
-function envBool(v, dft) {
-  if (v == null) return dft;
-  const s = String(v).toLowerCase().trim();
-  if (s === '1' || s === 'true' || s === 'yes' || s === 'on') return true;
-  if (s === '0' || s === 'false' || s === 'no' || s === 'off') return false;
-  return dft;
-}
-/**
- * Parse an integer env string with fallback
- * @param {any} v
- * @param {number} dft
- */
-function envInt(v, dft) {
-  if (v == null || v === '') return dft;
-  const n = parseInt(v, 10);
-  return Number.isFinite(n) ? n : dft;
-}
 
 // Note: Cache is now per-connection, not global. Each Connection instance
 // can have its own cache. Discovery integration automatically syncs discovered
@@ -84,9 +61,19 @@ class Repository {
     this.models = {};
     /** Number of queries emitted on the underlying knex instance (best-effort). */
     this.queryCount = 0;
-    this.cnx.on('query', () => {
-      this.queryCount++;
-    });
+    // Track query count with a single listener; avoid duplicates across nested repos
+    if (!this.cnx.__normalQueryListenerAttached) {
+      const inc = () => {
+        this.queryCount++;
+      };
+      this.cnx.on('query', inc);
+      Object.defineProperty(this.cnx, '__normalQueryListenerAttached', {
+        value: true,
+        enumerable: false,
+        configurable: false,
+        writable: false,
+      });
+    }
   }
 
   /** Reset the query count to zero. */

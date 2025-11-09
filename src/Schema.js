@@ -81,14 +81,15 @@ async function Synchronize(repository, options) {
       };
     }
 
-    // intercept generated SQL statements
-    transaction.cnx.on('query', function (e) {
-      if (e.queryContext) {
+    // intercept generated SQL statements (attach and remove to avoid listener leaks)
+    const onQuery = function (e) {
+      if (e && e.queryContext) {
         if (e.queryContext.ignore) return;
         if (e.queryContext.model) return;
       }
       sql_statements.push(inlineBindings(e.sql, e.bindings) + ';');
-    });
+    };
+    transaction.cnx.on('query', onQuery);
 
     // initialize all models
     for (const name of Object.keys(transaction.models)) {
@@ -195,6 +196,12 @@ async function Synchronize(repository, options) {
     // handle dry run rollback
     if (options?.dryRun) {
       await transaction.cnx.rollback();
+    }
+    // ensure we detach the temporary query listener
+    if (typeof transaction.cnx.off === 'function') {
+      transaction.cnx.off('query', onQuery);
+    } else if (typeof transaction.cnx.removeListener === 'function') {
+      transaction.cnx.removeListener('query', onQuery);
     }
   });
   sql_statements.pop(); // remove the ROLLBACK or COMMIT statement
