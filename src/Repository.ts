@@ -93,18 +93,20 @@ class Repository {
    * @param {Function|Record<string, Function>|{ default?: Function }} modelModule
    * @returns {import('./Model').Model | Record<string, import('./Model').Model>}
    */
-  register(modelModule) {
+  register(modelModule, alias?: string) {
     let ModelClass = modelModule?.default || modelModule;
     if (typeof ModelClass !== 'function') {
       const result = {};
       for (let k of Object.keys(modelModule || {})) {
         if (typeof modelModule[k] !== 'function') continue;
-        result[k] = this.register(modelModule[k]);
+        result[k] = this.register(modelModule[k], k);
       }
       return result;
     }
-    const name = ModelClass.name || ModelClass?.name;
-    if (!name) throw new Error('Model class must have a name');
+    // Prefer an explicit static `_name` (for TS compatibility), then common
+    // alternates, then fallback to the constructor `name`.
+    const name = alias ?? ModelClass._name ?? ModelClass.name;
+    if (!name) throw new Error('Model class must expose a registry key (static _name or a class name)');
     if (!this.models[name]) {
       this.models[name] = new Model(this, name, ModelClass.table);
     }
