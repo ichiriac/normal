@@ -1,7 +1,6 @@
 // @ts-nocheck - Test file with implicit any types
 
-
-import { Record  } from '../src/Record';
+import { Record } from '../src/Record';
 
 describe('Record.unlink()', () => {
   test('unlinks record: calls hooks, deletes in DB, expires cache, invalidates model cache, emits event, clears entities', async () => {

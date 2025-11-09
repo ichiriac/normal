@@ -32,4 +32,3 @@ Object.defineProperty(Lead, 'name', {
 });
 
 module.exports = Lead;
-

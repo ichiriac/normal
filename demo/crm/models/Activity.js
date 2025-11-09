@@ -24,4 +24,3 @@ Object.defineProperty(Activity, 'name', {
 });
 
 module.exports = Activity;
-

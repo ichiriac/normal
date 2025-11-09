@@ -24,4 +24,3 @@ Object.defineProperty(Customer, 'name', {
 });
 
 module.exports = Customer;
-

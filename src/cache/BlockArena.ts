@@ -1,6 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
 
-
 // A shared block arena storing variable-length strings in fixed-size blocks.
 // Open-addressed dictionary maps key -> { keyHead, keyLen, valHead, valLen, expires }.
 // Expiration frees only the chain blocks; no movement of other contents.
@@ -491,4 +490,4 @@ class BlockArena {
   }
 }
 
-export { BlockArena  };
+export { BlockArena };

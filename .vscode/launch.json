@@ -10,7 +10,7 @@
       "name": "Debug run.js from Tests",
       "skipFiles": ["<node_internals>/**"],
       "program": "${workspaceFolder}/tests/run.js"
-    },    
+    },
     {
       "name": "Debug Tests",
       "request": "launch",

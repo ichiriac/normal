@@ -47,4 +47,3 @@ Object.defineProperty(Job, 'name', {
 });
 
 module.exports = Job;
-

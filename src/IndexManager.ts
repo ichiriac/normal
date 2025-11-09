@@ -99,11 +99,7 @@ class IndexManager {
 
       // Normalize index name to fit database limits (usually 63 chars for PostgreSQL)
       if (index.name.length > 60) {
-        const hash = crypto
-          .createHash('md5')
-          .update(index.name)
-          .digest('hex')
-          .substring(0, 8);
+        const hash = crypto.createHash('md5').update(index.name).digest('hex').substring(0, 8);
         index.name = index.name.substring(0, 51) + '_' + hash;
       }
     }

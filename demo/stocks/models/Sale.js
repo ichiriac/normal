@@ -62,4 +62,3 @@ Object.defineProperty(Sale, 'name', {
 });
 
 module.exports = Sale;
-

@@ -30,10 +30,10 @@ describe('fields/OneToMany', () => {
         children: { type: 'one-to-many' },
       };
     }
-  const r = new Repository(conn);
-  r.register(BadModel);
-  // Initialization happens during sync; expect it to fail during field construction
-  await expect(r.sync({ force: true })).rejects.toThrow(/requires a "foreign" definition/);
+    const r = new Repository(conn);
+    r.register(BadModel);
+    // Initialization happens during sync; expect it to fail during field construction
+    await expect(r.sync({ force: true })).rejects.toThrow(/requires a "foreign" definition/);
   });
 
   test('read() loads related children and caches result', async () => {

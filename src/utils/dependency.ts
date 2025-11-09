@@ -1,6 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
 
-
 /**
  * Build a LEFT JOIN chain from a root model through a dependency path.
  * Supports many-to-one/reference-like fields: currentModel.field → refModel (FK join).
@@ -68,7 +67,7 @@ function buildJoinChain(rootModel, dependencyPath) {
     // Default FK join should link the FK on the current model to the PK on the next (referenced) model
     // Example: Comments.post_id (FK on Comments) -> Posts.id (PK on Posts)
     const currentFkCol = field.column || `${seg}_id`;
-  const nextPkCol = nextModel.primaryField?.column || 'id';
+    const nextPkCol = nextModel.primaryField?.column || 'id';
     joins.push({
       table: nextModel.table,
       alias: nextAlias,
@@ -78,8 +77,8 @@ function buildJoinChain(rootModel, dependencyPath) {
 
     currentModel = nextModel;
     currentAlias = nextAlias;
-  // Track the relation field name used at each hop for in-memory traversal fallbacks
-  relations.push(field.refFieldName || currentFkCol);
+    // Track the relation field name used at each hop for in-memory traversal fallbacks
+    relations.push(field.refFieldName || currentFkCol);
     aliases.push(currentAlias);
     models.push(currentModel);
   }
@@ -127,4 +126,4 @@ async function selectRootIdsByLeafRecord(rootModel, dependencyPath, leafRecord) 
   return await rootModel.lookup(rows.map((r) => r.id));
 }
 
-export { buildJoinChain, selectRootIdsByLeafRecord  };
+export { buildJoinChain, selectRootIdsByLeafRecord };

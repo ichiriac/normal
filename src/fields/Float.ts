@@ -1,5 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
-import { Field  } from './Base';
+import { Field } from './Base';
 
 /**
  * Float field type.
@@ -49,4 +49,4 @@ class FloatField extends Field {
 }
 Field.behaviors.float = FloatField;
 
-export { FloatField  };
+export { FloatField };

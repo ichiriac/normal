@@ -1,8 +1,7 @@
 // @ts-nocheck - Test file with implicit any types
 
-
-import { Connection, Repository  } from '..';
-import { Field  } from '../src/Fields';
+import { Connection, Repository } from '..';
+import { Field } from '../src/Fields';
 
 /**
  * Custom Primary field that hides its value from JSON output by returning undefined.

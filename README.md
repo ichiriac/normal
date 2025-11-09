@@ -36,6 +36,32 @@ Build data-rich apps with clean models, powerful relations, and first-class DX. 
 npm install normaljs pg -y
 ```
 
+### TypeScript Support
+
+NormalJS is written in TypeScript and includes full type definitions. TypeScript users get:
+
+- **Type-safe model definitions** with autocomplete for fields and relations
+- **Type inference** for query results and active records
+- **Generic types** for models and records
+- **Declaration files** (`.d.ts`) for all public APIs
+
+```bash
+npm install normaljs pg
+# TypeScript types are included - no @types package needed
+```
+
+**Note**: When defining models, use `Object.defineProperty` to set the `name` property (required by NormalJS) since `static name` conflicts with the built-in readonly `Function.name` property in modern JavaScript/TypeScript:
+
+```typescript
+class MyModel {
+  static table = 'my_table';
+  static fields = {
+    /* ... */
+  };
+}
+Object.defineProperty(MyModel, 'name', { value: 'MyModel', configurable: true });
+```
+
 ## Database engines
 
 NormalJS supports these SQL databases via Knex:
@@ -57,6 +83,60 @@ Note: You only need the driver for the database(s) you use (e.g., `pg` for Postg
 
 ## 60‑second Quickstart
 
+### TypeScript
+
+```typescript
+// index.ts
+import { Connection, Repository } from 'normaljs';
+
+// 1) Create a connection (SQLite in-memory shown; Postgres or MySQL also supported)
+const db = new Connection({ client: 'sqlite3', connection: { filename: ':memory:' } });
+
+// 2) Define models
+class Users {
+  static table = 'users';
+  static fields = {
+    id: 'primary' as const,
+    firstname: { type: 'string', required: true },
+    lastname: { type: 'string', required: true },
+    email: { type: 'string', unique: true, required: true },
+    created_at: { type: 'datetime', default: () => new Date() },
+    updated_at: { type: 'datetime', default: () => new Date() },
+  };
+
+  get name() {
+    return `${this.firstname} ${this.lastname}`;
+  }
+}
+// Override readonly 'name' property for NormalJS
+Object.defineProperty(Users, 'name', { value: 'Users', configurable: true });
+
+class Posts {
+  static table = 'posts';
+  static fields = {
+    id: 'primary' as const,
+    title: { type: 'string', required: true },
+    content: { type: 'string', required: true },
+    author_id: { type: 'many-to-one', required: true, model: 'Users' },
+  };
+}
+Object.defineProperty(Posts, 'name', { value: 'Posts', configurable: true });
+
+// 3) Register & sync
+const repo = new Repository(db);
+repo.register({ Users, Posts });
+await repo.sync({ force: true });
+
+// 4) Use it
+const u = await repo
+  .get('Users')
+  .create({ firstname: 'Ada', lastname: 'Lovelace', email: 'ada@example.com' });
+const p = await repo.get('Posts').create({ title: 'Hello', content: 'World', author_id: u.id });
+console.log(u.name); // "Ada Lovelace"
+```
+
+### JavaScript (CommonJS)
+
 ```js
 // index.js
 const { Connection, Repository } = require('normaljs');
@@ -64,9 +144,8 @@ const { Connection, Repository } = require('normaljs');
 // 1) Create a connection (SQLite in-memory shown; Postgres or MySQL also supported)
 const db = new Connection({ client: 'sqlite3', connection: { filename: ':memory:' } });
 
-// 2) Define models (CommonJS)
+// 2) Define models
 class Users {
-  static name = 'Users';
   static table = 'users';
   static fields = {
     id: 'primary',
@@ -81,9 +160,10 @@ class Users {
     return `${this.firstname} ${this.lastname}`;
   }
 }
+// Override readonly 'name' property for NormalJS
+Object.defineProperty(Users, 'name', { value: 'Users', configurable: true });
 
 class Posts {
-  static name = 'Posts';
   static table = 'posts';
   static fields = {
     id: 'primary',
@@ -92,6 +172,7 @@ class Posts {
     author_id: { type: 'many-to-one', required: true, model: 'Users' },
   };
 }
+Object.defineProperty(Posts, 'name', { value: 'Posts', configurable: true });
 
 // 3) Register & sync
 const repo = new Repository(db);

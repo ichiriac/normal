@@ -27,4 +27,3 @@ Object.defineProperty(Contact, 'name', {
 });
 
 module.exports = Contact;
-

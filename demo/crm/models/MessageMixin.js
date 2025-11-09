@@ -37,4 +37,3 @@ Object.defineProperty(MessageMixin, 'name', {
 });
 
 module.exports = MessageMixin;
-

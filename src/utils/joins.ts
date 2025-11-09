@@ -1,6 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
 
-
 /**
  * WeakMap to track joins per query builder to avoid modifying Knex internals
  */
@@ -146,6 +145,4 @@ function applyJoins(qb, joins) {
   }
 }
 
-export { resolveRelationalPath,
-  applyJoins,
- };
+export { resolveRelationalPath, applyJoins };

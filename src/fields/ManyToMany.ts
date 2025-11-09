@@ -1,5 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
-import { Field  } from './Base';
+import { Field } from './Base';
 
 const CollectionSymbol = Symbol('ManyToManyCollection');
 const ALIAS = ['manytomany', 'many-to-many', 'many2many'];
@@ -193,4 +193,4 @@ class ManyToMany extends Field {
 ALIAS.forEach((alias) => {
   Field.behaviors[alias] = ManyToMany;
 });
-export { ManyToMany  };
+export { ManyToMany };

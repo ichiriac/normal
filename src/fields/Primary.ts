@@ -1,5 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
-import { Field  } from './Base';
+import { Field } from './Base';
 
 /**
  * Primary key field type.
@@ -38,4 +38,4 @@ class Primary extends Field {
 }
 
 Field.behaviors.primary = Primary;
-export { Primary  };
+export { Primary };

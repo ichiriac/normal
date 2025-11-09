@@ -18,4 +18,3 @@ Object.defineProperty(Tags, 'name', {
 });
 
 module.exports = Tags;
-

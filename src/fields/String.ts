@@ -1,5 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
-import { Field  } from './Base';
+import { Field } from './Base';
 import validator from 'validator';
 /**
  * String field type.
@@ -87,4 +87,4 @@ class StringField extends Field {
 
 Field.behaviors.string = StringField;
 
-export { StringField  };
+export { StringField };

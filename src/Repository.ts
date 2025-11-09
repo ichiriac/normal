@@ -1,6 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
 
-
 import { Model } from './Model';
 import { Synchronize } from './Schema.js';
 

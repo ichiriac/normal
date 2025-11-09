@@ -1,5 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
-import { Field  } from './Base';
+import { Field } from './Base';
 
 const ALIAS = ['onetomany', 'one-to-many', 'one2many'];
 
@@ -126,4 +126,4 @@ class OneToMany extends Field {
 ALIAS.forEach((alias) => {
   Field.behaviors[alias] = OneToMany;
 });
-export { OneToMany  };
+export { OneToMany };

@@ -19,4 +19,3 @@ Object.defineProperty(Group, 'name', {
 });
 
 module.exports = Group;
-

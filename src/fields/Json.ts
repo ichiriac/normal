@@ -1,5 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
-import { Field  } from './Base';
+import { Field } from './Base';
 
 /**
  * JSON field type.
@@ -22,4 +22,4 @@ class JsonField extends Field {
 
 Field.behaviors.json = JsonField;
 
-export { JsonField  };
+export { JsonField };

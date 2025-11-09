@@ -1,6 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
 
-
 class CacheMetrics {
   constructor(enabled = true) {
     this._enabled = enabled !== false;
@@ -122,4 +121,4 @@ class CacheMetrics {
   }
 }
 
-export { CacheMetrics  };
+export { CacheMetrics };

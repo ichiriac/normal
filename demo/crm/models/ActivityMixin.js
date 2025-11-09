@@ -44,4 +44,3 @@ Object.defineProperty(ActivityMixin, 'name', {
 });
 
 module.exports = ActivityMixin;
-

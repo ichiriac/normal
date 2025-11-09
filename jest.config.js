@@ -5,19 +5,20 @@ module.exports = {
   roots: ['<rootDir>'],
   testMatch: ['**/?(*.)+(spec|test).[jt]s'],
   transform: {
-    '^.+\\.tsx?$': ['ts-jest', {
-      tsconfig: {
-        module: 'commonjs',
-        target: 'ES2020',
-        useDefineForClassFields: false,
-        esModuleInterop: true,
-        allowSyntheticDefaultImports: true,
+    '^.+\\.tsx?$': [
+      'ts-jest',
+      {
+        tsconfig: {
+          module: 'commonjs',
+          target: 'ES2020',
+          useDefineForClassFields: false,
+          esModuleInterop: true,
+          allowSyntheticDefaultImports: true,
+        },
       },
-    }],
+    ],
   },
-  transformIgnorePatterns: [
-    'node_modules/',
-  ],
+  transformIgnorePatterns: ['node_modules/'],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },

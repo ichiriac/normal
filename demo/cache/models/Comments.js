@@ -19,4 +19,3 @@ Object.defineProperty(Comments, 'name', {
 });
 
 module.exports = Comments;
-

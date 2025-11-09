@@ -1,5 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
-import { Field  } from './Base';
+import { Field } from './Base';
 
 /**
  * Text field type.
@@ -35,4 +35,4 @@ class TextField extends Field {
 }
 
 Field.behaviors.text = TextField;
-export { TextField  };
+export { TextField };

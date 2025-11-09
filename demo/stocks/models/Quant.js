@@ -18,4 +18,3 @@ Object.defineProperty(Quant, 'name', {
 });
 
 module.exports = Quant;
-

@@ -1,6 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
 
-
 import * as dgram from 'dgram';
 
 // Parses cluster peers from string/array. Reused by Cache.
@@ -142,4 +141,4 @@ class ClusterTransport {
   }
 }
 
-export { ClusterTransport, parsePeers  };
+export { ClusterTransport, parsePeers };

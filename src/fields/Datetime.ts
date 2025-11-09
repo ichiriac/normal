@@ -1,5 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
-import { Field  } from './Base';
+import { Field } from './Base';
 import knex from 'knex';
 
 /**
@@ -62,4 +62,4 @@ class DateTimeField extends Field {
 Field.behaviors.datetime = DateTimeField;
 Field.behaviors.timestamp = DateTimeField;
 
-export { DateTimeField  };
+export { DateTimeField };

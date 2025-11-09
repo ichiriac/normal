@@ -1,7 +1,6 @@
 // @ts-nocheck - Test file with implicit any types
 
-
-import { StringField  } from '../src/fields/String';
+import { StringField } from '../src/fields/String';
 
 describe('StringField validators and behavior', () => {
   const makeModel = (name = 'M') => ({ name, repo: { cnx: null } });

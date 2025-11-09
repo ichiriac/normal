@@ -1,7 +1,6 @@
 // @ts-nocheck - Test file with implicit any types
 
-
-import { Connection, Repository  } from '..';
+import { Connection, Repository } from '..';
 import * as Contact from '../demo/crm/models/Contact';
 import * as User from '../demo/crm/models/User';
 import * as ActivityMixin from '../demo/crm/models/ActivityMixin';

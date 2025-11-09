@@ -1,7 +1,6 @@
 // @ts-nocheck - Test file with implicit any types
 
-
-import { extendWith  } from '../src/utils/extender';
+import { extendWith } from '../src/utils/extender';
 
 describe('extendWith (class/object mixin extender)', () => {
   test('combines base instance methods with object mixin methods and getters', () => {

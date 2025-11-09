@@ -1,5 +1,5 @@
 // @ts-nocheck - Test file with implicit any types
-import { Connection, Repository  } from '..';
+import { Connection, Repository } from '..';
 import * as models from '../demo/blog/models';
 
 /**

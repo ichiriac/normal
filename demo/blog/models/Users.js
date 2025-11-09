@@ -47,4 +47,3 @@ Object.defineProperty(Users, 'name', {
 });
 
 module.exports = Users;
-

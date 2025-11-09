@@ -1,7 +1,6 @@
 // @ts-nocheck - Test file with implicit any types
 
-
-import { Connection  } from '..';
+import { Connection } from '..';
 
 describe('Connection config building', () => {
   test('defaults to pg config when no opts provided', () => {

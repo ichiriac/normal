@@ -26,4 +26,3 @@ Object.defineProperty(SaleLine, 'name', {
 });
 
 module.exports = SaleLine;
-

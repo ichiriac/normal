@@ -22,11 +22,11 @@ describe('utils/dependency join chain and selection', () => {
   });
 
   test('buildJoinChain builds correct LEFT JOINs for many-to-one hops', async () => {
-  const Comments = repo.get('Comments');
-  // Ensure fields are attached and initialized for all involved models
-  Comments._init();
-  repo.get('Posts')._init();
-  repo.get('Users')._init();
+    const Comments = repo.get('Comments');
+    // Ensure fields are attached and initialized for all involved models
+    Comments._init();
+    repo.get('Posts')._init();
+    repo.get('Users')._init();
     const chain = buildJoinChain(Comments, 'post_id.author_id.id');
 
     expect(chain.joins).toHaveLength(2);

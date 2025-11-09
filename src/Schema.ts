@@ -216,6 +216,4 @@ async function Synchronize(repository, options) {
   return sql_statements;
 }
 
-export { Models,
-  Synchronize,
- };
+export { Models, Synchronize };

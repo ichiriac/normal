@@ -1,7 +1,6 @@
 // @ts-nocheck - Test file with implicit any types
 
-
-import { Connection, Repository  } from '..';
+import { Connection, Repository } from '..';
 import crypto from 'node:crypto';
 
 function sha256(s) {

@@ -38,4 +38,3 @@ Object.defineProperty(Quotation, 'name', {
 });
 
 module.exports = Quotation;
-

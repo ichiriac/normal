@@ -1,8 +1,7 @@
 // @ts-nocheck - Test file with implicit any types
 
-
-import { Connection  } from '../src/Connection';
-import { Repository  } from '../src/Repository';
+import { Connection } from '../src/Connection';
+import { Repository } from '../src/Repository';
 
 describe('Multi-connection with Discovery and Cache', () => {
   let conn1, conn2, repo1, repo2;

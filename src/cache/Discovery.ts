@@ -1,6 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
 
-
 import * as dgram from 'dgram';
 import * as crypto from 'crypto';
 import * as os from 'os';
@@ -539,4 +538,4 @@ class Discovery {
   }
 }
 
-export { Discovery, hashString, isVersionCompatible  };
+export { Discovery, hashString, isVersionCompatible };

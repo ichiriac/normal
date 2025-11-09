@@ -1,7 +1,6 @@
 // @ts-nocheck - Test file with implicit any types
 
-
-import { Connection  } from '../src/Connection';
+import { Connection } from '../src/Connection';
 import fs from 'fs';
 import path from 'path';
 

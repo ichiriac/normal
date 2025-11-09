@@ -24,4 +24,3 @@ Object.defineProperty(Message, 'name', {
 });
 
 module.exports = Message;
-

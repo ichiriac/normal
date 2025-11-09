@@ -20,4 +20,3 @@ Object.defineProperty(Posts, 'name', {
 });
 
 module.exports = Posts;
-

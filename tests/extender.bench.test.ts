@@ -1,11 +1,11 @@
 // @ts-nocheck - Test file with implicit any types
 
-
-import { extendWith  } from '../src/utils/extender';
-import { BaseHeavy,
+import { extendWith } from '../src/utils/extender';
+import {
+  BaseHeavy,
   MixinHeavyNoSuper,
   MixinHeavyWithSuper,
- } from './bench-fixtures/extendWith.classes';
+} from './bench-fixtures/extendWith.classes';
 
 // High-resolution timer
 function nowNs() {

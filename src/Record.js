@@ -68,7 +68,7 @@ class Record {
    */
   isChanged(field) {
     // check if record is new : then all fields are considered changed
-    const id = this._model.primaryField.read(this);;
+    const id = this._model.primaryField.read(this);
     if (!id) return true;
     // check if field is in changes
     const f = this.getField(field);

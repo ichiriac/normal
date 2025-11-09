@@ -17,4 +17,3 @@ Object.defineProperty(Categories, 'name', {
 });
 
 module.exports = Categories;
-

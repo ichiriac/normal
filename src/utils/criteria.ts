@@ -1,7 +1,6 @@
 // @ts-nocheck - TODO: Add proper type annotations
 
-
-import { resolveRelationalPath, applyJoins  } from './joins';
+import { resolveRelationalPath, applyJoins } from './joins';
 
 /**
  * Collect all joins needed for relational paths in criteria.
@@ -228,4 +227,4 @@ function addCmp(qb, combine, col, op, val) {
   }
 }
 
-export { applyCriteria  };
+export { applyCriteria };

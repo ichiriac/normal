@@ -41,4 +41,3 @@ Object.defineProperty(Queue, 'name', {
 });
 
 module.exports = Queue;
-

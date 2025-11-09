@@ -1,7 +1,6 @@
 // @ts-nocheck - Test file with implicit any types
 
-
-import { Cache  } from '../src/Cache';
+import { Cache } from '../src/Cache';
 
 describe('Cache (FixedSlots)', () => {
   test('set/get/expire/clear and metrics', () => {

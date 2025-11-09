@@ -1,5 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
-import { Field  } from './Base';
+import { Field } from './Base';
 
 /**
  * Boolean field type.
@@ -24,4 +24,4 @@ class BooleanField extends Field {
 
 Field.behaviors.boolean = BooleanField;
 
-export { BooleanField  };
+export { BooleanField };

@@ -596,7 +596,7 @@ class Model {
       data._flushed = true;
     }
     data._isDirty = false;
-    for(let key in data._changes) {
+    for (let key in data._changes) {
       data._data[key] = data._changes[key];
     }
     data._changes = {};
@@ -631,7 +631,7 @@ class Model {
     // @fixme should flush any changes before : this.repo.flush();
     return new Request(this, this.repo.cnx(this.table).queryContext({ model: this }));
   }
-  
+
   /**
    * Find a record by its ID.
    * @param {*} id

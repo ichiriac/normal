@@ -34,4 +34,3 @@ Object.defineProperty(Moves, 'name', {
 });
 
 module.exports = Moves;
-

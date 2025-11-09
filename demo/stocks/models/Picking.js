@@ -35,4 +35,3 @@ Object.defineProperty(Picking, 'name', {
 });
 
 module.exports = Picking;
-

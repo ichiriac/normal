@@ -1,6 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
 
-
 // Module-level cache of rebuilt mixin functions per Base prototype.
 // WeakMap lets GC collect entries when a Base class/prototype is unreachable.
 /** @type {WeakMap<object, Map<Function, Function>>} */
@@ -534,4 +533,4 @@ function extendModel(model, mixin) {
   return model;
 }
 
-export { extendWith, extendModel  };
+export { extendWith, extendModel };

@@ -1,6 +1,6 @@
 // @ts-nocheck - TODO: Add proper type annotations
 import { EventEmitter } from 'node:events';
-import { selectRootIdsByLeafRecord  } from '../utils/dependency';
+import { selectRootIdsByLeafRecord } from '../utils/dependency';
 
 /**
  * Base class for all field types.
@@ -514,4 +514,4 @@ class Field {
   }
 }
 
-export { Field  };
+export { Field };

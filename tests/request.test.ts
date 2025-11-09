@@ -1,5 +1,5 @@
 // @ts-nocheck - Test file with implicit any types
-import { Request  } from '../src/Request';
+import { Request } from '../src/Request';
 
 describe('Request', () => {
   const createModel = (allocateSpy = jest.fn((row) => ({ ...row, wrapped: true }))) => ({

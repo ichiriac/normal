@@ -1,6 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
 
-
 class Request {
   constructor(model, queryBuilder) {
     this.model = model;

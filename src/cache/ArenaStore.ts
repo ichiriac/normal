@@ -1,7 +1,6 @@
 // @ts-nocheck - TODO: Add proper type annotations
 
-
-import { BlockArena  } from './BlockArena';
+import { BlockArena } from './BlockArena';
 
 // Wrapper around BlockArena to provide a simple JSON value store API
 // Methods mirror the FixedSlots engine but leverage variable-length storage with TTL per-entry.
@@ -89,4 +88,4 @@ class ArenaStore {
   }
 }
 
-export { ArenaStore  };
+export { ArenaStore };

@@ -1,8 +1,7 @@
 // @ts-nocheck - Test file with implicit any types
 
-
-import { Field  } from '../src/Fields';
-import { IntegerField  } from '../src/fields/Integer';
+import { Field } from '../src/Fields';
+import { IntegerField } from '../src/fields/Integer';
 
 describe('Field Base behaviors', () => {
   function makeModel(name = 'X') {

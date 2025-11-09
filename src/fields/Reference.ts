@@ -1,5 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
-import { Field  } from './Base';
+import { Field } from './Base';
 
 /**
  * Reference field type.
@@ -56,4 +56,4 @@ class Reference extends Field {
 }
 
 Field.behaviors.reference = Reference;
-export { Reference  };
+export { Reference };

@@ -1,7 +1,6 @@
 // @ts-nocheck - Test file with implicit any types
 
-
-import { Request  } from '../src/Request';
+import { Request } from '../src/Request';
 
 describe('Request internals', () => {
   function makeQB() {

@@ -20,4 +20,3 @@ Object.defineProperty(Warehouse, 'name', {
 });
 
 module.exports = Warehouse;
-

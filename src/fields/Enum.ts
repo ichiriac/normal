@@ -1,5 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
-import { Field  } from './Base';
+import { Field } from './Base';
 
 /**
  * Enum field type.
@@ -42,4 +42,4 @@ class EnumField extends Field {
 
 Field.behaviors.enum = EnumField;
 
-export { EnumField  };
+export { EnumField };

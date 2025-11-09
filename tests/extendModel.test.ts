@@ -1,7 +1,6 @@
 // @ts-nocheck - Test file with implicit any types
 
-
-import { extendModel  } from '../src/utils/extender';
+import { extendModel } from '../src/utils/extender';
 
 describe('extendModel', () => {
   test('extends model.cls with object mixin; does not copy statics', () => {

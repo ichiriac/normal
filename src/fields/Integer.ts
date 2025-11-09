@@ -1,5 +1,5 @@
 // @ts-nocheck - TODO: Add proper type annotations
-import { Field  } from './Base';
+import { Field } from './Base';
 
 /**
  * Integer field type.
@@ -42,4 +42,4 @@ class IntegerField extends Field {
 Field.behaviors.integer = IntegerField;
 Field.behaviors.number = IntegerField;
 
-export { IntegerField  };
+export { IntegerField };

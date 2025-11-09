@@ -1,9 +1,8 @@
 // @ts-nocheck - Test file with implicit any types
 
-
-import { Cache  } from '../src/Cache';
-import { Request  } from '../src/Request';
-import { Model  } from '../src/Model';
+import { Cache } from '../src/Cache';
+import { Request } from '../src/Request';
+import { Model } from '../src/Model';
 
 describe('invalidateCache()', () => {
   test('evicts request-level cache but preserves entry (Model:ID) cache', async () => {

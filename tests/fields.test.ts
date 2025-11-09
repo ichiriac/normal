@@ -1,7 +1,6 @@
 // @ts-nocheck - Test file with implicit any types
 
-
-import { Connection, Repository  } from '..';
+import { Connection, Repository } from '..';
 
 describe('Field behaviors: Date, Float, Integer, Reference', () => {
   let conn;

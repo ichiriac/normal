@@ -1,7 +1,6 @@
 // @ts-nocheck - Test file with implicit any types
 
-
-import { MiddlewareSystem, DatabaseContext  } from '../src/Middleware';
+import { MiddlewareSystem, DatabaseContext } from '../src/Middleware';
 
 describe('MiddlewareSystem', () => {
   test('executes middlewares in order and calls next once', async () => {

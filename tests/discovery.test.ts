@@ -1,7 +1,6 @@
 // @ts-nocheck - Test file with implicit any types
 
-
-import { Discovery, hashString, isVersionCompatible  } from '../src/cache/Discovery';
+import { Discovery, hashString, isVersionCompatible } from '../src/cache/Discovery';
 
 describe('Discovery utility functions', () => {
   test('hashString produces consistent 8-char hashes', () => {

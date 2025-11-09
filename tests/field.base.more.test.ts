@@ -1,9 +1,8 @@
 // @ts-nocheck - Test file with implicit any types
 
-
-import { Field  } from '../src/Fields';
-import { IntegerField  } from '../src/fields/Integer';
-import { StringField  } from '../src/fields/String';
+import { Field } from '../src/Fields';
+import { IntegerField } from '../src/fields/Integer';
+import { StringField } from '../src/fields/String';
 
 describe('Field Base - additional coverage', () => {
   const makeModel = (name = 'M') => ({
@@ -117,7 +116,7 @@ describe('Field Base - additional coverage', () => {
     const model = makeModel('Foo');
     // Attach a simple field to the model to allow post_attach traversal
     const f1 = new IntegerField(model, 'age', { type: 'integer' });
-  f1.attach(model, function () {});
+    f1.attach(model, function () {});
 
     const bad1 = new IntegerField(model, 'a', { type: 'integer', depends: [42] });
     expect(() => bad1.post_attach()).toThrow(/Depends entries must be strings/);
