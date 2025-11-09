@@ -169,13 +169,13 @@ class Request {
   _wrapResult(value) {
     const wrapRow = (row) => {
       if (!this._isWrappableRow(row)) {
-        return row;
+        return Promise.resolve(row);
       }
       const allocated = this.model.allocate(row);
       if (allocated && typeof allocated.ready === 'function') {
         return allocated.ready();
       }
-      return allocated;
+      return Promise.resolve(allocated);
     };
 
     if (Array.isArray(value)) {
