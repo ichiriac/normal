@@ -1,6 +1,5 @@
-class Users {
-  static name = 'Users';
-
+class UsersExtend {
+  static _name = 'Users';
   static fields = {
     picture: { type: 'string', required: false },
   };
@@ -12,4 +11,4 @@ class Users {
     return 'https://cdn.example.com/profiles/default.png';
   }
 }
-module.exports = Users;
+module.exports = UsersExtend;

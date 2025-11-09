@@ -21,7 +21,7 @@ Build data-rich apps with clean models, powerful relations, and first-class DX. 
 ### What makes NormalJS different for complex domains
 
 - Extensible field system: add custom field types that control serialization, JSON output, schema, and lifecycle hooks.
-- Model extension and overwrite: register multiple classes with the same `static name` to merge fields and attach static/instance behavior over time.
+- Model extension and overwrite: register multiple classes with the same `static _name` to merge fields and attach static/instance behavior over time.
 - Inheritance with discriminators: share a base model schema and behavior; allocate correct child records automatically.
 - Schema sync (base synchronization): generate and evolve tables from model fields with migration-safe helpers.
 - Clear split of responsibilities: simple static APIs for model-level operations, and instance methods/getters for active records.
@@ -34,6 +34,29 @@ Build data-rich apps with clean models, powerful relations, and first-class DX. 
 
 ```bash
 npm install normaljs pg -y
+```
+
+### TypeScript Support
+
+NormalJS is written in TypeScript and includes full type definitions. TypeScript users get:
+
+- **Type-safe model definitions** with autocomplete for fields and relations
+- **Type inference** for query results and active records
+- **Generic types** for models and records
+- **Declaration files** (`.d.ts`) for all public APIs
+
+```bash
+npm install normaljs pg
+# TypeScript types are included - no @types package needed
+```
+
+```typescript
+class MyModel {
+  static table = 'my_table';
+  static fields = {
+    /* ... */
+  };
+}
 ```
 
 ## Database engines
@@ -57,6 +80,60 @@ Note: You only need the driver for the database(s) you use (e.g., `pg` for Postg
 
 ## 60‑second Quickstart
 
+### TypeScript
+
+```typescript
+// index.ts
+import { Connection, Repository } from 'normaljs';
+
+// 1) Create a connection (SQLite in-memory shown; Postgres or MySQL also supported)
+const db = new Connection({ client: 'sqlite3', connection: { filename: ':memory:' } });
+
+// 2) Define models
+class Users {
+  static table = 'users';
+  static fields = {
+    id: 'primary' as const,
+    firstname: { type: 'string', required: true },
+    lastname: { type: 'string', required: true },
+    email: { type: 'string', unique: true, required: true },
+    created_at: { type: 'datetime', default: () => new Date() },
+    updated_at: { type: 'datetime', default: () => new Date() },
+  };
+
+  get name() {
+    return `${this.firstname} ${this.lastname}`;
+  }
+}
+// Override readonly 'name' property for NormalJS
+Object.defineProperty(Users, 'name', { value: 'Users', configurable: true });
+
+class Posts {
+  static table = 'posts';
+  static fields = {
+    id: 'primary' as const,
+    title: { type: 'string', required: true },
+    content: { type: 'string', required: true },
+    author_id: { type: 'many-to-one', required: true, model: 'Users' },
+  };
+}
+Object.defineProperty(Posts, 'name', { value: 'Posts', configurable: true });
+
+// 3) Register & sync
+const repo = new Repository(db);
+repo.register({ Users, Posts });
+await repo.sync({ force: true });
+
+// 4) Use it
+const u = await repo
+  .get('Users')
+  .create({ firstname: 'Ada', lastname: 'Lovelace', email: 'ada@example.com' });
+const p = await repo.get('Posts').create({ title: 'Hello', content: 'World', author_id: u.id });
+console.log(u.name); // "Ada Lovelace"
+```
+
+### JavaScript (CommonJS)
+
 ```js
 // index.js
 const { Connection, Repository } = require('normaljs');
@@ -64,9 +141,8 @@ const { Connection, Repository } = require('normaljs');
 // 1) Create a connection (SQLite in-memory shown; Postgres or MySQL also supported)
 const db = new Connection({ client: 'sqlite3', connection: { filename: ':memory:' } });
 
-// 2) Define models (CommonJS)
+// 2) Define models
 class Users {
-  static name = 'Users';
   static table = 'users';
   static fields = {
     id: 'primary',
@@ -81,9 +157,10 @@ class Users {
     return `${this.firstname} ${this.lastname}`;
   }
 }
+// Override readonly 'name' property for NormalJS
+Object.defineProperty(Users, 'name', { value: 'Users', configurable: true });
 
 class Posts {
-  static name = 'Posts';
   static table = 'posts';
   static fields = {
     id: 'primary',
@@ -92,6 +169,7 @@ class Posts {
     author_id: { type: 'many-to-one', required: true, model: 'Users' },
   };
 }
+Object.defineProperty(Posts, 'name', { value: 'Posts', configurable: true });
 
 // 3) Register & sync
 const repo = new Repository(db);
@@ -113,13 +191,13 @@ Static methods live on models; instance methods live on records. You can extend 
 ```js
 // Extension: register the same model name again to add fields + behavior
 class Users {
-  static name = 'Users';
+  static _name = 'Users';
   static fields = { id: 'primary' };
 }
 
 // Extend Users with fields and static/instance APIs
 class UsersExt {
-  static name = 'Users';
+  static _name = 'Users';
   static fields = { email: 'string' };
   static byEmail(email) {
     return this.where({ email }).first(); // simple, model-scoped static API
@@ -131,11 +209,11 @@ class UsersExt {
 
 // Inheritance: child model shares base structure and behavior
 class Payment {
-  static name = 'Payment';
+  static _name = 'Payment';
   static fields = { id: 'primary', amount: 'float' };
 }
 class CardPayment {
-  static name = 'CardPayment';
+  static _name = 'CardPayment';
   static inherits = 'Payment';
   static fields = { pan: 'string' };
 }
@@ -148,8 +226,8 @@ repo.register({ Payment, CardPayment });
 ## Features at a glance
 
 - Models
-  - Simple class with `static name`, `static table`, `static fields`.
-  - Extension system: register multiple times with same `static name` to add/override fields and behavior.
+  - Simple class with `static _name`, `static table`, `static fields`.
+  - Extension system: register multiple times with same `static _name` to add/override fields and behavior.
   - Inheritance with discriminators for polymorphic models.
 - Fields
   - Built-ins: primary, integer/float, string/text, boolean, date/datetime, enum, json, reference.

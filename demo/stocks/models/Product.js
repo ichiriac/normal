@@ -1,5 +1,4 @@
 class Product {
-  static name = 'products';
   static table = 'product_product';
 
   static fields = {
@@ -18,4 +17,12 @@ class Product {
     // Logic to get available quantity for the product
   }
 }
+// Define name property to override readonly built-in
+Object.defineProperty(Product, 'name', {
+  value: 'products',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = Product;

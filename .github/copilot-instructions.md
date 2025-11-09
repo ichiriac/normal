@@ -26,7 +26,7 @@ Models are ES6 classes with static metadata:
 
 ```javascript
 class Users {
-  static name = 'Users'; // Registry key (required)
+  static _name = 'Users'; // Registry key (required)
   static table = 'users'; // DB table name (optional, inferred from name)
   static fields = {
     id: 'primary', // Shorthand for { type: "number", primary: true, generated: true }
@@ -50,14 +50,14 @@ class Users {
 
 ## Model Extension System
 
-Register multiple classes with the same `static name` to extend models:
+Register multiple classes with the same `static _name` to extend models:
 
 ```javascript
 // Base model
-class Users { static name = "Users"; static fields = { id: "primary" }; }
+class Users { static _name = "Users"; static fields = { id: "primary" }; }
 
 // Extension (adds fields + methods)
-class Users { static name = "Users"; static fields = { picture: "string" }; get profileUrl() {...} }
+class Users { static _name = "Users"; static fields = { picture: "string" }; get profileUrl() {...} }
 
 repo.register(BaseUsers);
 repo.register(ExtendedUsers);  // Merged into single model

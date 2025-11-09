@@ -24,7 +24,7 @@ async function demo() {
   // Example 1: Composite unique constraint
   console.log('1. Composite Unique Constraint:');
   class Accounts {
-    static name = 'Accounts';
+    static _name = 'Accounts';
     static fields = {
       id: 'primary',
       username: { type: 'string', required: true },
@@ -72,7 +72,7 @@ async function demo() {
   // Example 2: Array syntax for simple indexes
   console.log('2. Simple Array Syntax:');
   class Products {
-    static name = 'Products';
+    static _name = 'Products';
     static fields = {
       id: 'primary',
       sku: { type: 'string', required: true },
@@ -90,7 +90,7 @@ async function demo() {
   // Example 3: Partial indexes
   console.log('3. Partial Indexes:');
   class Tasks {
-    static name = 'Tasks';
+    static _name = 'Tasks';
     static fields = {
       id: 'primary',
       title: { type: 'string', required: true },
@@ -117,7 +117,7 @@ async function demo() {
   // Example 4: Field name to column name resolution
   console.log('4. Field Name to Column Name Resolution:');
   class Orders {
-    static name = 'Orders';
+    static _name = 'Orders';
     static fields = {
       id: 'primary',
       customerEmail: { column: 'customer_email', type: 'string', required: true },
@@ -143,7 +143,7 @@ async function demo() {
   // Example 5: Comparing field-level vs model-level indexes
   console.log('5. Field-level vs Model-level Indexes:');
   class Users {
-    static name = 'Users';
+    static _name = 'Users';
     static fields = {
       id: 'primary',
       email: { type: 'string', unique: true, required: true }, // Field-level

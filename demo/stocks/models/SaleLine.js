@@ -1,5 +1,4 @@
 class SaleLine {
-  static name = 'sale_lines';
   static table = 'sale_order_line';
   static fields = {
     id: 'primary',
@@ -18,4 +17,12 @@ class SaleLine {
     // Logic to check if the product is available in stock
   }
 }
+// Define name property to override readonly built-in
+Object.defineProperty(SaleLine, 'name', {
+  value: 'sale_lines',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = SaleLine;

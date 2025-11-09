@@ -1,5 +1,4 @@
 class Customer {
-  static name = 'Customer';
   static table = 'customers';
   static inherits = 'Contact';
 
@@ -15,5 +14,13 @@ class Customer {
     updated_at: { type: 'timestamp', defaultToNow: true },
   };
 }
+
+// Define name property to override readonly built-in
+Object.defineProperty(Customer, 'name', {
+  value: 'Customer',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
 
 module.exports = Customer;

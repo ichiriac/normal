@@ -1,5 +1,4 @@
 class Sale {
-  static name = 'sales';
   static table = 'sale_order';
   static fields = {
     id: 'primary',
@@ -54,4 +53,12 @@ class Sale {
     }
   }
 }
+// Define name property to override readonly built-in
+Object.defineProperty(Sale, 'name', {
+  value: 'sales',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = Sale;

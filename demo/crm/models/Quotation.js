@@ -1,5 +1,4 @@
 class Quotation {
-  static name = 'Quotation';
   static table = 'quotations';
   static mixins = ['MessageMixin', 'ActivityMixin'];
 
@@ -29,5 +28,13 @@ class Quotation {
     return (await this.lines).reduce((sum, line) => sum + line.total_price, 0);
   }
 }
+
+// Define name property to override readonly built-in
+Object.defineProperty(Quotation, 'name', {
+  value: 'Quotation',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
 
 module.exports = Quotation;

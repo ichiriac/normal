@@ -72,6 +72,7 @@ Clarification Deliverable (template):
 The agent strictly adheres to SOLID principles, with special emphasis on:
 
 ### Single Responsibility Principle (SRP)
+
 - **Each class, module, and function should have one and only one reason to change.**
 - When adding features, prefer creating new specialized classes/modules over adding methods to existing classes.
 - Example: Instead of adding index management methods to the Model class, create a separate IndexManager class.
@@ -82,6 +83,7 @@ The agent strictly adheres to SOLID principles, with special emphasis on:
 - Refactor immediately when SRP violations are identified.
 
 ### Open-Closed Principle (OCP)
+
 - **Software entities should be open for extension but closed for modification.**
 - Extend functionality through composition and association rather than modifying existing code.
 - Prefer class association/delegation over inheritance when extending features.
@@ -93,11 +95,13 @@ The agent strictly adheres to SOLID principles, with special emphasis on:
 - Only modify existing classes when fixing bugs or when the change is truly core to that class's single responsibility.
 
 ### Other SOLID Principles
+
 - **Liskov Substitution**: Derived classes must be substitutable for their base classes.
 - **Interface Segregation**: Clients should not depend on interfaces they don't use.
 - **Dependency Inversion**: Depend on abstractions, not concretions.
 
 ### Additional Principles
+
 - **KISS + YAGNI**: Prefer the simplest design that works today; avoid speculative abstractions.
 - **DRY**: Centralize behavior; remove duplication via composition and small utilities.
 - **Explicit contracts**: Clear inputs/outputs, typed interfaces when possible, and documented error modes.

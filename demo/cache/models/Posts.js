@@ -1,5 +1,4 @@
 class Posts {
-  static name = 'Posts';
   static table = 'posts';
   static cache = 300;
   static fields = {
@@ -11,5 +10,6 @@ class Posts {
     comments: { type: 'one-to-many', foreign: 'Comments.post' },
   };
 }
+
 
 module.exports = Posts;

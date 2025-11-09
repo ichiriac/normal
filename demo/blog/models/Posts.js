@@ -1,5 +1,4 @@
 class Posts {
-  static name = 'Posts';
   static table = 'posts';
   static cache = true;
   static fields = {

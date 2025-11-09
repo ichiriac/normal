@@ -1,5 +1,4 @@
 class QuotationLine {
-  static name = 'QuotationLine';
   static table = 'quotation_lines';
 
   static fields = {
@@ -20,4 +19,12 @@ class QuotationLine {
     return this.quantity * this.unit_price;
   }
 }
+// Define name property to override readonly built-in
+Object.defineProperty(QuotationLine, 'name', {
+  value: 'QuotationLine',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = QuotationLine;

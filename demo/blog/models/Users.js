@@ -1,5 +1,4 @@
 class Users {
-  static name = 'Users';
   static table = 'users';
   static cache = true;
   static order = [['id', 'desc']];
@@ -39,4 +38,5 @@ class Users {
     return this.write({ active: false });
   }
 }
+
 module.exports = Users;

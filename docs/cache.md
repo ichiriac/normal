@@ -31,7 +31,7 @@ const conn = new Connection({
 const repo = new Repository(conn);
 
 class Users {
-  static name = 'Users';
+  static _name = 'Users';
   static fields = { id: 'primary', email: 'string' };
   static cache = 300; // enable model cache, TTL in seconds
   static cacheInvalidation = true; // auto-invalidate request cache on writes/unlinks
@@ -107,7 +107,7 @@ Enable model-level caching by setting a static `cache` property on the model:
 
 ```js
 class Posts {
-  static name = 'Posts';
+  static _name = 'Posts';
   static fields = { id: 'primary', title: 'string' };
   static cache = true; // default 300s; or set a number of seconds
 }

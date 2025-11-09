@@ -1,5 +1,4 @@
 class Activity {
-  static name = 'Activity';
   static table = 'activities';
 
   static fields = {

@@ -93,7 +93,7 @@ Hooks are instance methods of your record class (the `cls` used by the model). D
 
 ```js
 class Users {
-  static name = 'Users';
+  static _name = 'Users';
   static fields = {
     id: 'primary',
     email: { type: 'string', required: true, unique: true },
@@ -132,7 +132,7 @@ Example: denormalize a computed field when a dependency changes
 
 ```js
 class Posts {
-  static name = 'Posts';
+  static _name = 'Posts';
   static fields = {
     id: 'primary',
     title: 'string',

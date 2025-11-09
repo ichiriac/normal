@@ -1,5 +1,4 @@
 class Lead {
-  static name = 'Lead';
   static table = 'leads';
   static mixin = ['MessageMixin', 'ActivityMixin'];
 
@@ -23,5 +22,13 @@ class Lead {
     );
   }
 }
+
+// Define name property to override readonly built-in
+Object.defineProperty(Lead, 'name', {
+  value: 'Lead',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
 
 module.exports = Lead;

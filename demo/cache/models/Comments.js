@@ -1,5 +1,4 @@
 class Comments {
-  static name = 'Comments';
   static table = 'comments';
   static cache = 120;
   static fields = {
@@ -10,5 +9,6 @@ class Comments {
     created_at: { type: 'datetime', default: () => new Date() },
   };
 }
+
 
 module.exports = Comments;

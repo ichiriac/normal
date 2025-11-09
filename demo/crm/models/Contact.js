@@ -1,5 +1,4 @@
 class Contact {
-  static name = 'Contact';
   static table = 'contacts';
   static mixins = ['MessageMixin', 'ActivityMixin'];
 
@@ -18,5 +17,13 @@ class Contact {
     return this.query().where('email', email).first();
   }
 }
+
+// Define name property to override readonly built-in
+Object.defineProperty(Contact, 'name', {
+  value: 'Contact',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
 
 module.exports = Contact;

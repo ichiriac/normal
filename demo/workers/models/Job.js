@@ -1,5 +1,4 @@
 class Job {
-  static name = 'Job';
   static table = 'jobs';
   static fields = {
     id: 'primary',
@@ -38,5 +37,13 @@ class Job {
     });
   }
 }
+
+// Define name property to override readonly built-in
+Object.defineProperty(Job, 'name', {
+  value: 'Job',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
 
 module.exports = Job;

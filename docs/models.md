@@ -13,7 +13,7 @@ See fields reference in `docs/FIELDS.md` for all column types and relation optio
 
 ```js
 class Users {
-  static name = 'Users'; // Registry key (required)
+  static _name = 'Users'; // Registry key (required)
   static table = 'users'; // DB table (optional; inferred from name)
   static cache = true; // Enable cache (true=default TTL, or a number in seconds)
 
@@ -31,7 +31,7 @@ class Users {
 }
 ```
 
-- `static name` is mandatory and used as the model key in the repository registry.
+- `static _name` is mandatory and used as the model key in the repository registry.
 - `static table` defaults to a snake_cased form of `name` (e.g. `Users` -> `users`).
 - `static cache` can be `true` (uses default TTL of 300s) or a number (TTL seconds). Disable per model by omitting or setting falsy. The global cache must also be enabled at the repository level via env; see `src/Repository.js`.
 
@@ -49,7 +49,7 @@ Example with relations:
 
 ```js
 class Posts {
-  static name = 'Posts';
+  static _name = 'Posts';
   static fields = {
     id: 'primary',
     title: { type: 'string', unique: true },
@@ -85,7 +85,7 @@ For basic single-field or composite indexes, use an array:
 
 ```js
 class Articles {
-  static name = 'Articles';
+  static _name = 'Articles';
   static fields = {
     id: 'primary',
     title: { type: 'string', required: true },
@@ -104,7 +104,7 @@ For full control, use an object where keys are index names and values are config
 
 ```js
 class Users {
-  static name = 'Users';
+  static _name = 'Users';
   static fields = {
     id: 'primary',
     email: { type: 'string', required: true },
@@ -196,18 +196,18 @@ Model-level indexes are recommended for:
 
 ## Model extension (merging definitions)
 
-You can register multiple classes with the same `static name` to extend a model across files or modules. Field declarations are merged; methods/getters are added to the active record class.
+You can register multiple classes with the same `static _name` to extend a model across files or modules. Field declarations are merged; methods/getters are added to the active record class.
 
 ```js
 // Base
 class Users {
-  static name = 'Users';
+  static _name = 'Users';
   static fields = { id: 'primary' };
 }
 
 // Extension (adds fields + methods)
 class UsersEx {
-  static name = 'Users';
+  static _name = 'Users';
   static fields = { picture: 'string' };
   get profileUrl() {
     return `https://cdn/p/${this.picture}`;
@@ -232,11 +232,11 @@ A model can declare `static mixins = ['OtherModel', 'CommonBehavior']` to compos
 
 ```js
 class Auditable {
-  static name = 'Auditable';
+  static _name = 'Auditable';
   static fields = { created_at: 'datetime', updated_at: 'datetime' };
 }
 class Posts {
-  static name = 'Posts';
+  static _name = 'Posts';
   static mixins = ['Auditable'];
   static fields = { id: 'primary', title: 'string' };
 }
@@ -255,14 +255,14 @@ A child model can inherit from a parent using `static inherits = 'ParentModel'`.
 
 ```js
 class Documents {
-  static name = 'Documents';
+  static _name = 'Documents';
   static fields = {
     id: 'primary',
     title: 'string',
   };
 }
 class Invoices {
-  static name = 'Invoices';
+  static _name = 'Invoices';
   static inherits = 'Documents';
   static fields = { total: 'float' };
 }

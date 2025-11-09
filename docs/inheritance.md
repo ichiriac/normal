@@ -7,7 +7,7 @@ Child models can inherit from a parent and share the same id across tables. Read
 
 ```js
 class Contact {
-  static name = 'Contact';
+  static _name = 'Contact';
   static fields = {
     id: 'primary',
     class: { type: 'reference' },
@@ -16,7 +16,7 @@ class Contact {
   };
 }
 class User {
-  static name = 'User';
+  static _name = 'User';
   static inherits = 'Contact';
   static fields = { email: 'string', password_hash: 'string' };
 }

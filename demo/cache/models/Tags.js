@@ -1,5 +1,4 @@
 class Tags {
-  static name = 'Tags';
   static table = 'tags';
   static cache = 300;
   static fields = {
@@ -8,5 +7,7 @@ class Tags {
     posts: { type: 'many-to-many', model: 'Posts' },
   };
 }
+
+
 
 module.exports = Tags;

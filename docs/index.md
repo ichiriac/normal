@@ -24,7 +24,7 @@ await conn.connect();
 const repo = new Repository(conn);
 
 class Users {
-  static name = 'Users';
+  static _name = 'Users';
   static fields = { id: 'primary', email: 'string' };
 }
 repo.register(Users);

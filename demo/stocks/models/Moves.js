@@ -1,5 +1,4 @@
 class Moves {
-  static name = 'moves';
   static table = 'move_lines';
   static fields = {
     id: 'primary',
@@ -25,5 +24,13 @@ class Moves {
     this.state = 'cancelled';
   }
 }
+
+// Define name property to override readonly built-in
+Object.defineProperty(Moves, 'name', {
+  value: 'moves',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
 
 module.exports = Moves;

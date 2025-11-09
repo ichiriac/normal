@@ -1,5 +1,4 @@
 class User {
-  static name = 'Users';
   static table = 'users';
   static fields = {
     id: 'primary',
@@ -13,5 +12,13 @@ class User {
     group_id: { type: 'many-to-one', model: 'Groups', required: false },
   };
 }
+
+// Define name property to override readonly built-in
+Object.defineProperty(User, 'name', {
+  value: 'Users',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
 
 module.exports = User;
