@@ -1,4 +1,69 @@
 // @ts-nocheck - TODO: Add proper type annotations
+// Lightweight structural typings to aid editor tooling without changing runtime behavior.
+type AnyMap = { [key: string]: any };
+
+interface FieldLike {
+  name: string;
+  buildColumn: (table: any, prev?: any) => boolean | void;
+  buildIndex: (table: any, prev?: any) => boolean | void;
+  buildPostIndex: (prev?: any) => Promise<boolean | void>;
+  getMetadata: () => any;
+}
+
+interface IndexManagerLike {
+  synchronize: (cnx: ConnectionLike, prevIndexes: any[], force: boolean) => Promise<boolean>;
+  getIndexes?: () => any[];
+}
+
+interface ModelLike {
+  name: string;
+  table: string;
+  description?: string;
+  fields: { [name: string]: FieldLike };
+  inherits?: string | null;
+  indexes?: any[];
+  mixins?: any[];
+  abstract?: boolean;
+  indexManager: IndexManagerLike;
+  _init: () => void;
+}
+
+interface SchemaApiLike {
+  hasTable: (name: string) => Promise<boolean>;
+  createTable: (name: string, cb: (table: any) => void) => Promise<any>;
+  table: (name: string, cb: (table: any) => void) => Promise<any>;
+  dropTableIfExists: (name: string) => Promise<void>;
+  renameTable: (from: string, to: string) => Promise<void>;
+  queryContext: (ctx: AnyMap) => SchemaApiLike;
+}
+
+interface ConnectionLike {
+  schema: SchemaApiLike;
+  on: (event: 'query', listener: (e: any) => void) => void;
+  off?: (event: 'query', listener: (e: any) => void) => void;
+  removeListener?: (event: 'query', listener: (e: any) => void) => void;
+  rollback: () => Promise<void>;
+}
+
+interface TransactionLike {
+  cnx: ConnectionLike;
+  get: (name: string) => ModelLike;
+  models: { [name: string]: ModelLike };
+}
+
+interface RepositoryLike {
+  has: (name: string) => boolean;
+  register: (ModelClass: any) => void;
+  get: (name: string) => ModelLike;
+  cnx: ConnectionLike;
+  transaction: <T>(fn: (tx: TransactionLike) => Promise<T>) => Promise<T>;
+  models?: { [name: string]: ModelLike };
+}
+
+interface SyncOptions {
+  force?: boolean;
+  dryRun?: boolean;
+}
 /**
  * Model to track registered models and their schema
  */
@@ -17,18 +82,18 @@ class Models {
     dropped_at: { type: 'datetime' },
   };
 
-  write(data) {
+  write(data: AnyMap) {
     data.updated_at = new Date();
     return super.write(data);
   }
-  static async getByName(name) {
+  static async getByName(name: string) {
     const results = await this.query().where('name', name).limit(1);
     return results[0] || null;
   }
 }
 
 // Helper: inline bindings for human-readable SQL
-function inlineBindings(sql, bindings) {
+function inlineBindings(sql: string, bindings: any[]): string {
   if (!bindings || !bindings.length) return sql;
   let i = 0;
   return sql.replace(/\?/g, () => {
@@ -46,11 +111,11 @@ function inlineBindings(sql, bindings) {
  * @param {*} repository
  * @param {*} options
  */
-async function Synchronize(repository, options) {
+async function Synchronize(repository: RepositoryLike, options?: SyncOptions): Promise<string[]> {
   if (!repository.has('$Models')) {
     repository.register(Models);
   }
-  const cnx = repository.cnx;
+  const cnx = repository.cnx as ConnectionLike;
   const exists = await cnx.schema.hasTable(repository.get('$Models').table);
   const force = options?.force || false;
 
@@ -69,10 +134,10 @@ async function Synchronize(repository, options) {
     }
   }
 
-  const sql_statements = [];
+  const sql_statements: string[] = [];
   // sync the Models table schema
-  await repository.transaction(async (transaction) => {
-    const models = {};
+  await repository.transaction(async (transaction: TransactionLike) => {
+    const models: { [name: string]: { schema: any; found: boolean } } = {};
     const schema = await transaction.get('$Models').query().whereNull('dropped_at');
 
     for (const s of schema) {
@@ -83,7 +148,7 @@ async function Synchronize(repository, options) {
     }
 
     // intercept generated SQL statements (attach and remove to avoid listener leaks)
-    const onQuery = function (e) {
+    const onQuery = function (e: any) {
       if (e && e.queryContext) {
         if (e.queryContext.ignore) return;
         if (e.queryContext.model) return;
@@ -126,13 +191,13 @@ async function Synchronize(repository, options) {
         }
       }
       const method = hasTable && !force ? 'table' : 'createTable';
-      const fields = {};
+      const fields: AnyMap = {};
       // synchronize fields
       await transaction.cnx.schema[method](model.table, (table) => {
         if (model.description) {
           table.comment(model.description);
         }
-        for (const field of Object.values(model.fields)) {
+        for (const field of Object.values(model.fields) as FieldLike[]) {
           let colChange = field.buildColumn(
             table,
             schema && !force ? schema.fields[field.name] : null
@@ -147,7 +212,7 @@ async function Synchronize(repository, options) {
           fields[field.name] = field.getMetadata();
         }
       });
-      for (const field of Object.values(model.fields)) {
+      for (const field of Object.values(model.fields) as FieldLike[]) {
         let postIndexChange = await field.buildPostIndex(
           schema && !force ? schema.fields[field.name] : null
         );
@@ -165,7 +230,7 @@ async function Synchronize(repository, options) {
 
       // if anything changed, update the schema record
       if (changed) {
-        const data = {
+        const data: AnyMap = {
           name: name,
           description: model.description || '',
           table: model.table,
