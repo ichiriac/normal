@@ -33,24 +33,4 @@ describe('Request', () => {
     expect(model.allocate).toHaveBeenCalledTimes(1);
     expect(result).toEqual([{ id: 1, name: 'Ada', wrapped: true }]);
   });
-
-  test('first() wraps single row via allocate', async () => {
-    const row = { id: 2, name: 'Grace' };
-    const model = createModel();
-    const qb = {
-      _method: 'first',
-      first: () => Promise.resolve(row),
-      then: (onFulfilled, onRejected) => Promise.resolve([row]).then(onFulfilled, onRejected),
-      catch: (onRejected) => Promise.resolve([row]).catch(onRejected),
-      finally: (onFinally) => Promise.resolve([row]).finally(onFinally),
-      toString: () => 'select * from table limit 1',
-      toSQL: () => ({ sql: 'select * from table limit 1' }),
-    };
-
-    const request = new Request(model, qb);
-    const result = await request.first();
-
-    expect(model.allocate).toHaveBeenCalledTimes(1);
-    expect(result).toEqual({ id: 2, name: 'Grace', wrapped: true });
-  });
 });

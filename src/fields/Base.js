@@ -436,8 +436,8 @@ class Field {
     if (!this.stored) return null;
 
     let changed = false;
-      const prevUnique = metadata && metadata.unique;
-      const prevIndexed = metadata && metadata.index;
+    const prevUnique = metadata && metadata.unique;
+    const prevIndexed = metadata && metadata.index;
 
     if (this.definition.unique) {
       // Flagged as unique, before was just indexed
@@ -463,6 +463,13 @@ class Field {
         changed = true;
       }
     }
+
+    // drop index if no longer indexed
+    if (prevIndexed && !this.definition.index) {
+      table.dropIndex(this.column);
+      changed = true;
+    }
+
     return changed;
   }
 
