@@ -8,17 +8,23 @@ import { IndexManager } from './IndexManager.js';
 
 import { EventEmitter } from 'node:events';
 
+type AnyMap = Record<string, any>;
+
 /**
  * The lookup batching helper.
  */
 class LookupIds {
-  constructor(model) {
+  public model: Model;
+  public ids: AnyMap;
+  private _timeout: any;
+
+  constructor(model: Model) {
     this.model = model;
     this.ids = {};
     this._timeout = null;
   }
 
-  lookup(ids) {
+  lookup(ids: Array<string | number>): Promise<any[]> {
     const results = [];
     const cache = this.model.cache || (this.model.repo && this.model.repo.cache);
     for (const id of ids) {
@@ -30,8 +36,8 @@ class LookupIds {
       if (!this.ids.hasOwnProperty(id)) {
         this.ids[id] = [];
       }
-      let resolve, reject;
-      const found = new Promise((res, rej) => {
+      let resolve: (v: any) => void, reject: (e: any) => void;
+      const found = new Promise<any>((res, rej) => {
         resolve = res;
         reject = rej;
       });
@@ -47,7 +53,7 @@ class LookupIds {
     return Promise.all(results);
   }
 
-  async fetch() {
+  async fetch(): Promise<any[]> {
     if (this._timeout) clearTimeout(this._timeout);
     this._timeout = null;
     let promises = this.ids;
@@ -85,11 +91,34 @@ class LookupIds {
   }
 }
 
-function _inferTable(name) {
+function _inferTable(name: string): string {
   return name.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
 }
 
 class Model {
+  public repo: any;
+  public name: string;
+  public description: string;
+  public table: string;
+  public fields: AnyMap;
+  public cls_init: boolean;
+  public cls: any;
+  public abstract: boolean;
+  public inherited: any[];
+  public mixins: Set<any>;
+  public inherits: string | null;
+  public super: any;
+  public refField: any;
+  public primaryField: any;
+  public cacheTTL: number | null;
+  public cacheInvalidation: boolean;
+  public _cacheInvalidateMs: number;
+  public indexManager: any;
+  public entities: Map<any, any>;
+  public _lookup: LookupIds;
+  public inheritField: any;
+  public columns: string[];
+  public events: EventEmitter;
   /**
    * A model representation.
    * @param {*} repo
@@ -97,7 +126,7 @@ class Model {
    * @param {*} table
    * @param {*} fields
    */
-  constructor(repo, name, table = null) {
+  constructor(repo: any, name: string, table: string | null = null) {
     this.repo = repo;
     this.name = name;
     this.description = '';
@@ -116,6 +145,12 @@ class Model {
     // Cache invalidation flag used to mark models whose cache should be invalidated
     // from record changes
     this.cacheInvalidation = false;
+  // Local (in-process) request-level cache invalidation timestamp.
+  // Mirrors the marker stored in the shared Cache ($ModelName) but protects against
+  // any edge cases where the marker entry might not be visible yet (e.g. timing/order
+  // differences between compiled and source variants under Jest). When > 0, requests
+  // created before this time are treated as expired.
+  this._cacheInvalidateMs = 0;
     this.indexManager = new IndexManager(this);
     this.entities = new Map();
     this._lookup = new LookupIds(this);
@@ -145,7 +180,7 @@ class Model {
    * @param {*} listener
    * @returns
    */
-  on(event, listener) {
+  on(event: string, listener: (...args: any[]) => void) {
     this.events.on(event, listener);
     return this;
   }
@@ -155,7 +190,7 @@ class Model {
    * @param {*} MixinClass
    * @param {*} fields
    */
-  extends(MixinClass) {
+  extends(MixinClass: any) {
     if (this.cls_init) {
       this.cls_init = false; // re-initialize
       this.entities.clear(); // clear existing entities
@@ -253,8 +288,10 @@ class Model {
    * @returns
    */
   invalidateCache() {
+    const now = Date.now();
+    this._cacheInvalidateMs = now;
     if (this.cache) {
-      this.cache.set('$' + this.name, Date.now(), 31_536_000);
+      this.cache.set('$' + this.name, now, 31_536_000);
     }
     return this;
   }
@@ -414,7 +451,7 @@ class Model {
    * @param {*} data
    * @returns
    */
-  allocate(data, ignoreDiscriminator = false) {
+  allocate(data: any, ignoreDiscriminator: boolean = false) {
     if (data instanceof this.cls) {
       return data;
     }
@@ -535,7 +572,7 @@ class Model {
    * @param {*} data
    * @returns
    */
-  async create(data) {
+  async create(data: any) {
     this.checkAbstract();
 
     if (!this.cls_init) this._init();
@@ -551,7 +588,7 @@ class Model {
     }
 
     // prepare data to insert
-    const toInsert = {};
+  const toInsert: AnyMap = {};
     const pre_create = [];
     await data.pre_create();
     await data.pre_validate();
@@ -570,7 +607,7 @@ class Model {
     await Promise.all(pre_create);
 
     // insert record
-    const kx = this.repo.cnx;
+  const kx = this.repo.cnx as any;
     const table = this.table;
     if (!this.inherits) {
       const [id] = await kx(table)
@@ -627,7 +664,7 @@ class Model {
    * Create a new query request.
    * @returns Request
    */
-  query() {
+  query(): Request {
     this._init();
     // @fixme should flush any changes before : this.repo.flush();
     return new Request(this, this.repo.cnx(this.table).queryContext({ model: this }));
@@ -638,7 +675,7 @@ class Model {
    * @param {*} id
    * @returns
    */
-  async findById(id) {
+  async findById(id: any) {
     this._init();
     if (this.entities.has(id)) {
       return this.entities.get(id);
@@ -659,7 +696,7 @@ class Model {
    * @param {*} pk
    * @returns
    */
-  async findByPk(pk) {
+  async findByPk(pk: any) {
     return await this.findById(pk);
   }
 
@@ -668,7 +705,7 @@ class Model {
    * @param  {*} condition
    * @returns
    */
-  where(condition) {
+  where(condition: any): Request {
     const request = this.query();
     applyCriteria(request.queryBuilder, condition, 'and', this);
     return request;
@@ -679,7 +716,7 @@ class Model {
    * @param {*} where
    * @returns
    */
-  firstWhere(where) {
+  firstWhere(where: any): Request {
     this.checkAbstract();
     return this.where(where).first();
   }
@@ -689,7 +726,7 @@ class Model {
    * @param {*} where
    * @returns
    */
-  findOne(where) {
+  findOne(where: any): Request {
     return this.firstWhere(where);
   }
 }
