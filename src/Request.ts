@@ -36,7 +36,7 @@ class Request {
     const wrap = this._shouldWrapResults();
     const cache = this.model.cache;
     if (wrap && cache && this.queryBuilder._cacheTTL != null) {
-      const modelEvictTs = cache.get('$' + this.model.name) || null;
+      const modelEvictTs = this.model._cacheInvalidateMs || cache.get('$' + this.model.name) || null;
       const item = cache.get(this._getRequestKey(), modelEvictTs || undefined);
       if (item) {
         return this._wrapResult(item).then(onFulfilled, onRejected);
