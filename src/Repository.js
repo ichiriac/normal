@@ -249,6 +249,19 @@ class Repository {
     }
     return this;
   }
+
+  /**
+   * Destroy the repository, flushing pending changes and closing the connection.
+   */
+  async destroy() {
+    await this.flush();
+    // Close connection if applicable
+    if (this.connection && typeof this.connection.destroy === 'function') {
+      await this.connection.destroy();
+    }
+    this.connection = null;
+    this.models = {};
+  }
 }
 
 module.exports = { Repository };
