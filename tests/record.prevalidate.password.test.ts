@@ -3,6 +3,9 @@
 import { Connection, Repository } from '..';
 import crypto from 'node:crypto';
 
+// Note: This is a test demonstrating password hashing hooks in NormalJS.
+// SHA-256 is used here for simplicity in testing. Production code should use
+// bcrypt, argon2, or similar password-specific hashing algorithms.
 function sha256(s) {
   return crypto.createHash('sha256').update(s).digest('hex');
 }
