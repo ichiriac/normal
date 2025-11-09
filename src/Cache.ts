@@ -1,4 +1,3 @@
-// @ts-nocheck - TODO: Add proper type annotations
 /**
  * Shared Memory Cache Implementation
  *
@@ -12,25 +11,65 @@
  * cache.set('foo', { bar: 1 }, 60);
  * const val = cache.get('foo'); // => { bar: 1 }
  */
-/**
- * @typedef {Object} CacheOptions
- * @property {boolean} [variableArena] Deprecated, ignored. ArenaStore is always used.
- * @property {number} [memoryBytes=67108864] Arena: total bytes to allocate for the arena
- * @property {number} [blockSize=1024] Arena: block size in bytes used to chain variable-length values
- * @property {number} [dictCapacity=8192] Arena: initial dictionary capacity (number of keys)
- * @property {string|string[]|Array<[string,number]>} [cluster] Cluster peers as "host:port", an array of strings, or [host,port] tuples
- * @property {number} [port=1983] UDP port to listen on for invalidations (alias: listenPort)
- * @property {number} [listenPort=1983] UDP port alias for inbound invalidations
- * @property {number} [sweepIntervalMs=250] Arena: sweep interval in milliseconds for TTL cleanup
- * @property {number} [sweepChecks=512] Arena: number of entries to check per sweep tick
- * @property {boolean} [metrics=true] Enable metrics collection and timing
- * @property {number} [metricsLogIntervalMs] If set, periodically logs metrics every N milliseconds
- */
+interface CacheOptions {
+  enabled?: boolean;
+  variableArena?: boolean; // deprecated, ignored
+  memoryBytes?: number;
+  blockSize?: number;
+  dictCapacity?: number;
+  cluster?: string | string[] | Array<[string, number]>;
+  port?: number;
+  listenPort?: number;
+  sweepIntervalMs?: number;
+  sweepChecks?: number;
+  metrics?: boolean;
+  metricsLogIntervalMs?: number;
+  maxEntries?: number;
+}
 import { ArenaStore } from './cache/ArenaStore';
 import { ClusterTransport, parsePeers } from './cache/Cluster';
 import { CacheMetrics } from './cache/Metrics';
 
+// Structural interfaces for collaborators (minimal surfaces used here)
+interface ArenaStoreLike {
+  put(key: string, value: unknown, ttlSeconds: number): boolean;
+  get(key: string, minCreatedMs?: number): unknown | null;
+  clear(): void;
+  delete(key: string): void;
+  sweep(sampleCount: number): unknown;
+}
+
+interface ClusterTransportLike {
+  queue(key: string): void;
+}
+
+interface CacheMetricsLike {
+  enabled: boolean;
+  setStart(): number;
+  setEnd(t0: number): void;
+  getStart(): number;
+  getHit(t0: number): void;
+  getMiss(t0: number): void;
+  onSweep(res: unknown): void;
+  onUdpFlush(count: number): void;
+  incExpire(): void;
+  snapshot(): Record<string, unknown>;
+  reset(): void;
+}
+
 class SharedMemoryCache {
+  // Public/testing-visible
+  maxEntries?: number;
+  clusterPeers: Array<{ host: string; port: number }>;
+  listenPort: number;
+
+  // Internals
+  private _batchIntervalMs: number;
+  private _metrics: CacheMetricsLike;
+  private arena: ArenaStoreLike;
+  private _cluster: ClusterTransportLike;
+  private _sweepTimer: (NodeJS.Timeout & { unref?: () => void }) | null;
+  private _metricsTimer?: (NodeJS.Timeout & { unref?: () => void });
   /**
    * Create a shared memory cache instance.
    * When {@link CacheOptions.variableArena} is true, uses a variable-length arena store.
@@ -41,30 +80,33 @@ class SharedMemoryCache {
    *
    * @param {CacheOptions} [options]
    */
-  constructor(options = {}) {
+  constructor(options: CacheOptions = {}) {
     // Expose a compatibility property when provided by callers/tests
     // Note: ArenaStore doesn't use fixed max entries; this is retained only for tests/options pass-through.
     this.maxEntries = options.maxEntries;
     // Cluster config
-    this.clusterPeers = parsePeers(options.cluster, options.port || options.listenPort || 1983);
+    this.clusterPeers = parsePeers(
+      options.cluster as any,
+      options.port || options.listenPort || 1983
+    ) as Array<{ host: string; port: number }>;
     this.listenPort = options.port || options.listenPort || 1983;
     this._batchIntervalMs = 500;
 
     // Metrics
-    this._metrics = new CacheMetrics(options.metrics !== false);
+    this._metrics = new CacheMetrics(options.metrics !== false) as unknown as CacheMetricsLike;
 
     // Storage engine: always ArenaStore
     this.arena = new ArenaStore({
       memoryBytes: options.memoryBytes || 64 * 1024 * 1024,
       blockSize: options.blockSize || 1024,
       dictCapacity: options.dictCapacity || 8192,
-    });
+    }) as unknown as ArenaStoreLike;
 
     // Cluster transport (inbound + outbound batching)
     this._cluster = new ClusterTransport({
       listenPort: this.listenPort,
       peers: this.clusterPeers,
-      onKeys: (keys) => {
+  onKeys: (keys: string[]) => {
         for (const k of keys) {
           if (k[0] === '$') {
             // Special re-insert command: $key:ttl:json_value
@@ -82,8 +124,8 @@ class SharedMemoryCache {
         }
       },
       batchIntervalMs: this._batchIntervalMs,
-      onFlush: (count) => this._metrics.onUdpFlush(count),
-    });
+      onFlush: (count: number) => this._metrics.onUdpFlush(count),
+    } as any) as unknown as ClusterTransportLike;
 
     // Background sweeper
     this._sweepTimer = null;
@@ -119,16 +161,18 @@ class SharedMemoryCache {
    * @param {number} [ttl=300] Time to live in seconds (minimum 1s)
    * @returns {boolean} true if stored, false otherwise
    */
-  set(key, value, ttl = 300, broadcast = true) {
+  set(key: string | number, value: unknown, ttl: number = 300, broadcast: boolean = true): boolean {
     const m = this._metrics;
     const t0 = m.setStart();
-    const ok = this.arena.put(String(key), value, Math.max(1, Math.floor(ttl)));
+    const keyStr = String(key);
+    const ok = this.arena.put(keyStr, value, Math.max(1, Math.floor(ttl)));
     if (broadcast && ok) {
-      if (key[0] === '$') {
+      let outKey = keyStr;
+      if (outKey[0] === '$') {
         // Special re-insert command: $key:ttl:json_value
-        key += ':' + ttl + ':' + JSON.stringify(value);
+        outKey += ':' + ttl + ':' + JSON.stringify(value);
       }
-      this._cluster.queue(String(key));
+      this._cluster.queue(outKey);
     }
     m.setEnd(t0);
     return ok;
@@ -142,7 +186,7 @@ class SharedMemoryCache {
    * @param {number} [minCreatedMs] Minimum creation timestamp (ms since epoch)
    * @returns {any|null} Previously stored value or null when missing/expired
    */
-  get(key, minCreatedMs) {
+  get(key: string | number, minCreatedMs?: number): unknown | null {
     const m = this._metrics;
     const t0 = m.getStart();
     const out = this.arena.get(String(key), minCreatedMs);
@@ -159,7 +203,7 @@ class SharedMemoryCache {
    * Does not broadcast to peers.
    * @returns {void}
    */
-  clear() {
+  clear(): void {
     this.arena.clear();
   }
 
@@ -169,7 +213,7 @@ class SharedMemoryCache {
    * @param {boolean} [broadcast=false] When true, enqueue an invalidation message to peers
    * @returns {void}
    */
-  expire(key, broadcast = false) {
+  expire(key: string | number, broadcast: boolean = false): void {
     this._metrics.incExpire();
     this.arena.delete(String(key));
     if (broadcast) this._cluster.queue(String(key));
@@ -179,7 +223,7 @@ class SharedMemoryCache {
    * Capture a snapshot of current metrics counters and timings.
    * @returns {object} Plain object with counters and durations
    */
-  metrics() {
+  metrics(): Record<string, unknown> {
     return this._metrics.snapshot();
   }
 
@@ -187,7 +231,7 @@ class SharedMemoryCache {
    * Reset all metrics counters and timers to zero.
    * @returns {void}
    */
-  resetMetrics() {
+  resetMetrics(): void {
     this._metrics.reset();
   }
 }
