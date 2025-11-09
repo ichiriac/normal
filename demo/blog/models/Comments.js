@@ -10,12 +10,5 @@ class Comments {
     updated_at: { type: 'datetime', default: () => new Date() },
   };
 }
-// Define name property to override readonly built-in
-Object.defineProperty(Comments, 'name', {
-  value: 'Comments',
-  writable: false,
-  enumerable: false,
-  configurable: true,
-});
 
 module.exports = Comments;

@@ -38,12 +38,5 @@ class Users {
     return this.write({ active: false });
   }
 }
-// Define name property to override readonly built-in
-Object.defineProperty(Users, 'name', {
-  value: 'Users',
-  writable: false,
-  enumerable: false,
-  configurable: true,
-});
 
 module.exports = Users;

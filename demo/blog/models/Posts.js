@@ -12,12 +12,4 @@ class Posts {
     comments: { type: 'one-to-many', foreign: 'Comments.post_id' },
   };
 }
-// Define name property to override readonly built-in
-Object.defineProperty(Posts, 'name', {
-  value: 'Posts',
-  writable: false,
-  enumerable: false,
-  configurable: true,
-});
-
 module.exports = Posts;

@@ -8,12 +8,4 @@ class Categories {
   };
 }
 
-// Define name property to override readonly built-in
-Object.defineProperty(Categories, 'name', {
-  value: 'Categories',
-  writable: false,
-  enumerable: false,
-  configurable: true,
-});
-
 module.exports = Categories;

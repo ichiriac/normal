@@ -15,12 +15,4 @@ class Activity {
   };
 }
 
-// Define name property to override readonly built-in
-Object.defineProperty(Activity, 'name', {
-  value: 'Activity',
-  writable: false,
-  enumerable: false,
-  configurable: true,
-});
-
 module.exports = Activity;
