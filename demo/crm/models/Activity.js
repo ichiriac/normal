@@ -1,5 +1,4 @@
 class Activity {
-  static name = 'Activity';
   static table = 'activities';
 
   static fields = {
@@ -16,4 +15,13 @@ class Activity {
   };
 }
 
+// Define name property to override readonly built-in
+Object.defineProperty(Activity, 'name', {
+  value: 'Activity',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = Activity;
+

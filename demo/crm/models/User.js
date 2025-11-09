@@ -1,5 +1,4 @@
 class User {
-  static name = 'User';
   static table = 'users';
   static inherits = 'Contact';
   static mixins = ['MessageMixin'];
@@ -13,4 +12,13 @@ class User {
   };
 }
 
+// Define name property to override readonly built-in
+Object.defineProperty(User, 'name', {
+  value: 'User',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = User;
+

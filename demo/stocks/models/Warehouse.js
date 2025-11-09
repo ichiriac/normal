@@ -1,5 +1,4 @@
 class Warehouse {
-  static name = 'warehouses';
   static table = 'stock_warehouse';
   static fields = {
     id: 'primary',
@@ -12,4 +11,13 @@ class Warehouse {
     return await this.where({ code }).first();
   }
 }
+// Define name property to override readonly built-in
+Object.defineProperty(Warehouse, 'name', {
+  value: 'warehouses',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = Warehouse;
+

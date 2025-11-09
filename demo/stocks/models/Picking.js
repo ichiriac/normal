@@ -1,5 +1,4 @@
 class Picking {
-  static name = 'picking';
   static table = 'stock_picking';
   static fields = {
     id: 'primary',
@@ -27,4 +26,13 @@ class Picking {
     this.lines.forEach((line) => line.cancel());
   }
 }
+// Define name property to override readonly built-in
+Object.defineProperty(Picking, 'name', {
+  value: 'picking',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = Picking;
+

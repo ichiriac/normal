@@ -1,5 +1,4 @@
 class Quotation {
-  static name = 'Quotation';
   static table = 'quotations';
   static mixins = ['MessageMixin', 'ActivityMixin'];
 
@@ -30,4 +29,13 @@ class Quotation {
   }
 }
 
+// Define name property to override readonly built-in
+Object.defineProperty(Quotation, 'name', {
+  value: 'Quotation',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = Quotation;
+

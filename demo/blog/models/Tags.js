@@ -1,5 +1,4 @@
 class Tags {
-  static name = 'Tags';
   static table = 'tags';
   static cache = false;
   static fields = {
@@ -10,4 +9,13 @@ class Tags {
     posts: { type: 'many-to-many', model: 'Posts' },
   };
 }
+// Define name property to override readonly built-in
+Object.defineProperty(Tags, 'name', {
+  value: 'Tags',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = Tags;
+

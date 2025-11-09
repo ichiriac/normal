@@ -1,5 +1,4 @@
 class Comments {
-  static name = 'Comments';
   static table = 'comments';
   static cache = 120;
   static fields = {
@@ -11,4 +10,13 @@ class Comments {
   };
 }
 
+// Define name property to override readonly built-in
+Object.defineProperty(Comments, 'name', {
+  value: 'Comments',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = Comments;
+

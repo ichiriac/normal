@@ -1,5 +1,4 @@
 class MessageMixin {
-  static name = 'MessageMixin';
   static abstract = true;
 
   static fields = {
@@ -29,4 +28,13 @@ class MessageMixin {
   }
 }
 
+// Define name property to override readonly built-in
+Object.defineProperty(MessageMixin, 'name', {
+  value: 'MessageMixin',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = MessageMixin;
+

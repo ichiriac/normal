@@ -1,5 +1,4 @@
 class Queue {
-  static name = 'Queue';
   static table = 'queues';
   static fields = {
     name: { type: 'string', unique: true, required: true },
@@ -33,4 +32,13 @@ class Queue {
   }
 }
 
+// Define name property to override readonly built-in
+Object.defineProperty(Queue, 'name', {
+  value: 'Queue',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = Queue;
+

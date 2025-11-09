@@ -1,5 +1,4 @@
 class Contact {
-  static name = 'Contact';
   static table = 'contacts';
   static mixins = ['MessageMixin', 'ActivityMixin'];
 
@@ -19,4 +18,13 @@ class Contact {
   }
 }
 
+// Define name property to override readonly built-in
+Object.defineProperty(Contact, 'name', {
+  value: 'Contact',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = Contact;
+

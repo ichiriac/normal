@@ -1,5 +1,4 @@
 class ActivityMixin {
-  static name = 'ActivityMixin';
   static abstract = true;
 
   static fields = {
@@ -36,4 +35,13 @@ class ActivityMixin {
   }
 }
 
+// Define name property to override readonly built-in
+Object.defineProperty(ActivityMixin, 'name', {
+  value: 'ActivityMixin',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = ActivityMixin;
+

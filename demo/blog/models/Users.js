@@ -1,5 +1,4 @@
 class Users {
-  static name = 'Users';
   static table = 'users';
   static cache = true;
   static order = [['id', 'desc']];
@@ -39,4 +38,13 @@ class Users {
     return this.write({ active: false });
   }
 }
+// Define name property to override readonly built-in
+Object.defineProperty(Users, 'name', {
+  value: 'Users',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = Users;
+

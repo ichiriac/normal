@@ -1,5 +1,4 @@
 class Posts {
-  static name = 'Posts';
   static table = 'posts';
   static cache = true;
   static fields = {
@@ -13,4 +12,13 @@ class Posts {
     comments: { type: 'one-to-many', foreign: 'Comments.post_id' },
   };
 }
+// Define name property to override readonly built-in
+Object.defineProperty(Posts, 'name', {
+  value: 'Posts',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = Posts;
+

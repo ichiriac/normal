@@ -1,5 +1,4 @@
 class Group {
-  static name = 'Groups';
   static table = 'groups';
   static fields = {
     id: 'primary',
@@ -11,4 +10,13 @@ class Group {
   };
 }
 
+// Define name property to override readonly built-in
+Object.defineProperty(Group, 'name', {
+  value: 'Groups',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = Group;
+

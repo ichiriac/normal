@@ -1,5 +1,4 @@
 class Posts {
-  static name = 'Posts';
   static table = 'posts';
   static cache = 300;
   static fields = {
@@ -12,4 +11,13 @@ class Posts {
   };
 }
 
+// Define name property to override readonly built-in
+Object.defineProperty(Posts, 'name', {
+  value: 'Posts',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = Posts;
+

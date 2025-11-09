@@ -1,5 +1,4 @@
 class Message {
-  static name = 'Message';
   static table = 'messages';
 
   static fields = {
@@ -16,4 +15,13 @@ class Message {
     updated_at: { type: 'timestamp', defaultToNow: true },
   };
 }
+// Define name property to override readonly built-in
+Object.defineProperty(Message, 'name', {
+  value: 'Message',
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
 module.exports = Message;
+
