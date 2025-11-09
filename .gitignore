@@ -5,3 +5,6 @@ build/
 dist/
 .docusaurus/
 .env
+# TypeScript build output
+dist/
+*.tsbuildinfo
