@@ -21,8 +21,8 @@ interface QueryBuilderLike {
 }
 
 class Request {
-  public model: Model;
-  public queryBuilder: QueryBuilderLike;
+  protected model: Model;
+  protected queryBuilder: QueryBuilderLike;
 
   constructor(model: Model, queryBuilder: QueryBuilderLike) {
     this.model = model;
@@ -66,7 +66,7 @@ class Request {
       }
     }
     this._ensureDefaultIdSelect();
-  return this.queryBuilder.then((value: any) => {
+    return this.queryBuilder.then((value: any) => {
       if (!wrap) {
         return onFulfilled ? onFulfilled(value) : value;
       }
@@ -74,7 +74,7 @@ class Request {
         const ttlSec = Math.max(1, this.queryBuilder._cacheTTL);
         cache.set(this._getRequestKey(), value, ttlSec);
       }
-  return this._wrapResult(value).then((wrapped: any) => {
+      return this._wrapResult(value).then((wrapped: any) => {
         if (onFulfilled) {
           return onFulfilled(wrapped);
         }
@@ -127,7 +127,7 @@ class Request {
     return this;
   }
 
-  _shouldWrapResults(): boolean {
+  protected _shouldWrapResults(): boolean {
     const method = this.queryBuilder && this.queryBuilder._method;
     // Default to wrapping unless it's clearly a write operation
     if (!method) return true;
@@ -137,7 +137,7 @@ class Request {
     return true;
   }
 
-  _getRequestKey(): string | undefined {
+  protected _getRequestKey(): string | undefined {
     const qb = this.queryBuilder;
     if (!qb) return;
     const stmts = Array.isArray(qb._statements) ? qb._statements : [];
@@ -145,7 +145,7 @@ class Request {
     return this.model.name + ':' + key;
   }
 
-  _ensureDefaultIdSelect(): void {
+  protected _ensureDefaultIdSelect(): void {
     const qb = this.queryBuilder;
     if (!qb) return;
     const method = qb._method;
@@ -189,7 +189,7 @@ class Request {
     }
   }
 
-  _wrapResult(value: any): Promise<any> {
+  protected _wrapResult(value: any): Promise<any> {
     const wrapRow = (row: any) => {
       if (!this._isWrappableRow(row)) {
         return Promise.resolve(row);
@@ -224,7 +224,7 @@ class Request {
     return wrapRow(value);
   }
 
-  _isWrappableRow(row: any): boolean {
+  protected _isWrappableRow(row: any): boolean {
     if (!row || typeof row !== 'object' || Array.isArray(row)) {
       return false;
     }
