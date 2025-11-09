@@ -3,6 +3,7 @@
  * Model to track registered models and their schema
  */
 class Models {
+  static _name = '$Models';
   static table = 'sys_models';
   static fields = {
     name: { type: 'string', unique: true, required: true },
@@ -25,14 +26,6 @@ class Models {
     return results[0] || null;
   }
 }
-
-// Define the name property using Object.defineProperty to override the readonly built-in
-Object.defineProperty(Models, 'name', {
-  value: '$Models',
-  writable: false,
-  enumerable: false,
-  configurable: true,
-});
 
 // Helper: inline bindings for human-readable SQL
 function inlineBindings(sql, bindings) {
