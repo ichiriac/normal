@@ -1,12 +1,60 @@
-// @ts-nocheck - TODO: Add proper type annotations
+import { Repository } from '../Repository';
+import { Model } from '../Model';
+import { Record as ActiveRecord } from '../Record';
+
+export type ComputeFn = ((this: ActiveRecord) => any) | string | null;
+
+export interface FieldDefinition {
+  type: string;
+  column?: string;
+  stored?: boolean;
+  compute?: ComputeFn;
+  depends?: string[];
+  description?: string | null;
+  required?: boolean;
+  unique?: boolean;
+  index?: boolean;
+  default?: any | (() => any);
+  // Additional extension keys are validated via getMetadata()
+  [key: string]: any;
+}
+
+export interface FieldMetadata {
+  column: string;
+  type: string;
+  stored: boolean;
+  compute: ComputeFn;
+  depends: string[];
+  description: string | null;
+  required: boolean;
+  unique: boolean;
+  index: boolean;
+  default?: any;
+}
 import { EventEmitter } from 'node:events';
 import { selectRootIdsByLeafRecord } from '../utils/dependency';
 
 /**
  * Base class for all field types.
  */
+interface FieldConstructor {
+  new (model: Model, name: string, definition: FieldDefinition): Field;
+}
+
 class Field {
-  static behaviors = {};
+  static behaviors: Record<string, FieldConstructor> = {};
+  model: Model;
+  name: string;
+  definition: FieldDefinition;
+  type: string;
+  column: string;
+  events: EventEmitter;
+  stored: boolean;
+  compute: ComputeFn;
+  depends: string[];
+  triggers: boolean;
+  description: string | null;
+  refModel?: Model;
 
   /**
    * Build a field instance based on its definition.
@@ -15,22 +63,26 @@ class Field {
    * @param {*} definition
    * @returns
    */
-  static define(model, name, definition) {
+  static define(
+    model: Model,
+    name: string,
+    definition: string | Field | FieldDefinition
+  ): Field {
     if (typeof definition === 'string') {
-      definition = { type: definition.toLowerCase() };
+      definition = { type: definition.toLowerCase() } as FieldDefinition;
     }
     if (definition instanceof Field) {
-      definition = definition.definition;
+      definition = (definition as Field).definition;
     }
-    const fieldType = definition.type ? definition.type : null;
-    if (fieldType && Field.behaviors.hasOwnProperty(fieldType)) {
+    const def = definition as FieldDefinition;
+    const fieldType = def.type ? def.type : null;
+    if (fieldType && Object.prototype.hasOwnProperty.call(Field.behaviors, fieldType)) {
       const BehaviorClass = Field.behaviors[fieldType];
-      return new BehaviorClass(model, name, definition);
-    } else {
-      throw new Error(
-        `Unknown field type: ${definition.type} for field ${name} in model ${model.name}`
-      );
+      return new BehaviorClass(model, name, def);
     }
+    throw new Error(
+      `Unknown field type: ${def.type} for field ${name} in model ${model.name}`
+    );
   }
 
   /**
@@ -39,7 +91,7 @@ class Field {
    * @param {*} name
    * @param {*} definition
    */
-  constructor(model, name, definition) {
+  constructor(model: Model, name: string, definition: FieldDefinition) {
     this.model = model;
     this.name = name;
     this.definition = definition;
@@ -77,7 +129,7 @@ class Field {
    * Handle change events on the field.
    * @param {*} listener
    */
-  onChange(listener) {
+  onChange(listener: (...args: any[]) => void): this {
     this.events.on('change', listener);
     this.triggers = true;
     return this;
@@ -87,7 +139,7 @@ class Field {
    * Attach the field to a record prototype.
    * @param {*} proto
    */
-  attach(model, cls) {
+  attach(model: Model, cls: { prototype: any }): void {
     const self = this;
     Object.defineProperty(cls.prototype, this.name, {
       get: function () {
@@ -106,7 +158,7 @@ class Field {
   /**
    * Hook after initializing and attaching fields to the model
    */
-  post_attach() {
+  post_attach(): void {
     // Hook after attaching field to record prototype
     for (const dependency of this.depends) {
       if (typeof dependency !== 'string') {
@@ -115,7 +167,7 @@ class Field {
         );
       }
       const parts = dependency.split('.');
-      let model = this.model;
+  let model: Model | undefined = this.model;
       let path = [];
       for (const part of parts) {
         if (!model) {
@@ -128,24 +180,25 @@ class Field {
             `Field '${part}' for dependency '${dependency}' is not found in model '${model.name}'`
           );
         }
-        if (!model.cls_init) {
+        if (!model.cls_init && model._init) {
           model._init();
         }
         path.push(part);
-        const field = model.fields[part];
+  const field = (model as any).fields[part] as Field;
+        const depPath = path.join('.') + (field.refModel ? '.id' : '');
         field.onChange(
-          async function (path, record) {
-            if (path.indexOf('.') !== -1) {
-              // lookup for related record
-              const result = await selectRootIdsByLeafRecord(this.model, path, record);
-              for (const rec of result) {
-                this.recompute(rec);
+          function (this: Field, record: ActiveRecord) {
+            (async () => {
+              if (depPath.indexOf('.') !== -1) {
+                const result = await selectRootIdsByLeafRecord(this.model, depPath, record);
+                for (const rec of result as ActiveRecord[]) {
+                  this.recompute(rec);
+                }
+              } else {
+                this.recompute(record);
               }
-            } else {
-              // local lookup
-              this.recompute(record);
-            }
-          }.bind(this, path.join('.') + (field.refModel ? '.id' : ''))
+            })();
+          }.bind(this) as any
         );
         if (field.refModel) {
           model = field.refModel;
@@ -158,7 +211,7 @@ class Field {
    * Get the database connection.
    * @returns Knex instance
    */
-  get cnx() {
+  get cnx(): any {
     return this.model.repo.cnx;
   }
 
@@ -166,7 +219,7 @@ class Field {
    * Get the repository.
    * @returns Repository instance
    */
-  get repo() {
+  get repo(): Repository {
     return this.model.repo;
   }
 
@@ -175,7 +228,7 @@ class Field {
    * @param {Record} record
    * @returns
    */
-  recompute(record) {
+  recompute(record: ActiveRecord): any {
     if (!this.compute) {
       throw new Error(`Field ${this.name} is not computed.`);
     }
@@ -184,17 +237,17 @@ class Field {
       : record._data[this.column];
     const computeMethod =
       typeof this.compute === 'string'
-        ? record[this.compute].bind(record)
-        : this.compute.bind(record);
+        ? (record as any)[this.compute].bind(record)
+        : (this.compute as Function).bind(record);
     const computedValue = computeMethod();
 
-    const wrapPromise = (val) => {
+    const wrapPromise = (val: any) => {
       if (this.stored) {
         record._changes[this.column] = val;
       } else {
         record._data[this.column] = val;
       }
-      if (initialValue === undefined && !record.id) return val;
+  if (initialValue === undefined && !(record as any).id) return val;
       if (initialValue !== val) {
         this.events.emit('change', record, this);
       }
@@ -211,7 +264,7 @@ class Field {
    * Validate the field value.
    * @param {Record} record
    */
-  validate(record) {
+  validate(record: ActiveRecord): any {
     const value = this.read(record);
     if (this.definition.required && (value === null || value === undefined)) {
       throw new Error(`Field '${this.name}' is required in model '${this.model.name}'`);
@@ -225,7 +278,7 @@ class Field {
    * @param {*} value
    * @returns
    */
-  write(record, value) {
+  write(record: ActiveRecord, value: any): ActiveRecord {
     if (!this.stored) {
       throw new Error(`Field ${this.name} is computed and cannot be set directly.`);
     }
@@ -245,7 +298,7 @@ class Field {
    * @param {Record} record
    * @returns
    */
-  read(record) {
+  read(record: ActiveRecord): any {
     if (record._changes.hasOwnProperty(this.column)) {
       return record._changes[this.column];
     }
@@ -274,7 +327,7 @@ class Field {
    * @param {*} value
    * @returns
    */
-  isSameType(type) {
+  isSameType(type: string): boolean {
     return this.type === type;
   }
 
@@ -283,7 +336,7 @@ class Field {
    * @param {*} record
    * @returns
    */
-  serialize(record) {
+  serialize(record: ActiveRecord): any {
     return this.read(record);
   }
 
@@ -292,7 +345,7 @@ class Field {
    * @param {*} value
    * @returns
    */
-  toJSON(record) {
+  toJSON(record: ActiveRecord): any {
     return this.serialize(record);
   }
 
@@ -301,12 +354,12 @@ class Field {
    * @param {*} value
    * @returns
    */
-  deserialize(record, value) {
+  deserialize(_record: ActiveRecord, value: any): any {
     return value;
   }
 
   getMetadata() {
-    const meta = {
+  const meta: FieldMetadata = {
       column: this.column,
       type: this.definition.type,
       stored: this.stored,
@@ -330,7 +383,8 @@ class Field {
    * @param {*} table
    * @returns
    */
-  getColumnDefinition(table) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  getColumnDefinition(_table: any): any {
     throw new Error(
       'getColumnDefinition method not implemented for field type ' + this.definition.type
     );
@@ -341,7 +395,7 @@ class Field {
    * @param {*} table
    * @returns
    */
-  getBuilderColumn(table) {
+  getBuilderColumn(table: any): any {
     if (!this.stored) return null;
     const column = this.getColumnDefinition(table);
     if (!column) return null;
@@ -363,7 +417,7 @@ class Field {
    * Method that initializes the database column for this field.
    * @param {*} table
    */
-  buildColumn(table, metadata) {
+  buildColumn(table: any, metadata: any): boolean {
     if (!metadata) {
       return !!this.getBuilderColumn(table);
     }
@@ -379,10 +433,10 @@ class Field {
    * @param {*} metadata
    * @returns
    */
-  isDefChanged(metadata) {
+  isDefChanged(metadata: any): boolean {
     if (!metadata) return true;
     const definition = this.getMetadata();
-    for (let k in definition) {
+  for (let k in definition as any) {
       if (k === 'column') continue;
       if (k === 'default' && typeof definition[k] === 'function') continue;
       if (k === 'index') continue;
@@ -390,7 +444,7 @@ class Field {
       if (k === 'depends') continue;
       if (k === 'description') continue;
 
-      if (JSON.stringify(definition[k]) != JSON.stringify(metadata[k])) {
+      if ((definition as any)[k] !== undefined && JSON.stringify((definition as any)[k]) != JSON.stringify(metadata[k as keyof FieldMetadata])) {
         return true;
       }
     }
@@ -404,19 +458,19 @@ class Field {
    * @param {*} columnCallback
    * @returns
    */
-  async replaceColumn() {
+  async replaceColumn(): Promise<boolean> {
     const mig_suffix = '_mig_tmp';
     const name = this.column;
     const exists = await this.cnx.schema
       .queryContext({ ignore: true })
       .hasColumn(this.model.table, name + mig_suffix);
-    await this.cnx.schema.table(this.model.table, async (table) => {
+    await this.cnx.schema.table(this.model.table, async (table: any) => {
       if (exists) {
         table.dropColumn(name + mig_suffix);
       }
       table.renameColumn(name, name + mig_suffix);
     });
-    await this.cnx.schema.table(this.model.table, async (table) => {
+    await this.cnx.schema.table(this.model.table, async (table: any) => {
       this.getBuilderColumn(table);
     });
 
@@ -433,8 +487,8 @@ class Field {
    * Method that initializes indexes for this field.
    * @param {*} table
    */
-  buildIndex(table, metadata) {
-    if (!this.stored) return null;
+  buildIndex(table: any, metadata: any): boolean {
+    if (!this.stored) return false;
 
     let changed = false;
     const prevUnique = metadata && metadata.unique;
@@ -480,7 +534,7 @@ class Field {
    * @param {*} metadata
    * @returns
    */
-  async buildPostIndex(metadata) {
+  async buildPostIndex(metadata: any): Promise<boolean | null> {
     if (!this.stored) return null;
     if (metadata && this.isDefChanged(metadata)) {
       await this.replaceColumn();
@@ -489,27 +543,27 @@ class Field {
     return false;
   }
 
-  async post_create(record) {
+  async post_create(_record: ActiveRecord): Promise<void> {
     // Hook after record creation
   }
 
-  async pre_create(record) {
+  async pre_create(_record: ActiveRecord): Promise<void> {
     // Hook before record creation
   }
 
-  async pre_update(record) {
+  async pre_update(_record: ActiveRecord): Promise<void> {
     // Hook before record update
   }
 
-  async post_update(record) {
+  async post_update(_record: ActiveRecord): Promise<void> {
     // Hook after record update
   }
 
-  async pre_unlink(record) {
+  async pre_unlink(_record: ActiveRecord): Promise<void> {
     // Hook before record unlinking
   }
 
-  async post_unlink(record) {
+  async post_unlink(_record: ActiveRecord): Promise<void> {
     // Hook after record unlinking
   }
 }
