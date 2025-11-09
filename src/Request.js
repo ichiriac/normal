@@ -32,12 +32,6 @@ class Request {
     });
   }
 
-  async first(...args) {
-    this._ensureDefaultIdSelect();
-    const row = await this.queryBuilder.first(...args);
-    return row ? this.model.allocate(row) : null;
-  }
-
   then(onFulfilled, onRejected) {
     const wrap = this._shouldWrapResults();
     const cache = this.model.cache;
