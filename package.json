@@ -10,6 +10,8 @@
     "prebuild": "rm -rf dist",
     "prepublishOnly": "npm run build",
     "test": "rm -rf dist && tsc && jest --detectOpenHandles",
+    "demo:blog": "rm -rf dist && tsc && node dist/demo/blog-ts/src/index.js",
+    "demo:blog:filters": "rm -rf dist && tsc && node dist/demo/blog-ts/src/relational-filters-demo.js",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --detectOpenHandles",
     "bench": "rm -rf dist && tsc && node demo/cache/bench.js",

@@ -47,6 +47,6 @@
     "incremental": true,
     "tsBuildInfoFile": "./dist/.tsbuildinfo"
   },
-  "include": ["src/**/*.ts", "index.ts", "tests/**/*.ts"],
-  "exclude": ["node_modules", "dist", "coverage", "demo", "docs"]
+  "include": ["src/**/*.ts", "index.ts", "tests/**/*.ts", "demo/blog-ts/src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "coverage", "demo/**", "docs"]
 }
