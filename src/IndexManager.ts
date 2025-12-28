@@ -115,7 +115,9 @@ class IndexManager {
       });
     } else if (typeof indexes === 'object') {
       // Object syntax: { idx_name: { fields: [...], unique: true } }
-      for (const [name, definition] of Object.entries(indexes as Record<string, MergeIndexConfig>)) {
+      for (const [name, definition] of Object.entries(
+        indexes as Record<string, MergeIndexConfig>
+      )) {
         const indexConfig: IndexDefinition = {
           name,
           fields: definition.fields || [],

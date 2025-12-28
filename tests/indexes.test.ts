@@ -416,7 +416,7 @@ describe('Model-level indexes', () => {
     });
 
     test('should warn about FULLTEXT on unsupported databases', async () => {
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
       class Documents {
         static _name = 'Documents';

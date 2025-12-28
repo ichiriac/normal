@@ -30,7 +30,7 @@ class CollectionWrapper {
     }
 
     const row: any = {};
-  row[this.field.left_col] = (this.record as any).id;
+    row[this.field.left_col] = (this.record as any).id;
     row[this.field.right_col] = targetId;
     await this.field.cnx(this.field.joinTable).insert(row);
     this.cache.push(targetId);
@@ -42,7 +42,7 @@ class CollectionWrapper {
   async remove(entityOrId: any): Promise<void> {
     const targetId = typeof entityOrId === 'object' ? entityOrId.id : entityOrId;
     const where: any = {};
-  where[this.field.left_col] = (this.record as any).id;
+    where[this.field.left_col] = (this.record as any).id;
     where[this.field.right_col] = targetId;
     await this.field.cnx(this.field.joinTable).where(where).del();
     this.cache = this.cache.filter((id) => id !== targetId);
@@ -81,7 +81,7 @@ class CollectionWrapper {
    */
   async clear(): Promise<this> {
     const where: any = {};
-  where[this.field.left_col] = (this.record as any).id;
+    where[this.field.left_col] = (this.record as any).id;
     await this.field.cnx(this.field.joinTable).where(where).del();
     this.cache = [];
     return this;

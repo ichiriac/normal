@@ -151,7 +151,7 @@ function extendWith(BaseClass, mixin) {
       }
       const close = i;
       const params = s.slice(open + 1, close);
-      let j = s.indexOf('{', close);
+      const j = s.indexOf('{', close);
       if (j < 0) return null;
       depth = 0;
       let k = j;
@@ -389,7 +389,7 @@ function extendModel(model, mixin) {
         }
         const close = i;
         const params = s.slice(open + 1, close);
-        let j = s.indexOf('{', close);
+        const j = s.indexOf('{', close);
         if (j < 0) return null;
         depth = 0;
         let k = j;

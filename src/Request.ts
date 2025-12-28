@@ -59,7 +59,8 @@ class Request {
     const wrap = this._shouldWrapResults();
     const cache = this.model.cache;
     if (wrap && cache && this.queryBuilder._cacheTTL != null) {
-      const modelEvictTs = this.model._cacheInvalidateMs || cache.get('$' + this.model.name) || null;
+      const modelEvictTs =
+        this.model._cacheInvalidateMs || cache.get('$' + this.model.name) || null;
       const item = cache.get(this._getRequestKey(), modelEvictTs || undefined);
       if (item) {
         return this._wrapResult(item).then(onFulfilled, onRejected);
@@ -231,7 +232,7 @@ class Request {
     if (this.model && (this.model as any).cls && row instanceof (this.model as any).cls) {
       return false;
     }
-    const fields = Object.keys(((this.model as any)?.fields) || {});
+    const fields = Object.keys((this.model as any)?.fields || {});
     if (fields.length === 0) {
       return true;
     }

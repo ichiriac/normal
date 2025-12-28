@@ -198,11 +198,11 @@ async function Synchronize(repository: RepositoryLike, options?: SyncOptions): P
           table.comment(model.description);
         }
         for (const field of Object.values(model.fields) as FieldLike[]) {
-          let colChange = field.buildColumn(
+          const colChange = field.buildColumn(
             table,
             schema && !force ? schema.fields[field.name] : null
           );
-          let indexChange = field.buildIndex(
+          const indexChange = field.buildIndex(
             table,
             schema && !force ? schema.fields[field.name] : null
           );
@@ -213,7 +213,7 @@ async function Synchronize(repository: RepositoryLike, options?: SyncOptions): P
         }
       });
       for (const field of Object.values(model.fields) as FieldLike[]) {
-        let postIndexChange = await field.buildPostIndex(
+        const postIndexChange = await field.buildPostIndex(
           schema && !force ? schema.fields[field.name] : null
         );
         if (postIndexChange) {

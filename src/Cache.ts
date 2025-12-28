@@ -69,7 +69,7 @@ class SharedMemoryCache {
   private arena: ArenaStoreLike;
   private _cluster: ClusterTransportLike;
   private _sweepTimer: (NodeJS.Timeout & { unref?: () => void }) | null;
-  private _metricsTimer?: (NodeJS.Timeout & { unref?: () => void });
+  private _metricsTimer?: NodeJS.Timeout & { unref?: () => void };
   /**
    * Create a shared memory cache instance.
    * When {@link CacheOptions.variableArena} is true, uses a variable-length arena store.
@@ -106,7 +106,7 @@ class SharedMemoryCache {
     this._cluster = new ClusterTransport({
       listenPort: this.listenPort,
       peers: this.clusterPeers,
-  onKeys: (keys: string[]) => {
+      onKeys: (keys: string[]) => {
         for (const k of keys) {
           if (k[0] === '$') {
             // Special re-insert command: $key:ttl:json_value

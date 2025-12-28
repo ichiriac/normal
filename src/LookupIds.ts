@@ -26,7 +26,8 @@ class LookupIds {
       if (!Object.prototype.hasOwnProperty.call(this.ids, id)) {
         this.ids[id] = [];
       }
-      let resolve: (v: any) => void = () => {}, reject: (e: any) => void = () => {};
+      let resolve: (v: any) => void = () => {},
+        reject: (e: any) => void = () => {};
       const found = new Promise<any>((res, rej) => {
         resolve = res;
         reject = rej;

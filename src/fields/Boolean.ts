@@ -14,7 +14,7 @@ class BooleanField extends Field {
   write(record: ActiveRecord, value: any): ActiveRecord {
     return super.write(record, Boolean(value));
   }
-  read(record: ActiveRecord): Boolean | null {
+  read(record: ActiveRecord): boolean | null {
     const value = super.read(record);
     return value === null || value === undefined ? null : Boolean(value);
   }

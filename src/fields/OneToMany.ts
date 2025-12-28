@@ -61,7 +61,7 @@ class OneToMany extends Field {
           where = { ...where, ...(this.definition as any).where };
         }
       }
-  const relatedRecords = (this.refModel as Model).where(where);
+      const relatedRecords = (this.refModel as Model).where(where);
 
       relatedRecords.then((records: any[]) => {
         delete record._changes[this.column];

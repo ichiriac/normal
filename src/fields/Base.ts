@@ -63,11 +63,7 @@ class Field {
    * @param {*} definition
    * @returns
    */
-  static define(
-    model: Model,
-    name: string,
-    definition: string | Field | FieldDefinition
-  ): Field {
+  static define(model: Model, name: string, definition: string | Field | FieldDefinition): Field {
     if (typeof definition === 'string') {
       definition = { type: definition.toLowerCase() } as FieldDefinition;
     }
@@ -80,9 +76,7 @@ class Field {
       const BehaviorClass = Field.behaviors[fieldType];
       return new BehaviorClass(model, name, def);
     }
-    throw new Error(
-      `Unknown field type: ${def.type} for field ${name} in model ${model.name}`
-    );
+    throw new Error(`Unknown field type: ${def.type} for field ${name} in model ${model.name}`);
   }
 
   /**
@@ -115,7 +109,7 @@ class Field {
       }
     }
     const allowed_keys = Object.keys(this.getMetadata());
-    for (let key of Object.keys(definition)) {
+    for (const key of Object.keys(definition)) {
       if (!allowed_keys.includes(key)) {
         throw new Error(
           `Unknown field definition key '${key}' for field '${name}' in model '${model.name}'`
@@ -167,8 +161,8 @@ class Field {
         );
       }
       const parts = dependency.split('.');
-  let model: Model | undefined = this.model;
-      let path = [];
+      let model: Model | undefined = this.model;
+      const path = [];
       for (const part of parts) {
         if (!model) {
           throw new Error(
@@ -184,7 +178,7 @@ class Field {
           model._init();
         }
         path.push(part);
-  const field = (model as any).fields[part] as Field;
+        const field = (model as any).fields[part] as Field;
         const depPath = path.join('.') + (field.refModel ? '.id' : '');
         field.onChange(
           function (this: Field, record: ActiveRecord) {
@@ -247,7 +241,7 @@ class Field {
       } else {
         record._data[this.column] = val;
       }
-  if (initialValue === undefined && !(record as any).id) return val;
+      if (initialValue === undefined && !(record as any).id) return val;
       if (initialValue !== val) {
         this.events.emit('change', record, this);
       }
@@ -359,7 +353,7 @@ class Field {
   }
 
   getMetadata() {
-  const meta: FieldMetadata = {
+    const meta: FieldMetadata = {
       column: this.column,
       type: this.definition.type,
       stored: this.stored,
@@ -436,7 +430,7 @@ class Field {
   isDefChanged(metadata: any): boolean {
     if (!metadata) return true;
     const definition = this.getMetadata();
-  for (let k in definition as any) {
+    for (const k in definition as any) {
       if (k === 'column') continue;
       if (k === 'default' && typeof definition[k] === 'function') continue;
       if (k === 'index') continue;
@@ -444,7 +438,10 @@ class Field {
       if (k === 'depends') continue;
       if (k === 'description') continue;
 
-      if ((definition as any)[k] !== undefined && JSON.stringify((definition as any)[k]) != JSON.stringify(metadata[k as keyof FieldMetadata])) {
+      if (
+        (definition as any)[k] !== undefined &&
+        JSON.stringify((definition as any)[k]) != JSON.stringify(metadata[k as keyof FieldMetadata])
+      ) {
         return true;
       }
     }

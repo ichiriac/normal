@@ -65,12 +65,12 @@ class Model {
     // Cache invalidation flag used to mark models whose cache should be invalidated
     // from record changes
     this.cacheInvalidation = false;
-  // Local (in-process) request-level cache invalidation timestamp.
-  // Mirrors the marker stored in the shared Cache ($ModelName) but protects against
-  // any edge cases where the marker entry might not be visible yet (e.g. timing/order
-  // differences between compiled and source variants under Jest). When > 0, requests
-  // created before this time are treated as expired.
-  this._cacheInvalidateMs = 0;
+    // Local (in-process) request-level cache invalidation timestamp.
+    // Mirrors the marker stored in the shared Cache ($ModelName) but protects against
+    // any edge cases where the marker entry might not be visible yet (e.g. timing/order
+    // differences between compiled and source variants under Jest). When > 0, requests
+    // created before this time are treated as expired.
+    this._cacheInvalidateMs = 0;
     this.indexManager = new IndexManager(this);
     this.entities = new Map();
     this._lookup = new LookupIds(this);
@@ -306,7 +306,7 @@ class Model {
       });
 
       this.columns = [];
-      for (let fieldName of Object.keys(this.fields)) {
+      for (const fieldName of Object.keys(this.fields)) {
         const field = Field.define(this, fieldName, this.fields[fieldName]);
         this.fields[fieldName] = field;
         field.attach(this, this.cls);
@@ -358,7 +358,7 @@ class Model {
       this.indexManager.validate();
 
       // Call post_attach hooks
-      for (let field of Object.values(this.fields)) {
+      for (const field of Object.values(this.fields)) {
         field.post_attach();
       }
 
@@ -508,7 +508,7 @@ class Model {
     }
 
     // prepare data to insert
-  const toInsert: AnyMap = {};
+    const toInsert: AnyMap = {};
     const pre_create = [];
     await data.pre_create();
     await data.pre_validate();
@@ -527,7 +527,7 @@ class Model {
     await Promise.all(pre_create);
 
     // insert record
-  const kx = this.repo.cnx as any;
+    const kx = this.repo.cnx as any;
     const table = this.table;
     if (!this.inherits) {
       const [id] = await kx(table)
@@ -554,7 +554,7 @@ class Model {
       data._flushed = true;
     }
     data._isDirty = false;
-    for (let key in data._changes) {
+    for (const key in data._changes) {
       data._data[key] = data._changes[key];
     }
     data._changes = {};

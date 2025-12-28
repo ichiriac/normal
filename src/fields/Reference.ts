@@ -10,7 +10,11 @@ class Reference extends Field {
   id_column: string;
   models: string[];
 
-  constructor(model: Model, name: string, definition: FieldDefinition & { id_column?: string; models?: string[] }) {
+  constructor(
+    model: Model,
+    name: string,
+    definition: FieldDefinition & { id_column?: string; models?: string[] }
+  ) {
     super(model, name, definition);
     this.id_column = (definition as any).id_column || 'id';
     this.models = (definition as any).models || [];
@@ -48,7 +52,7 @@ class Reference extends Field {
     let changed = false;
     await this.cnx.schema.table(this.model.table, (table: any) => {
       changed = this.buildColumn(table, metadata);
-      let indexChange = this.buildIndex(table, metadata);
+      const indexChange = this.buildIndex(table, metadata);
       if (indexChange) {
         changed = true;
       }

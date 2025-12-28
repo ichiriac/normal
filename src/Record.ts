@@ -47,7 +47,7 @@ class Record {
     if (this._parent) {
       this._parent.sync(data);
     }
-    for (let field of Object.values((this._model as any).fields) as AnyField[]) {
+    for (const field of Object.values((this._model as any).fields) as AnyField[]) {
       let key = field.name;
       if (!data.hasOwnProperty(key)) {
         if (data.hasOwnProperty(field.column)) {
@@ -56,7 +56,8 @@ class Record {
           continue;
         }
       }
-      if (field.column === (this._model as any).primaryField.column && this._data[field.column]) continue;
+      if (field.column === (this._model as any).primaryField.column && this._data[field.column])
+        continue;
       this._data[field.column] = field.deserialize(this, data[key]);
       delete this._changes[field.column];
     }
@@ -118,7 +119,7 @@ class Record {
    */
   toRawJSON(): AnyMap {
     const json: AnyMap = {};
-    for (let key in (this._model as any).fields) {
+    for (const key in (this._model as any).fields) {
       const field = (this._model as any).fields[key];
       const value = field.toJSON(this);
       if (value !== undefined) {
@@ -130,7 +131,8 @@ class Record {
 
   ready(): Promise<this> {
     if (this._isReady === true) return Promise.resolve(this);
-    if (this._isReady === false) return (this._model as any).lookup((this as any).id).then(() => this);
+    if (this._isReady === false)
+      return (this._model as any).lookup((this as any).id).then(() => this);
     return this._isReady as Promise<this>;
   }
 
@@ -205,14 +207,14 @@ class Record {
       const pre_update = [];
       await this.pre_update();
       await this.pre_validate();
-      for (let field of Object.values((this._model as any).fields) as AnyField[]) {
+      for (const field of Object.values((this._model as any).fields) as AnyField[]) {
         pre_update.push(field.pre_update(this));
       }
       await Promise.all(pre_update);
 
       // construct update object
       const update: AnyMap = {};
-      for (let field of Object.values((this._model as any).fields) as AnyField[]) {
+      for (const field of Object.values((this._model as any).fields) as AnyField[]) {
         if (field.stored === false) continue;
         field.validate(this);
         if (this._changes.hasOwnProperty(field.column)) {
@@ -222,12 +224,15 @@ class Record {
 
       // perform update on database
       if (Object.keys(update).length > 0) {
-        await (this._model as any).query().where({ id: (this as any).id }).update(update);
+        await (this._model as any)
+          .query()
+          .where({ id: (this as any).id })
+          .update(update);
       }
 
       // flush changes to record
       this._isDirty = false;
-      for (let key in this._changes) {
+      for (const key in this._changes) {
         this._data[key] = this._changes[key];
       }
       this._changes = {};
@@ -244,7 +249,7 @@ class Record {
 
       // run post hooks
       const post_update = [];
-      for (let key in update) {
+      for (const key in update) {
         post_update.push((this._model as any).fields[key].post_update(this));
       }
       await Promise.all(post_update);
@@ -271,13 +276,16 @@ class Record {
     await this.pre_unlink();
     await this.pre_validate();
     const pre_unlink = [];
-    for (let field of Object.values(model.fields) as AnyField[]) {
+    for (const field of Object.values(model.fields) as AnyField[]) {
       pre_unlink.push(field.pre_unlink(this));
     }
     await Promise.all(pre_unlink);
 
     // delete from database
-    await model.query().where({ id: (this as any).id }).delete();
+    await model
+      .query()
+      .where({ id: (this as any).id })
+      .delete();
     if (this._parent) {
       await this._parent.unlink();
     }
@@ -285,7 +293,7 @@ class Record {
     // run post hooks
     await this.post_unlink();
     const post_unlink = [];
-    for (let field of Object.values(model.fields) as AnyField[]) {
+    for (const field of Object.values(model.fields) as AnyField[]) {
       post_unlink.push(field.post_unlink(this));
     }
     await Promise.all(post_unlink);
@@ -312,7 +320,7 @@ class Record {
    */
   async write(data: AnyMap): Promise<this> {
     if (data) {
-      for (let key in data) {
+      for (const key in data) {
         if ((this._model as any).fields.hasOwnProperty(key)) {
           (this as any)[key] = data[key];
           delete data[key];

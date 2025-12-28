@@ -11,5 +11,4 @@ class Posts {
   };
 }
 
-
 module.exports = Posts;
