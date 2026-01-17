@@ -5,7 +5,7 @@ const sidebars = {
       type: 'category',
       label: 'Getting Started',
       collapsed: false,
-      items: ['index', 'use-cases', 'cookbook'],
+      items: ['index', 'use-cases', 'cookbook', 'adoption-sequelize'],
     },
     {
       type: 'category',

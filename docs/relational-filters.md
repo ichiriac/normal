@@ -251,6 +251,6 @@ const posts = await Posts.where({
 
 ## See Also
 
-- [Query API Documentation](./queries.md)
-- [Model Relationships](./relationships.md)
-- [Filtering Criteria](./criteria.md)
+- [Query API Documentation](./requests.md)
+- [Model Relationships](./models.md)
+- [Filtering Criteria](./filtering.md)

@@ -17,7 +17,7 @@ const config = {
         docs: {
           routeBasePath: '/',
           sidebarPath: require.resolve('./docs/assets/sidebars.js'),
-          editUrl: 'https://github.com/ichiriac/normal/edit/master/',
+          editUrl: 'https://github.com/ichiriac/normaljs/edit/master/',
         },
         blog: false,
         theme: { customCss: require.resolve('./docs/assets/custom.css') },

@@ -1,6 +1,6 @@
 ---
 id: adoption-sequelize
-title: Adoption guide: Sequelize → NormalJS
+title: "Adoption guide: Sequelize → NormalJS"
 ---
 
 This guide helps you migrate an existing Sequelize codebase to NormalJS. It maps the core concepts and shows equivalent code for models, associations, queries, transactions, hooks, and more.
