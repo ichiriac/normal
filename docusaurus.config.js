@@ -4,7 +4,7 @@ const config = {
   title: 'NormalJS ORM',
   tagline: 'Lightweight Node.js ORM with active records on Knex',
   url: 'https://ichiriac.github.io',
-  baseUrl: '/normal/',
+  baseUrl: '/normaljs/',
   favicon: 'img/favicon.ico',
   organizationName: 'ichiriac',
   projectName: 'normal',
@@ -30,7 +30,7 @@ const config = {
       title: 'NormalJS ORM',
       items: [
         { to: '/', label: 'Docs', position: 'left' },
-        { href: 'https://github.com/ichiriac/normal', label: 'GitHub', position: 'right' },
+        { href: 'https://github.com/ichiriac/normaljs', label: 'GitHub', position: 'right' },
       ],
     },
     footer: {
@@ -45,7 +45,7 @@ const config = {
         },
         {
           title: 'Community',
-          items: [{ label: 'GitHub', href: 'https://github.com/ichiriac/normal' }],
+          items: [{ label: 'GitHub', href: 'https://github.com/ichiriac/normaljs' }],
         },
       ],
       copyright: `Copyright © ${new Date().getFullYear()} Normal ORM.`,
